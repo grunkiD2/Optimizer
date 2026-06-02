@@ -16,4 +16,12 @@ public class AppSettings
     public string LastNavigationItem { get; set; } = "Dashboard";
     public bool MinimizeToTray { get; set; } = true;
     public bool StartMinimized { get; set; } = false;
+
+    // Notification toggles
+    public bool NotifyPerformance     { get; set; } = true;
+    public bool NotifyStorage         { get; set; } = true;
+    public bool NotifyHardware        { get; set; } = true;
+    public bool NotifySecurity        { get; set; } = true;
+    public bool NotifyRecommendations { get; set; } = true;
+    public bool NotifyOptimizations   { get; set; } = false;
 }

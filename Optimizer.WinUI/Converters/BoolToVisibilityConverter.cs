@@ -6,8 +6,21 @@ namespace Optimizer.WinUI.Converters;
 public class BoolToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-        => value is bool b && b ? Visibility.Visible : Visibility.Collapsed;
+    {
+        var b = value is bool bv && bv;
+        var invert = parameter is string s && s.Equals("Invert", StringComparison.OrdinalIgnoreCase);
+        if (invert) b = !b;
+
+        // When the target type is bool (e.g. IsEnabled), return the bool directly
+        if (targetType == typeof(bool)) return b;
+
+        return b ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
-        => value is Visibility v && v == Visibility.Visible;
+    {
+        var visible = value is Visibility v && v == Visibility.Visible;
+        var invert  = parameter is string s && s.Equals("Invert", StringComparison.OrdinalIgnoreCase);
+        return invert ? !visible : visible;
+    }
 }

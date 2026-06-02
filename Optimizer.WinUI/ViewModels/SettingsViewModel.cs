@@ -24,6 +24,14 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool minimizeToTray;
     [ObservableProperty] private bool startMinimized;
 
+    // Notification toggles
+    [ObservableProperty] private bool notifyPerformance;
+    [ObservableProperty] private bool notifyStorage;
+    [ObservableProperty] private bool notifyHardware;
+    [ObservableProperty] private bool notifySecurity;
+    [ObservableProperty] private bool notifyRecommendations;
+    [ObservableProperty] private bool notifyOptimizations;
+
     public string CategoryName => "Settings";
     public string CategoryIcon => ""; // Settings gear icon
 
@@ -52,6 +60,14 @@ public partial class SettingsViewModel : ObservableObject
             ConfirmBeforeApply = s.ConfirmBeforeApply;
             MinimizeToTray = s.MinimizeToTray;
             StartMinimized = s.StartMinimized;
+
+            // Notification toggles
+            NotifyPerformance     = s.NotifyPerformance;
+            NotifyStorage         = s.NotifyStorage;
+            NotifyHardware        = s.NotifyHardware;
+            NotifySecurity        = s.NotifySecurity;
+            NotifyRecommendations = s.NotifyRecommendations;
+            NotifyOptimizations   = s.NotifyOptimizations;
 
             // Reflect actual registry state rather than just saved preference
             StartWithWindows = IsAppRegisteredInStartup();
@@ -125,6 +141,48 @@ public partial class SettingsViewModel : ObservableObject
     {
         if (_isLoading) return;
         _settingsService.Settings.StartMinimized = value;
+        _settingsService.Save();
+    }
+
+    partial void OnNotifyPerformanceChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.NotifyPerformance = value;
+        _settingsService.Save();
+    }
+
+    partial void OnNotifyStorageChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.NotifyStorage = value;
+        _settingsService.Save();
+    }
+
+    partial void OnNotifyHardwareChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.NotifyHardware = value;
+        _settingsService.Save();
+    }
+
+    partial void OnNotifySecurityChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.NotifySecurity = value;
+        _settingsService.Save();
+    }
+
+    partial void OnNotifyRecommendationsChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.NotifyRecommendations = value;
+        _settingsService.Save();
+    }
+
+    partial void OnNotifyOptimizationsChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.NotifyOptimizations = value;
         _settingsService.Save();
     }
 

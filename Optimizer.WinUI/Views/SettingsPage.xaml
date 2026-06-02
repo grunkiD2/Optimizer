@@ -93,6 +93,54 @@
                            VerticalAlignment="Center"/>
             </settingsControls:SettingsCard>
 
+            <!-- ── NOTIFICATIONS ──────────────────────────────────────────── -->
+            <TextBlock Text="NOTIFICATIONS"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <settingsControls:SettingsCard Header="Performance Alerts"
+                                           Description="High CPU usage sustained for over 2 minutes">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.NotifyPerformance, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Storage Warnings"
+                                           Description="Drive space above 95% full">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.NotifyStorage, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Hardware Warnings"
+                                           Description="SMART drive failure prediction and CPU thermal alerts (>90°C)">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.NotifyHardware, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Security Alerts"
+                                           Description="Security scan results and threat detections">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.NotifySecurity, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="New Recommendations"
+                                           Description="Notify when new optimization recommendations are available">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.NotifyRecommendations, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Optimization Applied"
+                                           Description="Confirm when an optimization has been successfully applied">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.NotifyOptimizations, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
             <!-- ── DATA ───────────────────────────────────────────────────── -->
             <TextBlock Text="DATA"
                        FontSize="11" FontWeight="SemiBold"

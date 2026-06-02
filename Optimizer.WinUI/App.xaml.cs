@@ -78,6 +78,9 @@ public partial class App : Application
                 services.AddSingleton<IEventLogService, EventLogService>();
                 services.AddSingleton<ICleanupService, CleanupService>();
                 services.AddSingleton<IProfileAutomationService, ProfileAutomationService>();
+                services.AddSingleton<INotificationService, NotificationService>();
+                services.AddSingleton<BackgroundMonitorService>();
+                services.AddSingleton<IReportService, ReportService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
@@ -95,6 +98,7 @@ public partial class App : Application
                 services.AddTransient<UpdatesViewModel>();
                 services.AddTransient<SecurityViewModel>();
                 services.AddTransient<EventLogsViewModel>();
+                services.AddTransient<ReportsViewModel>();
                 services.AddSingleton<SettingsViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)
@@ -153,6 +157,10 @@ public partial class App : Application
 
             // Start smart profile automation
             GetService<IProfileAutomationService>().Start();
+
+            // Register and start background monitor + toast notifications
+            Microsoft.Windows.AppNotifications.AppNotificationManager.Default.Register();
+            GetService<BackgroundMonitorService>().Start();
 
             // Honor StartMinimized — hide window immediately after activation
             if (settings.Settings.StartMinimized)
