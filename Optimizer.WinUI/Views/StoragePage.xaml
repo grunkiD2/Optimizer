@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Optimizer.WinUI.Controls"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
+    xmlns:svc="using:Optimizer.WinUI.Services"
     xmlns:models="using:Optimizer.WinUI.Models"
     xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent"
@@ -16,6 +17,7 @@
             <StackPanel.Resources>
                 <converters:HealthScoreToColorConverter x:Key="HealthScoreToColor"/>
                 <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+                <converters:BytesToStringConverter x:Key="BytesToString"/>
             </StackPanel.Resources>
 
             <!-- ── Page header ──────────────────────────────────────────── -->
@@ -85,16 +87,157 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Placeholder -->
+                <!-- Total Recoverable -->
                 <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Cache" FontSize="12" Foreground="#34D399"/>
-                        <TextBlock Text="Windows" FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
-                        <TextBlock Text="update cache" FontSize="11"
+                        <TextBlock Text="Recoverable" FontSize="12" Foreground="#34D399"/>
+                        <TextBlock Text="{x:Bind ViewModel.TotalRecoverableText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
+                        <TextBlock Text="cleanup selected" FontSize="11"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!--  SMART CLEANUP                                             -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="SMART CLEANUP"
+                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="100"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Content="Scan"
+                            Command="{x:Bind ViewModel.ScanCleanupCommand}"
+                            IsEnabled="{x:Bind ViewModel.IsNotScanningCleanup, Mode=OneWay}"/>
+                    <Button Content="Clean Selected"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.CleanSelectedCommand}"
+                            IsEnabled="{x:Bind ViewModel.IsNotScanningCleanup, Mode=OneWay}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Cleanup progress -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{x:Bind ViewModel.IsScanningCleanup, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+            <TextBlock Text="{x:Bind ViewModel.CleanupProgress, Mode=OneWay}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Visibility="{x:Bind ViewModel.HasCleanupProgress, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- Cleanup category list -->
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.CleanupCategories, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="4"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="svc:CleanupCategory">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8" Padding="14,10"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox Grid.Column="0"
+                                          IsChecked="{x:Bind Selected, Mode=TwoWay}"
+                                          VerticalAlignment="Center"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontSize="13"/>
+                                    <TextBlock Text="{x:Bind Description}" FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+
+                                <Border Grid.Column="2" CornerRadius="4" Padding="10,4" VerticalAlignment="Center"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" FontFamily="Consolas"
+                                               Text="{x:Bind SizeBytes, Converter={StaticResource BytesToString}}"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!--  LARGE FILES FINDER                                        -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="LARGE FILES FINDER"
+                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="100"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+                <Button Grid.Column="1"
+                        Content="Scan System Drive"
+                        Command="{x:Bind ViewModel.ScanLargeFilesCommand}"
+                        IsEnabled="{x:Bind ViewModel.IsNotScanningLargeFiles, Mode=OneWay}"/>
+            </Grid>
+
+            <!-- Large files progress -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{x:Bind ViewModel.IsScanningLargeFiles, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+            <TextBlock Text="{x:Bind ViewModel.LargeFilesProgress, Mode=OneWay}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Visibility="{x:Bind ViewModel.HasLargeFilesProgress, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- Large files list -->
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.LargeFiles, Mode=OneWay}"
+                           Visibility="{x:Bind ViewModel.HasLargeFiles, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="4"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="svc:LargeFile">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8" Padding="14,10"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind FileName}" FontWeight="SemiBold" FontSize="13"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{x:Bind FullPath}" FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <Border Grid.Column="1" CornerRadius="4" Padding="10,4" VerticalAlignment="Center"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" FontFamily="Consolas"
+                                               Text="{x:Bind SizeBytes, Converter={StaticResource BytesToString}}"/>
+                                </Border>
+
+                                <Button Grid.Column="2"
+                                        Content="Open Location"
+                                        VerticalAlignment="Center"
+                                        Click="LargeFileOpenLocation_Click"
+                                        Tag="{x:Bind FullPath}"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
 
             <!-- ── Disk Health ──────────────────────────────────────────── -->
             <TextBlock Text="DISK HEALTH" FontSize="11" FontWeight="SemiBold"

@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
@@ -21,7 +22,7 @@ public sealed partial class ProfilesPage : Page
     private void Page_Loaded(object sender, RoutedEventArgs e)
     {
         ViewModel.Load();
-        UpdateEmptyState();
+        UpdateEmptyStates();
     }
 
     // ── Presets ────────────────────────────────────────────────────────────
@@ -46,7 +47,7 @@ public sealed partial class ProfilesPage : Page
             if (snapshot is not null)
             {
                 await ViewModel.ApplySnapshotCommand.ExecuteAsync(snapshot);
-                UpdateEmptyState();
+                UpdateEmptyStates();
             }
         }
     }
@@ -70,7 +71,7 @@ public sealed partial class ProfilesPage : Page
             if (await dialog.ShowAsync() == ContentDialogResult.Primary)
             {
                 await ViewModel.UpdateSnapshotCommand.ExecuteAsync(snapshot);
-                UpdateEmptyState();
+                UpdateEmptyStates();
             }
         }
     }
@@ -94,7 +95,7 @@ public sealed partial class ProfilesPage : Page
             if (await dialog.ShowAsync() == ContentDialogResult.Primary)
             {
                 ViewModel.DeleteSnapshotCommand.Execute(snapshot);
-                UpdateEmptyState();
+                UpdateEmptyStates();
             }
         }
     }
@@ -138,7 +139,7 @@ public sealed partial class ProfilesPage : Page
             if (!string.IsNullOrEmpty(name))
             {
                 await ViewModel.SaveSnapshotCommand.ExecuteAsync(name);
-                UpdateEmptyState();
+                UpdateEmptyStates();
             }
         }
     }
@@ -153,12 +154,11 @@ public sealed partial class ProfilesPage : Page
             };
             picker.FileTypeFilter.Add(".json");
 
-            // WinUI 3 requires an HWND to be associated before showing the picker.
             var hwnd = WindowNative.GetWindowHandle(App.GetService<MainWindow>());
             InitializeWithWindow.Initialize(picker, hwnd);
 
             var file = await picker.PickSingleFileAsync();
-            if (file is null) return;   // user cancelled — not an error
+            if (file is null) return;
 
             string json;
             try
@@ -171,7 +171,6 @@ public sealed partial class ProfilesPage : Page
                 return;
             }
 
-            // Basic JSON validation before handing off to the service.
             if (string.IsNullOrWhiteSpace(json) || (!json.TrimStart().StartsWith('[') && !json.TrimStart().StartsWith('{')))
             {
                 await ShowErrorDialogAsync("Import Failed", "The selected file does not appear to be a valid JSON profile export.");
@@ -179,9 +178,8 @@ public sealed partial class ProfilesPage : Page
             }
 
             await ViewModel.ImportCommand.ExecuteAsync(file.Path);
-            UpdateEmptyState();
+            UpdateEmptyStates();
 
-            // If the ViewModel set an error status, surface it as a dialog too.
             if (ViewModel.StatusMessage.StartsWith("Import failed", StringComparison.OrdinalIgnoreCase))
             {
                 await ShowErrorDialogAsync("Import Failed", ViewModel.StatusMessage);
@@ -211,13 +209,163 @@ public sealed partial class ProfilesPage : Page
         await ViewModel.ExportCommand.ExecuteAsync(null);
     }
 
+    // ── Automation Rules ──────────────────────────────────────────────────
+
+    private async void AddRule_Click(object sender, RoutedEventArgs e)
+    {
+        // Rule name
+        var nameBox = new TextBox { PlaceholderText = "Rule name (e.g. Gaming Mode)", MinWidth = 260 };
+
+        // Trigger type
+        var triggerCombo = new ComboBox
+        {
+            MinWidth = 160,
+            SelectedIndex = 0
+        };
+        triggerCombo.Items.Add("Time Range");
+        triggerCombo.Items.Add("Process Running");
+
+        // Profile ID
+        var profileBox = new TextBox { PlaceholderText = "Profile ID (e.g. gaming)" };
+
+        // Profile name display
+        var profileNameBox = new TextBox { PlaceholderText = "Profile display name" };
+
+        // Time fields
+        var startBox = new TextBox { PlaceholderText = "Start time (HH:MM, e.g. 22:00)", Width = 200 };
+        var endBox = new TextBox { PlaceholderText = "End time (HH:MM, e.g. 06:00)", Width = 200 };
+
+        // Process field
+        var processBox = new TextBox { PlaceholderText = "Process name (e.g. obs64.exe)", Width = 260 };
+
+        var timePanel = new StackPanel { Spacing = 6 };
+        timePanel.Children.Add(new TextBlock { Text = "Time range:", FontSize = 12 });
+        timePanel.Children.Add(startBox);
+        timePanel.Children.Add(endBox);
+
+        var processPanel = new StackPanel { Spacing = 6, Visibility = Visibility.Collapsed };
+        processPanel.Children.Add(new TextBlock { Text = "Process name:", FontSize = 12 });
+        processPanel.Children.Add(processBox);
+
+        triggerCombo.SelectionChanged += (_, _) =>
+        {
+            timePanel.Visibility = triggerCombo.SelectedIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+            processPanel.Visibility = triggerCombo.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        };
+
+        var formPanel = new StackPanel { Spacing = 10, MinWidth = 280 };
+        formPanel.Children.Add(new TextBlock { Text = "Rule Name:", FontSize = 12 });
+        formPanel.Children.Add(nameBox);
+        formPanel.Children.Add(new TextBlock { Text = "Trigger:", FontSize = 12 });
+        formPanel.Children.Add(triggerCombo);
+        formPanel.Children.Add(timePanel);
+        formPanel.Children.Add(processPanel);
+        formPanel.Children.Add(new TextBlock { Text = "Target Profile ID:", FontSize = 12 });
+        formPanel.Children.Add(profileBox);
+        formPanel.Children.Add(new TextBlock { Text = "Profile Display Name:", FontSize = 12 });
+        formPanel.Children.Add(profileNameBox);
+
+        var dialog = new ContentDialog
+        {
+            Title = "Add Auto-Switching Rule",
+            Content = new ScrollViewer { Content = formPanel, MaxHeight = 480 },
+            PrimaryButtonText = "Add",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot
+        };
+
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+        var ruleName = nameBox.Text.Trim();
+        if (string.IsNullOrEmpty(ruleName)) return;
+
+        var rule = new ProfileRule
+        {
+            Name = ruleName,
+            ProfileId = profileBox.Text.Trim(),
+            ProfileName = profileNameBox.Text.Trim(),
+            Trigger = triggerCombo.SelectedIndex == 0 ? RuleTrigger.TimeRange : RuleTrigger.ProcessRunning
+        };
+
+        if (rule.Trigger == RuleTrigger.TimeRange)
+        {
+            rule.StartTime = TryParseTime(startBox.Text);
+            rule.EndTime = TryParseTime(endBox.Text);
+        }
+        else
+        {
+            rule.ProcessName = processBox.Text.Trim();
+        }
+
+        await ViewModel.AddRuleAsync(rule);
+        UpdateEmptyStates();
+    }
+
+    private async void RuleDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string ruleId)
+        {
+            var rule = ViewModel.AutomationRules.FirstOrDefault(r => r.Id == ruleId);
+            if (rule is null) return;
+
+            var dialog = new ContentDialog
+            {
+                Title = "Delete Rule",
+                Content = $"Delete rule \"{rule.Name}\"?",
+                PrimaryButtonText = "Delete",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = XamlRoot
+            };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                await ViewModel.DeleteRuleCommand.ExecuteAsync(rule);
+                UpdateEmptyStates();
+            }
+        }
+    }
+
+    private async void RuleToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton btn && btn.Tag is string ruleId)
+        {
+            var rule = ViewModel.AutomationRules.FirstOrDefault(r => r.Id == ruleId);
+            if (rule is not null)
+                await ViewModel.ToggleRuleCommand.ExecuteAsync(rule);
+        }
+    }
+
+    private void RuleDetail_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not TextBlock tb || tb.Tag is not string ruleId) return;
+        var rule = ViewModel.AutomationRules.FirstOrDefault(r => r.Id == ruleId);
+        if (rule is null) return;
+
+        tb.Text = rule.Trigger == RuleTrigger.TimeRange
+            ? $"{rule.StartTime:hh\\:mm} – {rule.EndTime:hh\\:mm}"
+            : $"When process running: {rule.ProcessName}";
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
-    private void UpdateEmptyState()
+    private void UpdateEmptyStates()
     {
         if (SnapshotsEmptyState is not null)
             SnapshotsEmptyState.Visibility = ViewModel.Snapshots.Count == 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+        if (RulesEmptyState is not null)
+            RulesEmptyState.Visibility = ViewModel.AutomationRules.Count == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+    }
+
+    private static TimeSpan TryParseTime(string input)
+    {
+        if (TimeSpan.TryParseExact(input.Trim(), @"hh\:mm", null, out var ts)) return ts;
+        if (TimeSpan.TryParseExact(input.Trim(), @"h\:mm", null, out ts)) return ts;
+        return TimeSpan.Zero;
     }
 }

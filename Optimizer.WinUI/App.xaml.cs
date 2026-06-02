@@ -76,6 +76,8 @@ public partial class App : Application
                 services.AddSingleton<ISecurityService, SecurityService>();
                 services.AddSingleton<INetworkSpeedTestService, NetworkSpeedTestService>();
                 services.AddSingleton<IEventLogService, EventLogService>();
+                services.AddSingleton<ICleanupService, CleanupService>();
+                services.AddSingleton<IProfileAutomationService, ProfileAutomationService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
@@ -148,6 +150,9 @@ public partial class App : Application
             // Initialize system tray icon
             var trayService = GetService<ITrayIconService>();
             trayService.Initialize(_window);
+
+            // Start smart profile automation
+            GetService<IProfileAutomationService>().Start();
 
             // Honor StartMinimized — hide window immediately after activation
             if (settings.Settings.StartMinimized)

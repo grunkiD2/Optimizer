@@ -235,6 +235,116 @@
                 </StackPanel>
             </Border>
 
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!--  AUTO-SWITCHING RULES                                      -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="AUTO-SWITCHING RULES"
+                               FontSize="11" FontWeight="SemiBold" CharacterSpacing="100"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock FontSize="11"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                        <Run Text="{x:Bind ViewModel.RuleCount, Mode=OneWay}"/>
+                        <Run Text=" active rules — checked every 15 seconds"/>
+                    </TextBlock>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="Add Rule"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Click="AddRule_Click"/>
+            </Grid>
+
+            <!-- Rules list -->
+            <ItemsRepeater x:Name="RulesRepeater"
+                           ItemsSource="{x:Bind ViewModel.AutomationRules, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="4"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:ProfileRule">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8" Padding="16,10"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Rule info -->
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Name}"
+                                               FontWeight="SemiBold" FontSize="13"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Border CornerRadius="4" Padding="6,2"
+                                                Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                            <TextBlock Text="{x:Bind Trigger}"
+                                                       FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="#60A5FA"/>
+                                        </Border>
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   VerticalAlignment="Center">
+                                            <Run Text="Apply: "/>
+                                            <Run Text="{x:Bind ProfileName}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBlock x:Name="RuleDetail"
+                                               FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               Tag="{x:Bind Id}"
+                                               Loaded="RuleDetail_Loaded"/>
+                                </StackPanel>
+
+                                <!-- Enabled toggle -->
+                                <ToggleButton Grid.Column="1"
+                                              Content="{x:Bind IsEnabled, Mode=OneWay}"
+                                              IsChecked="{x:Bind IsEnabled, Mode=OneWay}"
+                                              VerticalAlignment="Center"
+                                              Click="RuleToggle_Click"
+                                              Tag="{x:Bind Id}"/>
+
+                                <!-- Delete -->
+                                <Button Grid.Column="2"
+                                        Content="Delete"
+                                        VerticalAlignment="Center"
+                                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                        Click="RuleDelete_Click"
+                                        Tag="{x:Bind Id}"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <!-- Empty state for rules -->
+            <Border x:Name="RulesEmptyState"
+                    CornerRadius="8" Padding="24,20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed">
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <TextBlock Text="No automation rules configured"
+                               FontSize="14" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Click &quot;Add Rule&quot; to automatically switch profiles based on time or running processes."
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

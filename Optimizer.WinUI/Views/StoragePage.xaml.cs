@@ -57,4 +57,14 @@ public sealed partial class StoragePage : Page
         _toggleHandlers[id] = handler;
         card.Toggled += handler;
     }
+
+    private void LargeFileOpenLocation_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string fullPath)
+        {
+            var file = ViewModel.LargeFiles.FirstOrDefault(f => f.FullPath == fullPath);
+            if (file is not null)
+                StorageCategoryViewModel.OpenInExplorer(file);
+        }
+    }
 }

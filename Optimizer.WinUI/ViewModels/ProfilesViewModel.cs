@@ -9,6 +9,7 @@ namespace Optimizer.WinUI.ViewModels;
 public partial class ProfilesViewModel : ObservableObject
 {
     private readonly ProfileService _profileService;
+    private readonly IProfileAutomationService _automationService;
 
     [ObservableProperty] private bool isBusy;
 
@@ -20,17 +21,20 @@ public partial class ProfilesViewModel : ObservableObject
 
     public ObservableCollection<SettingsProfile> Presets { get; } = [];
     public ObservableCollection<SettingsProfile> Snapshots { get; } = [];
+    public ObservableCollection<ProfileRule> AutomationRules { get; } = [];
 
     public string CategoryName => "Profiles";
-    public string CategoryIcon => "📋";   // Page icon (Segoe Fluent)
+    public string CategoryIcon => "📋";
 
     public int PresetCount => Presets.Count;
     public int SnapshotCount => Snapshots.Count;
     public bool NoPresets => Presets.Count == 0;
+    public int RuleCount => AutomationRules.Count;
 
-    public ProfilesViewModel(ProfileService profileService)
+    public ProfilesViewModel(ProfileService profileService, IProfileAutomationService automationService)
     {
         _profileService = profileService;
+        _automationService = automationService;
     }
 
     /// <summary>Called by the page on Loaded — reloads both lists from the service.</summary>
@@ -44,9 +48,14 @@ public partial class ProfilesViewModel : ObservableObject
         foreach (var s in _profileService.Snapshots)
             Snapshots.Add(s);
 
+        AutomationRules.Clear();
+        foreach (var r in _automationService.Rules)
+            AutomationRules.Add(r);
+
         OnPropertyChanged(nameof(PresetCount));
         OnPropertyChanged(nameof(SnapshotCount));
         OnPropertyChanged(nameof(NoPresets));
+        OnPropertyChanged(nameof(RuleCount));
     }
 
     // ── Presets ────────────────────────────────────────────────────────────
@@ -200,6 +209,38 @@ public partial class ProfilesViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    // ── Automation Rules ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Add a new rule. Called from the page after the user fills the dialog.
+    /// </summary>
+    public async Task AddRuleAsync(ProfileRule rule)
+    {
+        await _automationService.AddRuleAsync(rule);
+        AutomationRules.Add(rule);
+        OnPropertyChanged(nameof(RuleCount));
+        SetStatus($"Rule \"{rule.Name}\" added.");
+    }
+
+    [RelayCommand]
+    public async Task DeleteRuleAsync(ProfileRule rule)
+    {
+        if (rule is null) return;
+        await _automationService.DeleteRuleAsync(rule.Id);
+        AutomationRules.Remove(rule);
+        OnPropertyChanged(nameof(RuleCount));
+        SetStatus($"Rule \"{rule.Name}\" deleted.");
+    }
+
+    [RelayCommand]
+    public async Task ToggleRuleAsync(ProfileRule rule)
+    {
+        if (rule is null) return;
+        rule.IsEnabled = !rule.IsEnabled;
+        await _automationService.UpdateRuleAsync(rule);
+        SetStatus($"Rule \"{rule.Name}\" {(rule.IsEnabled ? "enabled" : "disabled")}.");
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
