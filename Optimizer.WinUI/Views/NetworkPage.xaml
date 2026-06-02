@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Optimizer.WinUI.Controls"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
+    xmlns:services="using:Optimizer.WinUI.Services"
     Background="Transparent"
     Loaded="Page_Loaded">
 
@@ -86,6 +87,62 @@
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <!-- ── DNS Configuration ───────────────────────────────────── -->
+            <TextBlock Text="DNS CONFIGURATION"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,16,0,8"/>
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16" Margin="0,0,0,8"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Current DNS" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind ViewModel.CurrentDns, Mode=OneWay}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Flush Cache" Click="FlushDns_Click"/>
+                        <Button Grid.Column="2" Content="Reset to ISP" Click="ResetDns_Click"/>
+                    </Grid>
+
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.DnsPresets}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="280" MinItemHeight="80"
+                                               MinColumnSpacing="8" MinRowSpacing="8"/>
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="services:DnsServerPreset">
+                                <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                        CornerRadius="6" Padding="12,10"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{x:Bind Description}" FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <Grid ColumnSpacing="8" Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind Primary}" FontFamily="Consolas" FontSize="11"/>
+                                            <Button Grid.Column="1" Content="APPLY" Style="{ThemeResource AccentButtonStyle}"
+                                                    Click="ApplyDns_Click" Tag="{x:Bind Id}" MinWidth="60"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
 
             <!-- ── Optimization cards ───────────────────────────────────── -->
             <TextBlock Text="Optimizations"

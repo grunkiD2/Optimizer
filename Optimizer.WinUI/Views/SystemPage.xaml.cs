@@ -20,8 +20,21 @@ public sealed partial class SystemPage : Page
         InitializeComponent();
     }
 
-    private void Page_Loaded(object sender, RoutedEventArgs e)
-        => ViewModel.Load();
+    private async void Page_Loaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Load();
+        await ViewModel.LoadPrivacyAsync();
+    }
+
+    private async void PrivacyToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch toggle && toggle.Tag is string id)
+        {
+            var setting = ViewModel.PrivacySettings.FirstOrDefault(s => s.Id == id);
+            if (setting != null && setting.IsPrivacyFriendly != toggle.IsOn)
+                await ViewModel.ToggleAsync(setting, toggle.IsOn);
+        }
+    }
 
     private void OptimizationCard_Loaded(object sender, RoutedEventArgs e)
     {

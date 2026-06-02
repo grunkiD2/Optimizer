@@ -52,6 +52,8 @@ public partial class App : Application
                 services.AddSingleton<IWindowsOptimizerService, WindowsOptimizerService>();
 
                 // New services
+                services.AddSingleton<INetworkConfigService, NetworkConfigService>();
+                services.AddSingleton<IPrivacyService, PrivacyService>();
                 services.AddSingleton<IThemeService, ThemeService>();
                 services.AddSingleton<NavigationService>();
                 services.AddSingleton<SettingsService>();

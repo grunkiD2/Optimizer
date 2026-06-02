@@ -20,8 +20,27 @@ public sealed partial class NetworkPage : Page
         InitializeComponent();
     }
 
-    private void Page_Loaded(object sender, RoutedEventArgs e)
-        => ViewModel.Load();
+    private async void Page_Loaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Load();
+        await ViewModel.LoadDnsAsync();
+    }
+
+    private async void ApplyDns_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string id)
+        {
+            var preset = ViewModel.DnsPresets.FirstOrDefault(p => p.Id == id);
+            if (preset != null)
+                await ViewModel.ApplyDnsPresetCommand.ExecuteAsync(preset);
+        }
+    }
+
+    private async void ResetDns_Click(object sender, RoutedEventArgs e)
+        => await ViewModel.ResetDnsCommand.ExecuteAsync(null);
+
+    private async void FlushDns_Click(object sender, RoutedEventArgs e)
+        => await ViewModel.FlushDnsCacheCommand.ExecuteAsync(null);
 
     private void OptimizationCard_Loaded(object sender, RoutedEventArgs e)
     {
