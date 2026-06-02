@@ -1,4 +1,3 @@
-using System.Management;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -9,17 +8,23 @@ public class SmartInsightsService : ISmartInsightsService
     private readonly IHardwareInfoService _hardware;
     private readonly IServiceManagerService _services;
     private readonly ISystemMonitorService _monitor;
+    private readonly IWmiQueryService _wmi;
+
+    private static readonly TimeSpan BatteryTtl = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan GpuDriverTtl = TimeSpan.FromMinutes(5);
 
     public SmartInsightsService(
         ISensorService sensors,
         IHardwareInfoService hardware,
         IServiceManagerService services,
-        ISystemMonitorService monitor)
+        ISystemMonitorService monitor,
+        IWmiQueryService wmi)
     {
         _sensors = sensors;
         _hardware = hardware;
         _services = services;
         _monitor = monitor;
+        _wmi = wmi;
     }
 
     public async Task<IReadOnlyList<SmartInsight>> GenerateAsync()
@@ -46,28 +51,29 @@ public class SmartInsightsService : ISmartInsightsService
         // ── 2. Battery health ─────────────────────────────────────────────────
         try
         {
-            using var s = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
-            var battery = s.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (battery != null)
+            var batteries = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_Battery",
+                obj => (
+                    Designed: Convert.ToInt32(obj["DesignCapacity"] ?? 0),
+                    Full: Convert.ToInt32(obj["FullChargeCapacity"] ?? 0)),
+                cacheTtl: BatteryTtl);
+
+            var battery = batteries.FirstOrDefault();
+            if (battery != default && battery.Designed > 0 && battery.Full > 0)
             {
-                var designed = Convert.ToInt32(battery["DesignCapacity"] ?? 0);
-                var full = Convert.ToInt32(battery["FullChargeCapacity"] ?? 0);
-                if (designed > 0 && full > 0)
+                var healthPct = 100.0 * battery.Full / battery.Designed;
+                if (healthPct < 80)
                 {
-                    var healthPct = 100.0 * full / designed;
-                    if (healthPct < 80)
+                    insights.Add(new SmartInsight
                     {
-                        insights.Add(new SmartInsight
-                        {
-                            Id = "battery-health",
-                            Title = "Battery is showing wear",
-                            Body = $"Your battery's full-charge capacity is {healthPct:F0}% of its original design " +
-                                   "capacity. Consider replacement when it drops below 70%.",
-                            SupportingDataText = $"{full} mWh / {designed} mWh designed ({healthPct:F0}%)",
-                            Category = FindingCategory.Hardware,
-                            GeneratedAt = now
-                        });
-                    }
+                        Id = "battery-health",
+                        Title = "Battery is showing wear",
+                        Body = $"Your battery's full-charge capacity is {healthPct:F0}% of its original design " +
+                               "capacity. Consider replacement when it drops below 70%.",
+                        SupportingDataText = $"{battery.Full} mWh / {battery.Designed} mWh designed ({healthPct:F0}%)",
+                        Category = FindingCategory.Hardware,
+                        GeneratedAt = now
+                    });
                 }
             }
         }
@@ -76,10 +82,11 @@ public class SmartInsightsService : ISmartInsightsService
         // ── 3. No restore point in 30 days ────────────────────────────────────
         try
         {
-            using var rp = new ManagementObjectSearcher(
-                @"root\default",
-                "SELECT * FROM SystemRestore ORDER BY CreationTime DESC");
-            var restorePoints = rp.Get().Cast<ManagementObject>().ToList();
+            var restorePoints = (await _wmi.QueryAsync(
+                "SELECT * FROM SystemRestore ORDER BY CreationTime DESC",
+                obj => obj["CreationTime"]?.ToString() ?? "",
+                cacheTtl: null,
+                scope: @"root\default")).ToList();
             if (restorePoints.Count == 0)
             {
                 insights.Add(new SmartInsight
@@ -96,8 +103,7 @@ public class SmartInsightsService : ISmartInsightsService
             else
             {
                 // CreationTime is a string like "20240101120000.000000-000"
-                var latest = restorePoints[0];
-                var creationStr = latest["CreationTime"]?.ToString() ?? "";
+                var creationStr = restorePoints[0];
                 if (creationStr.Length >= 14
                     && DateTime.TryParseExact(
                         creationStr[..14],
@@ -128,13 +134,21 @@ public class SmartInsightsService : ISmartInsightsService
         // ── 4. GPU driver age ─────────────────────────────────────────────────
         try
         {
-            using var vc = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
-            var gpu = vc.Get().Cast<ManagementObject>()
-                         .FirstOrDefault(g => g["Name"] != null &&
-                             !g["Name"].ToString()!.Contains("Microsoft", StringComparison.OrdinalIgnoreCase));
-            if (gpu != null)
+            var gpus = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_VideoController",
+                obj => (
+                    Name:          obj["Name"]?.ToString() ?? "",
+                    DriverVersion: obj["DriverVersion"]?.ToString() ?? "",
+                    DriverDate:    obj["DriverDate"]?.ToString() ?? ""),
+                cacheTtl: GpuDriverTtl);
+
+            var gpu = gpus.FirstOrDefault(g =>
+                !string.IsNullOrEmpty(g.Name) &&
+                !g.Name.Contains("Microsoft", StringComparison.OrdinalIgnoreCase));
+
+            if (gpu != default)
             {
-                var driverDateStr = gpu["DriverDate"]?.ToString() ?? "";
+                var driverDateStr = gpu.DriverDate;
                 if (driverDateStr.Length >= 8
                     && DateTime.TryParseExact(
                         driverDateStr[..8],
@@ -147,12 +161,11 @@ public class SmartInsightsService : ISmartInsightsService
                     if (ageDays > 90)
                     {
                         var ageMonths = (int)(ageDays / 30);
-                        var driverVersion = gpu["DriverVersion"]?.ToString() ?? "unknown";
                         insights.Add(new SmartInsight
                         {
                             Id = "old-gpu-driver",
                             Title = "GPU driver is over 3 months old",
-                            Body = $"Your GPU driver (version {driverVersion}) is approximately {ageMonths} months old. " +
+                            Body = $"Your GPU driver (version {gpu.DriverVersion}) is approximately {ageMonths} months old. " +
                                    "Driver updates often include performance improvements and bug fixes for the latest games.",
                             SupportingDataText = $"Driver dated {driverDate:MMM d, yyyy} ({ageDays:F0} days ago)",
                             Category = FindingCategory.Performance,

@@ -1,104 +1,120 @@
-using System.Management;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class HardwareInfoService : IHardwareInfoService
 {
-    public Task<HardwareInfo> GetHardwareInfoAsync()
+    private readonly IWmiQueryService _wmi;
+    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(1);
+
+    public HardwareInfoService(IWmiQueryService wmi)
     {
-        return Task.Run(() => new HardwareInfo
+        _wmi = wmi;
+    }
+
+    public async Task<HardwareInfo> GetHardwareInfoAsync()
+    {
+        var cpuTask         = QueryCpuAsync();
+        var gpusTask        = QueryGpusAsync();
+        var memTask         = QueryMemoryAsync();
+        var boardTask       = QueryMotherboardAsync();
+        var storageTask     = QueryStorageAsync();
+        var networkTask     = QueryNetworkAdaptersAsync();
+        var displaysTask    = QueryDisplaysAsync();
+        var osTask          = QueryOsAsync();
+
+        await Task.WhenAll(cpuTask, gpusTask, memTask, boardTask, storageTask, networkTask, displaysTask, osTask);
+
+        return new HardwareInfo
         {
-            Cpu = QueryCpu(),
-            Gpus = QueryGpus(),
-            Memory = QueryMemory(),
-            Motherboard = QueryMotherboard(),
-            Storage = QueryStorage(),
-            NetworkAdapters = QueryNetworkAdapters(),
-            Displays = QueryDisplays(),
-            Os = QueryOs(),
-        });
+            Cpu             = cpuTask.Result,
+            Gpus            = gpusTask.Result,
+            Memory          = memTask.Result,
+            Motherboard     = boardTask.Result,
+            Storage         = storageTask.Result,
+            NetworkAdapters = networkTask.Result,
+            Displays        = displaysTask.Result,
+            Os              = osTask.Result,
+        };
     }
 
     // ── CPU ───────────────────────────────────────────────────────────────
 
-    private static CpuInfo QueryCpu()
+    private async Task<CpuInfo> QueryCpuAsync()
     {
-        try
-        {
-            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
-            var obj = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (obj == null) return new CpuInfo();
-            return new CpuInfo
+        var cpus = await _wmi.QueryAsync(
+            "SELECT * FROM Win32_Processor",
+            obj => new CpuInfo
             {
-                Name = obj["Name"]?.ToString()?.Trim() ?? "",
-                Manufacturer = obj["Manufacturer"]?.ToString() ?? "",
-                Cores = Convert.ToInt32(obj["NumberOfCores"] ?? 0),
+                Name              = obj["Name"]?.ToString()?.Trim() ?? "",
+                Manufacturer      = obj["Manufacturer"]?.ToString() ?? "",
+                Cores             = Convert.ToInt32(obj["NumberOfCores"] ?? 0),
                 LogicalProcessors = Convert.ToInt32(obj["NumberOfLogicalProcessors"] ?? 0),
-                MaxClockSpeedMHz = Convert.ToInt32(obj["MaxClockSpeed"] ?? 0),
-                L2CacheKB = Convert.ToInt32(obj["L2CacheSize"] ?? 0),
-                L3CacheKB = Convert.ToInt32(obj["L3CacheSize"] ?? 0),
-                Socket = obj["SocketDesignation"]?.ToString() ?? "",
-            };
-        }
-        catch { return new CpuInfo(); }
+                MaxClockSpeedMHz  = Convert.ToInt32(obj["MaxClockSpeed"] ?? 0),
+                L2CacheKB         = Convert.ToInt32(obj["L2CacheSize"] ?? 0),
+                L3CacheKB         = Convert.ToInt32(obj["L3CacheSize"] ?? 0),
+                Socket            = obj["SocketDesignation"]?.ToString() ?? "",
+            },
+            cacheTtl: Ttl);
+
+        return cpus.FirstOrDefault() ?? new CpuInfo();
     }
 
     // ── GPU ───────────────────────────────────────────────────────────────
 
-    private static List<GpuInfo> QueryGpus()
+    private async Task<List<GpuInfo>> QueryGpusAsync()
     {
-        var list = new List<GpuInfo>();
-        try
-        {
-            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
-            foreach (ManagementObject obj in searcher.Get())
+        var gpus = await _wmi.QueryAsync(
+            "SELECT * FROM Win32_VideoController",
+            obj => new GpuInfo
             {
-                list.Add(new GpuInfo
-                {
-                    Name = obj["Name"]?.ToString() ?? "",
-                    Manufacturer = obj["AdapterCompatibility"]?.ToString() ?? "",
-                    VramBytes = Convert.ToInt64(obj["AdapterRAM"] ?? 0L),
-                    DriverVersion = obj["DriverVersion"]?.ToString() ?? "",
-                });
-            }
-        }
-        catch { /* return whatever we have */ }
-        return list;
+                Name          = obj["Name"]?.ToString() ?? "",
+                Manufacturer  = obj["AdapterCompatibility"]?.ToString() ?? "",
+                VramBytes     = Convert.ToInt64(obj["AdapterRAM"] ?? 0L),
+                DriverVersion = obj["DriverVersion"]?.ToString() ?? "",
+            },
+            cacheTtl: Ttl);
+
+        return gpus.ToList();
     }
 
     // ── Memory ────────────────────────────────────────────────────────────
 
-    private static MemoryHardwareInfo QueryMemory()
+    private async Task<MemoryHardwareInfo> QueryMemoryAsync()
     {
         var info = new MemoryHardwareInfo();
         try
         {
-            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
+            var modules = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_PhysicalMemory",
+                obj => new
+                {
+                    Capacity     = Convert.ToInt64(obj["Capacity"] ?? 0L),
+                    Speed        = Convert.ToInt32(obj["Speed"] ?? 0),
+                    Manufacturer = obj["Manufacturer"]?.ToString()?.Trim() ?? "",
+                    PartNumber   = obj["PartNumber"]?.ToString()?.Trim() ?? "",
+                    FormFactor   = Convert.ToInt32(obj["FormFactor"] ?? 0),
+                },
+                cacheTtl: Ttl);
+
             long total = 0;
-            int count = 0;
             int maxSpeed = 0;
             string formFactor = "";
-            foreach (ManagementObject obj in searcher.Get())
-            {
-                total += Convert.ToInt64(obj["Capacity"] ?? 0L);
-                count++;
-                var speed = Convert.ToInt32(obj["Speed"] ?? 0);
-                if (speed > maxSpeed) maxSpeed = speed;
 
-                var manufacturer = obj["Manufacturer"]?.ToString()?.Trim() ?? "";
-                var partNumber = obj["PartNumber"]?.ToString()?.Trim() ?? "";
-                var part = $"{manufacturer} {partNumber}".Trim();
+            foreach (var m in modules)
+            {
+                total += m.Capacity;
+                if (m.Speed > maxSpeed) maxSpeed = m.Speed;
+                var part = $"{m.Manufacturer} {m.PartNumber}".Trim();
                 if (!string.IsNullOrWhiteSpace(part))
                     info.ModuleParts.Add(part);
-
-                var ff = Convert.ToInt32(obj["FormFactor"] ?? 0);
-                formFactor = ff switch { 8 => "DIMM", 12 => "SODIMM", _ => "Other" };
+                formFactor = m.FormFactor switch { 8 => "DIMM", 12 => "SODIMM", _ => "Other" };
             }
-            info.TotalBytes = total;
-            info.ModuleCount = count;
-            info.SpeedMHz = maxSpeed;
-            info.FormFactor = formFactor;
+
+            info.TotalBytes  = total;
+            info.ModuleCount = modules.Count;
+            info.SpeedMHz    = maxSpeed;
+            info.FormFactor  = formFactor;
         }
         catch { /* return partial */ }
         return info;
@@ -106,36 +122,49 @@ public class HardwareInfoService : IHardwareInfoService
 
     // ── Motherboard ───────────────────────────────────────────────────────
 
-    private static MotherboardInfo QueryMotherboard()
+    private async Task<MotherboardInfo> QueryMotherboardAsync()
     {
         var info = new MotherboardInfo();
         try
         {
-            using var boardSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_BaseBoard");
-            var board = boardSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (board != null)
+            var boards = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_BaseBoard",
+                obj => (
+                    Manufacturer: obj["Manufacturer"]?.ToString() ?? "",
+                    Model: obj["Product"]?.ToString() ?? ""),
+                cacheTtl: Ttl);
+
+            var board = boards.FirstOrDefault();
+            if (board != default)
             {
-                info.Manufacturer = board["Manufacturer"]?.ToString() ?? "";
-                info.Model = board["Product"]?.ToString() ?? "";
+                info.Manufacturer = board.Manufacturer;
+                info.Model        = board.Model;
             }
         }
         catch { /* ignore */ }
 
         try
         {
-            using var biosSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_BIOS");
-            var bios = biosSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (bios != null)
+            var bioses = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_BIOS",
+                obj => (
+                    BiosVendor:  obj["Manufacturer"]?.ToString() ?? "",
+                    BiosVersion: obj["SMBIOSBIOSVersion"]?.ToString() ?? "",
+                    ReleaseDate: obj["ReleaseDate"]?.ToString() ?? ""),
+                cacheTtl: Ttl);
+
+            var bios = bioses.FirstOrDefault();
+            if (bios != default)
             {
-                info.BiosVendor = bios["Manufacturer"]?.ToString() ?? "";
-                info.BiosVersion = bios["SMBIOSBIOSVersion"]?.ToString() ?? "";
+                info.BiosVendor  = bios.BiosVendor;
+                info.BiosVersion = bios.BiosVersion;
                 try
                 {
-                    var dateStr = bios["ReleaseDate"]?.ToString() ?? "";
+                    var dateStr = bios.ReleaseDate;
                     if (dateStr.Length >= 8)
                     {
                         info.BiosDate = new DateTime(
-                            int.Parse(dateStr.Substring(0, 4)),
+                            int.Parse(dateStr[..4]),
                             int.Parse(dateStr.Substring(4, 2)),
                             int.Parse(dateStr.Substring(6, 2)));
                     }
@@ -149,92 +178,77 @@ public class HardwareInfoService : IHardwareInfoService
 
     // ── Storage ───────────────────────────────────────────────────────────
 
-    private static List<StorageInfo> QueryStorage()
+    private async Task<List<StorageInfo>> QueryStorageAsync()
     {
-        var list = new List<StorageInfo>();
-        try
-        {
-            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
-            foreach (ManagementObject obj in searcher.Get())
+        var disks = await _wmi.QueryAsync(
+            "SELECT * FROM Win32_DiskDrive",
+            obj =>
             {
                 var model = obj["Model"]?.ToString()?.Trim() ?? "";
                 var iface = obj["InterfaceType"]?.ToString() ?? "";
-                var size = Convert.ToInt64(obj["Size"] ?? 0L);
+                var size  = Convert.ToInt64(obj["Size"] ?? 0L);
                 var media = model.Contains("NVMe", StringComparison.OrdinalIgnoreCase)
                     ? "NVMe SSD"
-                    : iface.Contains("USB", StringComparison.OrdinalIgnoreCase) ? "USB Drive"
-                    : iface;
-                list.Add(new StorageInfo
+                    : iface.Contains("USB", StringComparison.OrdinalIgnoreCase) ? "USB Drive" : iface;
+                return new StorageInfo
                 {
-                    Model = model,
+                    Model         = model,
                     InterfaceType = iface,
-                    SizeBytes = size,
-                    MediaType = media,
-                    SerialNumber = obj["SerialNumber"]?.ToString()?.Trim() ?? "",
-                });
-            }
-        }
-        catch { /* return partial */ }
-        return list;
+                    SizeBytes     = size,
+                    MediaType     = media,
+                    SerialNumber  = obj["SerialNumber"]?.ToString()?.Trim() ?? "",
+                };
+            },
+            cacheTtl: Ttl);
+
+        return disks.ToList();
     }
 
     // ── Network ───────────────────────────────────────────────────────────
 
-    private static List<NetworkAdapterInfo> QueryNetworkAdapters()
+    private async Task<List<NetworkAdapterInfo>> QueryNetworkAdaptersAsync()
     {
-        var list = new List<NetworkAdapterInfo>();
-        try
-        {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT * FROM Win32_NetworkAdapter WHERE PhysicalAdapter=true");
-            foreach (ManagementObject obj in searcher.Get())
+        var adapters = await _wmi.QueryAsync(
+            "SELECT * FROM Win32_NetworkAdapter WHERE PhysicalAdapter=true",
+            obj => new NetworkAdapterInfo
             {
-                var name = obj["Name"]?.ToString() ?? "";
-                if (name.Contains("Loopback", StringComparison.OrdinalIgnoreCase)) continue;
-                list.Add(new NetworkAdapterInfo
-                {
-                    Name = name,
-                    MacAddress = obj["MACAddress"]?.ToString() ?? "",
-                    LinkSpeedBps = Convert.ToInt64(obj["Speed"] ?? 0L),
-                    Manufacturer = obj["Manufacturer"]?.ToString() ?? "",
-                });
-            }
-        }
-        catch { /* return partial */ }
-        return list;
+                Name         = obj["Name"]?.ToString() ?? "",
+                MacAddress   = obj["MACAddress"]?.ToString() ?? "",
+                LinkSpeedBps = Convert.ToInt64(obj["Speed"] ?? 0L),
+                Manufacturer = obj["Manufacturer"]?.ToString() ?? "",
+            },
+            cacheTtl: Ttl);
+
+        return adapters
+            .Where(a => !a.Name.Contains("Loopback", StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     // ── Displays ──────────────────────────────────────────────────────────
 
-    private static List<DisplayInfo> QueryDisplays()
+    private async Task<List<DisplayInfo>> QueryDisplaysAsync()
     {
-        var list = new List<DisplayInfo>();
-        try
-        {
-            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_DesktopMonitor");
-            foreach (ManagementObject obj in searcher.Get())
+        var monitors = await _wmi.QueryAsync(
+            "SELECT * FROM Win32_DesktopMonitor",
+            obj => new DisplayInfo
             {
-                var name = obj["Name"]?.ToString() ?? "";
-                var w = Convert.ToInt32(obj["ScreenWidth"] ?? 0);
-                var h = Convert.ToInt32(obj["ScreenHeight"] ?? 0);
-                if (string.IsNullOrWhiteSpace(name) && w == 0) continue;
-                list.Add(new DisplayInfo
-                {
-                    Name = name,
-                    WidthPx = w,
-                    HeightPx = h,
-                });
-            }
-        }
-        catch { /* return partial */ }
+                Name    = obj["Name"]?.ToString() ?? "",
+                WidthPx = Convert.ToInt32(obj["ScreenWidth"] ?? 0),
+                HeightPx = Convert.ToInt32(obj["ScreenHeight"] ?? 0),
+            },
+            cacheTtl: Ttl);
 
-        // If WMI gave us nothing, fall back to the primary screen info via SystemParameters
+        var list = monitors
+            .Where(d => !string.IsNullOrWhiteSpace(d.Name) || d.WidthPx > 0)
+            .ToList();
+
+        // If WMI gave us nothing, fall back to the primary screen info
         if (list.Count == 0)
         {
             list.Add(new DisplayInfo
             {
-                Name = "Primary Display",
-                WidthPx = (int)Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea.Width,
+                Name     = "Primary Display",
+                WidthPx  = (int)Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea.Width,
                 HeightPx = (int)Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea.Height,
             });
         }
@@ -244,26 +258,35 @@ public class HardwareInfoService : IHardwareInfoService
 
     // ── OS ────────────────────────────────────────────────────────────────
 
-    private static OsInfo QueryOs()
+    private async Task<OsInfo> QueryOsAsync()
     {
         var info = new OsInfo();
         try
         {
-            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem");
-            var obj = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (obj != null)
+            var osList = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_OperatingSystem",
+                obj => (
+                    Name:         obj["Caption"]?.ToString() ?? "",
+                    Version:      obj["Version"]?.ToString() ?? "",
+                    Build:        obj["BuildNumber"]?.ToString() ?? "",
+                    Architecture: obj["OSArchitecture"]?.ToString() ?? "",
+                    InstallDate:  obj["InstallDate"]?.ToString() ?? ""),
+                cacheTtl: Ttl);
+
+            var os = osList.FirstOrDefault();
+            if (os != default)
             {
-                info.Name = obj["Caption"]?.ToString() ?? "";
-                info.Version = obj["Version"]?.ToString() ?? "";
-                info.Build = obj["BuildNumber"]?.ToString() ?? "";
-                info.Architecture = obj["OSArchitecture"]?.ToString() ?? "";
+                info.Name         = os.Name;
+                info.Version      = os.Version;
+                info.Build        = os.Build;
+                info.Architecture = os.Architecture;
                 try
                 {
-                    var dateStr = obj["InstallDate"]?.ToString() ?? "";
+                    var dateStr = os.InstallDate;
                     if (dateStr.Length >= 8)
                     {
                         info.InstallDate = new DateTime(
-                            int.Parse(dateStr.Substring(0, 4)),
+                            int.Parse(dateStr[..4]),
                             int.Parse(dateStr.Substring(4, 2)),
                             int.Parse(dateStr.Substring(6, 2)));
                     }

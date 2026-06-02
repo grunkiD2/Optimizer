@@ -1,89 +1,107 @@
-using System.Management;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class DriverDiagnosticsService : IDriverDiagnosticsService
 {
-    public Task<IReadOnlyList<DriverIssue>> ScanAsync()
+    private readonly IWmiQueryService _wmi;
+    private static readonly TimeSpan DriverTtl = TimeSpan.FromMinutes(5);
+
+    public DriverDiagnosticsService(IWmiQueryService wmi)
     {
-        return Task.Run(() =>
+        _wmi = wmi;
+    }
+
+    public async Task<IReadOnlyList<DriverIssue>> ScanAsync()
+    {
+        var issues = new List<DriverIssue>();
+        try
         {
-            var issues = new List<DriverIssue>();
-            try
+            // ── Pass 1: devices with non-zero error codes ─────────────────────
+            var pnpEntities = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_PnPEntity",
+                obj => new
+                {
+                    Name         = obj["Name"]?.ToString() ?? "",
+                    ClassName    = obj["PNPClass"]?.ToString() ?? "",
+                    Manufacturer = obj["Manufacturer"]?.ToString() ?? "",
+                    Status       = obj["Status"]?.ToString() ?? "",
+                    Code         = Convert.ToInt32(obj["ConfigManagerErrorCode"] ?? 0),
+                },
+                cacheTtl: DriverTtl);
+
+            foreach (var e in pnpEntities)
             {
-                using var s = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity");
-                foreach (ManagementObject obj in s.Get())
+                if (string.IsNullOrEmpty(e.ClassName)) continue;
+                if (e.Code != 0 || e.Status == "Error" || e.Status == "Degraded")
                 {
-                    var code = Convert.ToInt32(obj["ConfigManagerErrorCode"] ?? 0);
-                    var name = obj["Name"]?.ToString() ?? "";
-                    var className = obj["PNPClass"]?.ToString() ?? "";
-                    var manufacturer = obj["Manufacturer"]?.ToString() ?? "";
-                    var status = obj["Status"]?.ToString() ?? "";
-
-                    if (string.IsNullOrEmpty(className)) continue;
-
-                    if (code != 0 || status == "Error" || status == "Degraded")
+                    issues.Add(new DriverIssue
                     {
-                        issues.Add(new DriverIssue
-                        {
-                            DeviceName = name,
-                            DeviceClass = className,
-                            Manufacturer = manufacturer,
-                            Status = status,
-                            ConfigManagerErrorCode = code,
-                            ErrorMessage = MapErrorCode(code),
-                            IsConflict = code == 12 || code == 18,
-                        });
-                    }
+                        DeviceName             = e.Name,
+                        DeviceClass            = e.ClassName,
+                        Manufacturer           = e.Manufacturer,
+                        Status                 = e.Status,
+                        ConfigManagerErrorCode = e.Code,
+                        ErrorMessage           = MapErrorCode(e.Code),
+                        IsConflict             = e.Code == 12 || e.Code == 18,
+                    });
                 }
+            }
 
-                // Check for outdated drivers in key device classes
-                using var d = new ManagementObjectSearcher(
-                    "SELECT * FROM Win32_PnPSignedDriver WHERE DeviceClass IN ('DISPLAY','NET','SYSTEM','PROCESSOR')");
-                foreach (ManagementObject obj in d.Get())
+            // ── Pass 2: outdated drivers in key device classes ────────────────
+            var signedDrivers = await _wmi.QueryAsync(
+                "SELECT * FROM Win32_PnPSignedDriver WHERE DeviceClass IN ('DISPLAY','NET','SYSTEM','PROCESSOR')",
+                obj =>
                 {
-                    var driverDate = obj["DriverDate"]?.ToString() ?? "";
+                    var driverDateStr = obj["DriverDate"]?.ToString() ?? "";
                     DateTime? parsedDate = null;
-                    if (driverDate.Length >= 8)
+                    if (driverDateStr.Length >= 8)
                     {
                         try
                         {
                             parsedDate = new DateTime(
-                                int.Parse(driverDate.Substring(0, 4)),
-                                int.Parse(driverDate.Substring(4, 2)),
-                                int.Parse(driverDate.Substring(6, 2)));
+                                int.Parse(driverDateStr[..4]),
+                                int.Parse(driverDateStr.Substring(4, 2)),
+                                int.Parse(driverDateStr.Substring(6, 2)));
                         }
                         catch { }
                     }
-
-                    var isOutdated = parsedDate.HasValue && parsedDate.Value < DateTime.Now.AddDays(-180);
-                    if (isOutdated)
+                    return new
                     {
-                        var deviceName = obj["DeviceName"]?.ToString() ?? "";
-                        if (!string.IsNullOrEmpty(deviceName) && !issues.Any(i => i.DeviceName == deviceName))
-                        {
-                            issues.Add(new DriverIssue
-                            {
-                                DeviceName = deviceName,
-                                DeviceClass = obj["DeviceClass"]?.ToString() ?? "",
-                                Manufacturer = obj["Manufacturer"]?.ToString() ?? "",
-                                DriverVersion = obj["DriverVersion"]?.ToString() ?? "",
-                                DriverDate = parsedDate,
-                                IsOutdated = true,
-                                ErrorMessage = $"Driver is {(DateTime.Now - parsedDate!.Value).Days} days old"
-                            });
-                        }
-                    }
+                        DeviceName    = obj["DeviceName"]?.ToString() ?? "",
+                        DeviceClass   = obj["DeviceClass"]?.ToString() ?? "",
+                        Manufacturer  = obj["Manufacturer"]?.ToString() ?? "",
+                        DriverVersion = obj["DriverVersion"]?.ToString() ?? "",
+                        DriverDate    = parsedDate,
+                    };
+                },
+                cacheTtl: DriverTtl);
+
+            foreach (var d in signedDrivers)
+            {
+                var isOutdated = d.DriverDate.HasValue && d.DriverDate.Value < DateTime.Now.AddDays(-180);
+                if (isOutdated && !string.IsNullOrEmpty(d.DeviceName)
+                    && !issues.Any(i => i.DeviceName == d.DeviceName))
+                {
+                    issues.Add(new DriverIssue
+                    {
+                        DeviceName    = d.DeviceName,
+                        DeviceClass   = d.DeviceClass,
+                        Manufacturer  = d.Manufacturer,
+                        DriverVersion = d.DriverVersion,
+                        DriverDate    = d.DriverDate,
+                        IsOutdated    = true,
+                        ErrorMessage  = $"Driver is {(DateTime.Now - d.DriverDate!.Value).Days} days old"
+                    });
                 }
             }
-            catch (Exception ex)
-            {
-                EngineLog.Error("Driver scan failed", ex);
-            }
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Driver scan failed", ex);
+        }
 
-            return (IReadOnlyList<DriverIssue>)issues;
-        });
+        return issues;
     }
 
     private static string MapErrorCode(int code) => code switch

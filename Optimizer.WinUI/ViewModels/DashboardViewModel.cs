@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
@@ -11,20 +10,18 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class DashboardViewModel : ObservableObject, IDisposable
 {
-    private readonly ISystemMonitorService _monitor;
     private readonly IWindowsOptimizerService _optimizer;
     private readonly IProcessService _processService;
     private readonly IUndoService _undoService;
     private readonly ISettingsService _settings;
-    private readonly ISensorService _sensorService;
     private readonly IIntelligenceService _intelligence;
+    private readonly ISystemDataBus _dataBus;
+    private readonly ISystemMonitorService _monitor;
 
-    private DispatcherTimer? _timer;
     private bool _disposed;
+    private bool _started;
     private int _anomalyCheckCounter;
     private DispatcherQueue? _dispatcherQueue;
-    private volatile bool _initialRefreshDone;
-    private volatile bool _refreshInFlight;
 
     // ── Metric properties ────────────────────────────────────────────────────
 
@@ -132,172 +129,164 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand UndoAllCommand { get; }
 
     public DashboardViewModel(
-        ISystemMonitorService monitor,
         IWindowsOptimizerService optimizer,
         IProcessService processService,
         IUndoService undoService,
         ISettingsService settings,
-        ISensorService sensorService,
-        IIntelligenceService intelligence)
+        IIntelligenceService intelligence,
+        ISystemDataBus dataBus,
+        ISystemMonitorService monitor)
     {
-        _monitor = monitor;
-        _optimizer = optimizer;
-        _processService = processService;
-        _undoService = undoService;
-        _settings = settings;
-        _sensorService = sensorService;
-        _intelligence = intelligence;
+        _optimizer       = optimizer;
+        _processService  = processService;
+        _undoService     = undoService;
+        _settings        = settings;
+        _intelligence    = intelligence;
+        _dataBus         = dataBus;
+        _monitor         = monitor;
 
-        RefreshNowCommand = new RelayCommand(RefreshNow);
+        RefreshNowCommand    = new RelayCommand(RefreshNow);
         ApplySafeTuneCommand = new AsyncRelayCommand(ApplySafeTuneAsync);
-        UndoAllCommand = new AsyncRelayCommand(UndoAllAsync);
+        UndoAllCommand       = new AsyncRelayCommand(UndoAllAsync);
     }
 
     // ── Monitoring lifecycle ─────────────────────────────────────────────────
 
     public void StartMonitoring()
     {
-        if (_timer != null) return;
+        if (_started) return;
+        _started = true;
 
         // Capture UI dispatcher for marshaling background results.
         _dispatcherQueue ??= DispatcherQueue.GetForCurrentThread();
 
-        // First refresh happens on a background thread because LibreHardwareMonitor's
-        // initial Update() enumerates all hardware sensors and can take 5-15 seconds
-        // on rich systems. Doing it inline froze the UI for ~20s on the first visit.
         StatusMessage = "Loading sensors...";
-        _ = Task.Run(RefreshOffThread);
 
-        _timer = new DispatcherTimer
+        _dataBus.MetricsUpdated  += OnMetricsUpdated;
+        _dataBus.SensorsUpdated  += OnSensorsUpdated;
+        _dataBus.SetSensorsActive(true);
+
+        // Apply whatever the bus already has (from before this page was opened).
+        if (_dataBus.LatestMetrics is { } latestMetrics)
         {
-            Interval = TimeSpan.FromSeconds(Math.Max(1, _settings.Settings.MetricsRefreshSeconds))
-        };
-        _timer.Tick += OnTimerTick;
-        _timer.Start();
+            _dispatcherQueue?.TryEnqueue(() =>
+            {
+                ApplyMetrics(latestMetrics);
+                RefreshProcesses();
+                if (StatusMessage == "Loading sensors...") StatusMessage = "";
+            });
+        }
     }
 
     public void StopMonitoring()
     {
-        if (_timer == null) return;
-        _timer.Stop();
-        _timer.Tick -= OnTimerTick;
-        _timer = null;
+        if (!_started) return;
+        _started = false;
+        _dataBus.MetricsUpdated -= OnMetricsUpdated;
+        _dataBus.SensorsUpdated -= OnSensorsUpdated;
+        _dataBus.SetSensorsActive(false);
+    }
+
+    // ── Bus event handlers ────────────────────────────────────────────────────
+
+    private void OnMetricsUpdated(SystemResource snap)
+    {
+        _dispatcherQueue?.TryEnqueue(() =>
+        {
+            ApplyMetrics(snap);
+            RefreshProcesses();
+
+            // Run anomaly check every 30 ticks
+            _anomalyCheckCounter++;
+            if (_anomalyCheckCounter >= 30)
+            {
+                _anomalyCheckCounter = 0;
+                _ = CheckAnomaliesAsync();
+            }
+
+            if (StatusMessage == "Loading sensors...") StatusMessage = "";
+        });
+    }
+
+    private void OnSensorsUpdated(HardwareSnapshot sensors)
+    {
+        _dispatcherQueue?.TryEnqueue(() => ApplySensors(sensors));
     }
 
     // ── Internal helpers ─────────────────────────────────────────────────────
 
-    private void OnTimerTick(object? sender, object e)
+    private void RefreshNow()
     {
-        // Skip ticks while a background refresh is still in flight to avoid pile-up.
-        if (!_refreshInFlight)
-            _ = Task.Run(RefreshOffThread);
-
-        // Run anomaly check every 30 ticks to avoid per-second overhead
-        _anomalyCheckCounter++;
-        if (_anomalyCheckCounter >= 30)
+        // Force an immediate metrics snapshot off-thread, then push back.
+        _ = Task.Run(() =>
         {
-            _anomalyCheckCounter = 0;
-            _ = CheckAnomaliesAsync();
-        }
-    }
-
-    private void RefreshOffThread()
-    {
-        if (_refreshInFlight) return;
-        _refreshInFlight = true;
-        try
-        {
-            // Gather everything on the background thread — this is the slow work.
-            var snap = _monitor.CollectSnapshot();
-            var cores = _monitor.GetPerCoreUsage();
-            var procs = _processService.GetTopProcesses(10);
-            var undoCount = _undoService.Count;
-
-            HardwareSnapshot? sensors = null;
-            if (_sensorService.IsAvailable)
+            try
             {
-                try { sensors = _sensorService.GetSnapshot(); }
-                catch { /* sensors are optional */ }
+                var snap = _monitor.CollectSnapshot();
+                _dispatcherQueue?.TryEnqueue(() => ApplyMetrics(snap));
             }
-
-            // Marshal the property updates onto the UI thread.
-            _dispatcherQueue?.TryEnqueue(() =>
+            catch (Exception ex)
             {
-                ApplySnapshot(snap);
-                ApplyCoreUsage(cores);
-                ApplyProcesses(procs);
-                UndoableChanges = undoCount;
-                LastUpdated = snap.Timestamp.ToString("HH:mm:ss");
-
-                if (sensors != null)
-                {
-                    if (sensors.CpuPackageTemperatureC.HasValue)
-                        CpuTempText = $"{sensors.CpuPackageTemperatureC:F0}°C";
-                    if (sensors.GpuTemperatureC.HasValue)
-                        GpuTempText = $"{sensors.GpuTemperatureC:F0}°C";
-                    if (sensors.CpuPowerWatts.HasValue)
-                        CpuPowerText = $"{sensors.CpuPowerWatts:F0}W";
-                    if (sensors.GpuPowerWatts.HasValue)
-                        GpuPowerText = $"{sensors.GpuPowerWatts:F0}W";
-                }
-
-                if (!_initialRefreshDone)
-                {
-                    _initialRefreshDone = true;
-                    if (StatusMessage == "Loading sensors...")
-                        StatusMessage = "";
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _dispatcherQueue?.TryEnqueue(() => StatusMessage = $"Refresh error: {ex.Message}");
-        }
-        finally
-        {
-            _refreshInFlight = false;
-        }
+                _dispatcherQueue?.TryEnqueue(() => StatusMessage = $"Refresh error: {ex.Message}");
+            }
+        });
     }
 
-    private void RefreshNow() => _ = Task.Run(RefreshOffThread);
-
-    private void ApplySnapshot(SystemResource snap)
+    private void RefreshProcesses()
     {
-        CpuUsage = Math.Round(snap.CpuUsagePercentage, 1);
+        var procs      = _processService.GetTopProcesses(10);
+        var cores      = _monitor.GetPerCoreUsage();
+        UndoableChanges = _undoService.Count;
+        ApplyCoreUsage(cores);
+        ApplyProcesses(procs);
+    }
+
+    private void ApplyMetrics(SystemResource snap)
+    {
+        CpuUsage  = Math.Round(snap.CpuUsagePercentage, 1);
         TotalCores = snap.TotalProcessors > 0 ? snap.TotalProcessors : Environment.ProcessorCount;
 
         TotalMemoryBytes = snap.TotalPhysicalMemory;
-        UsedMemoryBytes = snap.TotalPhysicalMemory - snap.AvailablePhysicalMemory;
+        UsedMemoryBytes  = snap.TotalPhysicalMemory - snap.AvailablePhysicalMemory;
         MemoryUsage = TotalMemoryBytes > 0
             ? Math.Round((double)UsedMemoryBytes / TotalMemoryBytes * 100.0, 1)
             : 0;
 
         GpuUsage = Math.Round(snap.GpuUsagePercentage, 1);
 
-        DiskReadSpeed = snap.DiskReadSpeed;
+        DiskReadSpeed  = snap.DiskReadSpeed;
         DiskWriteSpeed = snap.DiskWriteSpeed;
-        // Represent disk activity as a 0-100 scale (cap at 100 MB/s = full bar)
         DiskUsage = Math.Min(100.0, (snap.DiskReadSpeed + snap.DiskWriteSpeed) / (100.0 * 1_048_576) * 100.0);
 
-        NetworkInSpeed = snap.NetworkInSpeed;
+        NetworkInSpeed  = snap.NetworkInSpeed;
         NetworkOutSpeed = snap.NetworkOutSpeed;
-        // Represent network activity capped at 125 MB/s (1 Gbps)
         NetworkUsage = Math.Min(100.0, (snap.NetworkInSpeed + snap.NetworkOutSpeed) / (125.0 * 1_048_576) * 100.0);
 
-        // Add to chart history (keep last N seconds as configured)
-        ChartHistory.Add(snap);
-        var maxHistory = Math.Max(10, _settings.Settings.ChartHistorySeconds);
-        while (ChartHistory.Count > maxHistory)
-            ChartHistory.RemoveAt(0);
+        LastUpdated = snap.Timestamp.ToString("HH:mm:ss");
 
-        // Update sparkline histories
-        AppendSparkline(CpuHistory, CpuUsage, maxHistory);
-        AppendSparkline(MemoryHistory, MemoryUsage, maxHistory);
-        AppendSparkline(GpuHistory, GpuUsage, maxHistory);
-        AppendSparkline(DiskHistory, DiskUsage, maxHistory);
+        var maxHistory = Math.Max(10, _settings.Settings.ChartHistorySeconds);
+        ChartHistory.Add(snap);
+        while (ChartHistory.Count > maxHistory) ChartHistory.RemoveAt(0);
+
+        AppendSparkline(CpuHistory,     CpuUsage,     maxHistory);
+        AppendSparkline(MemoryHistory,  MemoryUsage,  maxHistory);
+        AppendSparkline(GpuHistory,     GpuUsage,     maxHistory);
+        AppendSparkline(DiskHistory,    DiskUsage,    maxHistory);
         AppendSparkline(NetworkHistory, NetworkUsage, maxHistory);
 
         UpdateHealthScore();
+    }
+
+    private void ApplySensors(HardwareSnapshot sensors)
+    {
+        if (sensors.CpuPackageTemperatureC.HasValue)
+            CpuTempText = $"{sensors.CpuPackageTemperatureC:F0}°C";
+        if (sensors.GpuTemperatureC.HasValue)
+            GpuTempText = $"{sensors.GpuTemperatureC:F0}°C";
+        if (sensors.CpuPowerWatts.HasValue)
+            CpuPowerText = $"{sensors.CpuPowerWatts:F0}W";
+        if (sensors.GpuPowerWatts.HasValue)
+            GpuPowerText = $"{sensors.GpuPowerWatts:F0}W";
     }
 
     private static void AppendSparkline(ObservableCollection<double> history, double value, int maxCount)
@@ -309,7 +298,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void UpdateHealthScore()
     {
-        // Simple weighted score: penalise high CPU/memory/GPU usage
         var score = 100;
         if (CpuUsage > 90) score -= 30;
         else if (CpuUsage > 75) score -= 15;
@@ -328,13 +316,12 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         {
             >= 70 => "System is healthy",
             >= 40 => "System is under load",
-            _ => "System is under heavy stress"
+            _     => "System is under heavy stress"
         };
     }
 
     private void ApplyCoreUsage(IReadOnlyList<double> cores)
     {
-        // Sync PerCoreUsage collection to match the new values
         for (int i = 0; i < cores.Count; i++)
         {
             if (i < PerCoreUsage.Count)
@@ -413,7 +400,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
             var alerts = cpuAnomalies.Concat(memAnomalies).ToList();
             if (alerts.Count > 0)
             {
-                // Show the highest-severity alert in the status message
                 var top = alerts.OrderByDescending(a => a.Severity).First();
                 StatusMessage = $"⚠️ {top.Description}";
             }

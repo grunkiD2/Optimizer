@@ -55,6 +55,7 @@ public partial class App : Application
             {
                 // Infrastructure
                 services.AddSingleton<IPowerShellRunner, PowerShellRunner>();
+                services.AddSingleton<IWmiQueryService, WmiQueryService>();
 
                 // Core services (from WPF port)
                 services.AddSingleton<IElevationService, ElevationService>();
@@ -123,6 +124,7 @@ public partial class App : Application
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<BackgroundMonitorService>();
                 services.AddHostedService(sp => sp.GetRequiredService<BackgroundMonitorService>());
+                // Note: BackgroundMonitorService now subscribes to ISystemDataBus instead of polling directly.
                 services.AddSingleton<IReportService, ReportService>();
                 services.AddSingleton<ITuningService, TuningService>();
                 services.AddSingleton<ISystemRepairService, SystemRepairService>();
@@ -131,6 +133,8 @@ public partial class App : Application
                 services.AddSingleton<IDriverDiagnosticsService, DriverDiagnosticsService>();
                 services.AddSingleton<IBottleneckDetectorService, BottleneckDetectorService>();
                 services.AddSingleton<ISmartInsightsService, SmartInsightsService>();
+                services.AddSingleton<ISystemDataBus, SystemDataBus>();
+                services.AddHostedService(sp => (SystemDataBus)sp.GetRequiredService<ISystemDataBus>());
                 services.AddSingleton<IMarketplaceService, MarketplaceService>();
                 services.AddSingleton<IIntelligenceService, IntelligenceService>();
 

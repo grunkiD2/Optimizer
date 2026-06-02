@@ -1,11 +1,18 @@
 using System.Diagnostics;
-using System.Management;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class TuningService : ITuningService
 {
+    private readonly IWmiQueryService _wmi;
+    private static readonly TimeSpan TuningTtl = TimeSpan.FromMinutes(1);
+
+    public TuningService(IWmiQueryService wmi)
+    {
+        _wmi = wmi;
+    }
+
     // Processor power management subgroup GUID
     private const string ProcessorSubGroup = "54533251-82be-4824-96c1-47b60b740d00";
 
@@ -62,59 +69,54 @@ public class TuningService : ITuningService
 
     public async Task<IReadOnlyList<GpuClockInfo>> GetGpuClocksAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            var list = new List<GpuClockInfo>();
-            try
-            {
-                using var searcher = new ManagementObjectSearcher(
-                    "SELECT Name, CurrentRefreshRate FROM Win32_VideoController");
-                foreach (ManagementObject obj in searcher.Get())
+            var gpus = await _wmi.QueryAsync(
+                "SELECT Name, CurrentRefreshRate FROM Win32_VideoController",
+                obj => new GpuClockInfo
                 {
-                    list.Add(new GpuClockInfo
-                    {
-                        Name           = obj["Name"]?.ToString() ?? "Unknown GPU",
-                        // Win32_VideoController does not expose core/memory clock — requires NVAPI/ADL
-                        CurrentCoreMhz = null,
-                        CurrentMemoryMhz = null,
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                EngineLog.Error("Failed to query GPU info via WMI", ex);
-            }
-            return (IReadOnlyList<GpuClockInfo>)list;
-        });
+                    Name             = obj["Name"]?.ToString() ?? "Unknown GPU",
+                    // Win32_VideoController does not expose core/memory clock — requires NVAPI/ADL
+                    CurrentCoreMhz   = null,
+                    CurrentMemoryMhz = null,
+                },
+                cacheTtl: TuningTtl);
+            return gpus;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Failed to query GPU info via WMI", ex);
+            return Array.Empty<GpuClockInfo>();
+        }
     }
 
     // ── RAM info (WMI read-only; timings/voltage require BIOS) ───────────────
 
     public async Task<RamInfo> GetRamInfoAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            var modules = await _wmi.QueryAsync(
+                "SELECT Speed FROM Win32_PhysicalMemory",
+                obj => Convert.ToInt32(obj["Speed"] ?? 0),
+                cacheTtl: TuningTtl);
+
+            var speed = modules.FirstOrDefault();
+            if (speed > 0)
             {
-                using var searcher = new ManagementObjectSearcher(
-                    "SELECT Speed FROM Win32_PhysicalMemory");
-                var obj = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-                if (obj != null)
+                return new RamInfo
                 {
-                    return new RamInfo
-                    {
-                        FrequencyMhz = Convert.ToInt32(obj["Speed"] ?? 0),
-                        Timings      = "Unknown — requires BIOS access",
-                        Voltage      = "Unknown — requires BIOS access"
-                    };
-                }
+                    FrequencyMhz = speed,
+                    Timings      = "Unknown — requires BIOS access",
+                    Voltage      = "Unknown — requires BIOS access"
+                };
             }
-            catch (Exception ex)
-            {
-                EngineLog.Error("Failed to query RAM info via WMI", ex);
-            }
-            return new RamInfo();
-        });
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Failed to query RAM info via WMI", ex);
+        }
+        return new RamInfo();
     }
 
     // ── Presets ───────────────────────────────────────────────────────────────
@@ -315,20 +317,19 @@ public class TuningService : ITuningService
 
     public async Task<string> GetCpuVendorAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
-                using var s = new ManagementObjectSearcher("SELECT Manufacturer FROM Win32_Processor");
-                return s.Get().Cast<ManagementObject>()
-                    .FirstOrDefault()?["Manufacturer"]?.ToString() ?? "";
-            }
-            catch (Exception ex)
-            {
-                EngineLog.Error("GetCpuVendorAsync failed", ex);
-                return "";
-            }
-        });
+            var vendors = await _wmi.QueryAsync(
+                "SELECT Manufacturer FROM Win32_Processor",
+                obj => obj["Manufacturer"]?.ToString() ?? "",
+                cacheTtl: TuningTtl);
+            return vendors.FirstOrDefault() ?? "";
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("GetCpuVendorAsync failed", ex);
+            return "";
+        }
     }
 
     // ── Batch 35: Power limits (WMI best-effort) ──────────────────────────────

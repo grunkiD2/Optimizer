@@ -1,61 +1,78 @@
 using Microsoft.Extensions.Hosting;
-using Microsoft.UI.Xaml;
 
 namespace Optimizer.WinUI.Services;
 
+/// <summary>
+/// Subscribes to the SystemDataBus metrics stream and fires alerts at 30s cadence
+/// (every 30th reading at 1 Hz = ~30 s).
+/// </summary>
 public class BackgroundMonitorService : IHostedService, IDisposable
 {
-    private readonly ISystemMonitorService _monitor;
+    private readonly ISystemDataBus _dataBus;
     private readonly IDiskHealthService _diskHealth;
     private readonly INotificationService _notifications;
-    private DispatcherTimer? _timer;
+
     private readonly Queue<double> _cpuHistory = new();
+    private int _tickCount;
+    private bool _subscribed;
 
     public BackgroundMonitorService(
-        ISystemMonitorService monitor,
+        ISystemDataBus dataBus,
         IDiskHealthService diskHealth,
         INotificationService notifications)
     {
-        _monitor = monitor;
-        _diskHealth = diskHealth;
+        _dataBus       = dataBus;
+        _diskHealth    = diskHealth;
         _notifications = notifications;
     }
 
+    // ── IHostedService ────────────────────────────────────────────────────────
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        Start();
+        if (_subscribed) return Task.CompletedTask;
+        _subscribed = true;
+        _dataBus.MetricsUpdated += OnMetricsUpdated;
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        Stop();
+        if (!_subscribed) return Task.CompletedTask;
+        _subscribed = false;
+        _dataBus.MetricsUpdated -= OnMetricsUpdated;
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _timer?.Stop();
-
-    public void Start()
+    public void Dispose()
     {
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
-        _timer.Tick += async (_, _) => await CheckAsync();
-        _timer.Start();
+        if (_subscribed)
+        {
+            _subscribed = false;
+            _dataBus.MetricsUpdated -= OnMetricsUpdated;
+        }
     }
 
-    public void Stop()
+    // ── Metrics handler ───────────────────────────────────────────────────────
+
+    private void OnMetricsUpdated(Models.SystemResource snapshot)
     {
-        _timer?.Stop();
-        _timer = null;
+        // Throttle: run full check every 30 ticks (≈30 s at 1 Hz bus cadence).
+        _tickCount++;
+        if (_tickCount < 30) return;
+        _tickCount = 0;
+
+        // Fire-and-forget; errors are logged internally.
+        _ = CheckAsync(snapshot);
     }
 
-    private async Task CheckAsync()
+    private async Task CheckAsync(Models.SystemResource snapshot)
     {
         try
         {
             // ── CPU sustained high ────────────────────────────────────────────
-            var snapshot = _monitor.CollectSnapshot();
             _cpuHistory.Enqueue(snapshot.CpuUsagePercentage);
-            while (_cpuHistory.Count > 4) _cpuHistory.Dequeue(); // last 2 min (30s × 4)
+            while (_cpuHistory.Count > 4) _cpuHistory.Dequeue(); // last ~2 min (30s × 4)
 
             if (_cpuHistory.Count >= 4 && _cpuHistory.All(c => c > 90))
             {

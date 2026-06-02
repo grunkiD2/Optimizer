@@ -1,7 +1,7 @@
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
+using Microsoft.UI.Dispatching;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
@@ -12,7 +12,10 @@ public partial class HardwareViewModel : ObservableObject
 {
     private readonly IHardwareInfoService _hardwareService;
     private readonly ISensorService _sensorService;
-    private DispatcherTimer? _sensorTimer;
+    private readonly ISystemDataBus _dataBus;
+
+    private DispatcherQueue? _dispatcherQueue;
+    private bool _sensorActive;
 
     [ObservableProperty] private bool _isLoading;
 
@@ -44,44 +47,50 @@ public partial class HardwareViewModel : ObservableObject
         => OnPropertyChanged(nameof(HasStatusMessage));
 
     public string CategoryName => "Hardware";
-    public string CategoryIcon => ""; // HardDrive Segoe MDL2 glyph
+    public string CategoryIcon => ""; // HardDrive Segoe MDL2 glyph
 
-    public HardwareViewModel(IHardwareInfoService hardwareService, ISensorService sensorService)
+    public HardwareViewModel(
+        IHardwareInfoService hardwareService,
+        ISensorService sensorService,
+        ISystemDataBus dataBus)
     {
         _hardwareService = hardwareService;
-        _sensorService = sensorService;
+        _sensorService   = sensorService;
+        _dataBus         = dataBus;
         SensorsAvailable = sensorService.IsAvailable;
         SensorUnavailableReason = sensorService.InitializationError ?? string.Empty;
+
+        // Apply cached snapshot immediately if bus already has one
+        if (dataBus.LatestSensors is { } snap)
+            Sensors = snap;
     }
 
-    // ── Sensor timer lifecycle (called from page code-behind) ─────────────
+    // ── Sensor lifecycle (called from page code-behind) ───────────────────
 
     public void StartSensorTimer()
     {
-        if (_sensorTimer != null || !_sensorService.IsAvailable) return;
-        RefreshSensors(); // immediate first read
-        _sensorTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _sensorTimer.Tick += (_, _) => RefreshSensors();
-        _sensorTimer.Start();
+        if (_sensorActive || !_sensorService.IsAvailable) return;
+        _sensorActive = true;
+        _dispatcherQueue ??= DispatcherQueue.GetForCurrentThread();
+        _dataBus.SensorsUpdated += OnSensorsUpdated;
+        _dataBus.SetSensorsActive(true);
+
+        // Show last known snapshot right away
+        if (_dataBus.LatestSensors is { } latest)
+            _dispatcherQueue?.TryEnqueue(() => Sensors = latest);
     }
 
     public void StopSensorTimer()
     {
-        if (_sensorTimer == null) return;
-        _sensorTimer.Stop();
-        _sensorTimer = null;
+        if (!_sensorActive) return;
+        _sensorActive = false;
+        _dataBus.SensorsUpdated -= OnSensorsUpdated;
+        _dataBus.SetSensorsActive(false);
     }
 
-    private void RefreshSensors()
+    private void OnSensorsUpdated(HardwareSnapshot snap)
     {
-        try
-        {
-            Sensors = _sensorService.GetSnapshot();
-        }
-        catch (Exception ex)
-        {
-            EngineLog.Error("Sensor refresh failed", ex);
-        }
+        _dispatcherQueue?.TryEnqueue(() => Sensors = snap);
     }
 
     // ── Commands ─────────────────────────────────────────────────────────
@@ -95,10 +104,9 @@ public partial class HardwareViewModel : ObservableObject
         if (Hardware == null) return;
         try
         {
-            var text = BuildReport(Hardware);
+            var text   = BuildReport(Hardware);
             var folder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            var path = Path.Combine(folder,
-                $"Optimizer-Hardware-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+            var path   = Path.Combine(folder, $"Optimizer-Hardware-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
             File.WriteAllText(path, text);
             StatusMessage = $"Report saved to {path}";
         }
@@ -112,7 +120,7 @@ public partial class HardwareViewModel : ObservableObject
 
     public async Task LoadAsync()
     {
-        IsLoading = true;
+        IsLoading     = true;
         StatusMessage = string.Empty;
         try
         {

@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Ids = Optimizer.WinUI.Models.OptimizationIds;
@@ -14,6 +13,7 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
     private readonly ISystemMonitorService _monitor;
     private readonly INetworkConfigService _netConfig;
     private readonly INetworkSpeedTestService _speedTest;
+    private readonly ISystemDataBus _dataBus;
 
     // ── Live traffic metrics (existing) ──────────────────────────────────────
     [ObservableProperty] private string downloadSpeedText = "0 B/s";
@@ -40,8 +40,8 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
     [ObservableProperty] private string currentPingText = "—";
     public ObservableCollection<double> LatencyHistory { get; } = [];
 
-    private DispatcherTimer? _latencyTimer;
     private DispatcherQueue? _dispatcherQueue;
+    private bool _latencyActive;
 
     public IReadOnlyList<DnsServerPreset> DnsPresets => _netConfig.DnsPresets;
 
@@ -61,12 +61,14 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
         IHistoryService history,
         ISystemMonitorService monitor,
         INetworkConfigService netConfig,
-        INetworkSpeedTestService speedTest)
+        INetworkSpeedTestService speedTest,
+        ISystemDataBus dataBus)
         : base(optimizer, elevation, undoSvc, history)
     {
         _monitor   = monitor;
         _netConfig = netConfig;
         _speedTest = speedTest;
+        _dataBus   = dataBus;
     }
 
     public override void Load()
@@ -83,8 +85,8 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
 
     public void RefreshMetrics()
     {
-        var snapshot = _monitor.CollectSnapshot();
-
+        // Use cached metrics if available, otherwise fall back to a fresh snapshot
+        var snapshot = _dataBus.LatestMetrics ?? _monitor.CollectSnapshot();
         DownloadSpeedText = ByteFormatter.FormatSpeed(snapshot.NetworkInSpeed);
         UploadSpeedText   = ByteFormatter.FormatSpeed(snapshot.NetworkOutSpeed);
         LatencyText       = "N/A";
@@ -121,47 +123,39 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
 
     // ── Latency monitor ────────────────────────────────────────────────────────
 
-    /// <summary>Call from Page.Loaded to start continuous 1 Hz ping.</summary>
+    /// <summary>Call from Page.Loaded to start continuous 1 Hz ping via the data bus.</summary>
     public void StartLatencyMonitor(DispatcherQueue dispatcherQueue)
     {
         _dispatcherQueue = dispatcherQueue;
-        if (_latencyTimer != null) return;
-
-        _latencyTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _latencyTimer.Tick += async (_, _) => await TickPingAsync();
-        _latencyTimer.Start();
+        if (_latencyActive) return;
+        _latencyActive = true;
+        _dataBus.LatencyUpdated += OnLatencyUpdated;
+        _dataBus.SetLatencyActive(true);
     }
 
     /// <summary>Call from Page.Unloaded to stop continuous ping.</summary>
     public void StopLatencyMonitor()
     {
-        _latencyTimer?.Stop();
-        _latencyTimer = null;
+        if (!_latencyActive) return;
+        _latencyActive = false;
+        _dataBus.LatencyUpdated -= OnLatencyUpdated;
+        _dataBus.SetLatencyActive(false);
     }
 
-    private async Task TickPingAsync()
+    private void OnLatencyUpdated(double ms)
     {
-        try
+        _dispatcherQueue?.TryEnqueue(() =>
         {
-            using var ping  = new System.Net.NetworkInformation.Ping();
-            var reply        = await ping.SendPingAsync("1.1.1.1", 1500);
-            double ms        = reply.Status == System.Net.NetworkInformation.IPStatus.Success
-                               ? reply.RoundtripTime : 0;
+            CurrentPingMs   = ms;
+            CurrentPingText = ms > 0 ? ms.ToString("F1") : "—";
 
-            _dispatcherQueue?.TryEnqueue(() =>
-            {
-                CurrentPingMs  = ms;
-                CurrentPingText = ms > 0 ? ms.ToString("F1") : "—";
-
-                // Keep 60-entry ring buffer — normalised to 0–100 for sparkline
-                // Map 0–300 ms linearly to 0–100
-                double normalized = Math.Clamp(ms / 3.0, 0, 100);
-                if (LatencyHistory.Count >= 60)
-                    LatencyHistory.RemoveAt(0);
-                LatencyHistory.Add(normalized);
-            });
-        }
-        catch { }
+            // Keep 60-entry ring buffer — normalised to 0–100 for sparkline
+            // Map 0–300 ms linearly to 0–100
+            double normalized = Math.Clamp(ms / 3.0, 0, 100);
+            if (LatencyHistory.Count >= 60)
+                LatencyHistory.RemoveAt(0);
+            LatencyHistory.Add(normalized);
+        });
     }
 
     // ── DNS ────────────────────────────────────────────────────────────────────
