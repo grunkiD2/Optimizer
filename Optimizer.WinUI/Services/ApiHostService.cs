@@ -40,7 +40,32 @@ public class ApiHostService : IApiHostService
         {
             var fileProvider = new PhysicalFileProvider(webRoot);
             app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider, RequestPath = "" });
-            app.UseStaticFiles(new StaticFileOptions { FileProvider = fileProvider, RequestPath = "" });
+
+            // Explicit MIME types for PWA manifests and service workers
+            var contentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            contentTypes.Mappings[".json"]        = "application/json";
+            contentTypes.Mappings[".webmanifest"] = "application/manifest+json";
+            // manifest.json served with manifest MIME type via exact-name match below
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = fileProvider,
+                RequestPath  = "",
+                ContentTypeProvider = contentTypes,
+                OnPrepareResponse = ctx =>
+                {
+                    // Override Content-Type for manifest.json specifically
+                    if (ctx.File.Name.Equals("manifest.json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ctx.Context.Response.ContentType = "application/manifest+json; charset=utf-8";
+                    }
+                    // Service worker must be served from root scope, allow caching control
+                    if (ctx.File.Name.Equals("service-worker.js", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+                        ctx.Context.Response.Headers["Cache-Control"] = "no-cache";
+                    }
+                }
+            });
         }
 
         // Bearer auth middleware — only applies to /api/* routes

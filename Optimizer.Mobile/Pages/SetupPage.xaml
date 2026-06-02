@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Optimizer.Mobile.Pages.SetupPage"
+             Title="Connect"
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="{StaticResource BgColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="32" Spacing="0" VerticalOptions="Center">
+
+            <Label Text="Optimizer Remote"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Start"
+                   Margin="0,0,0,4"/>
+
+            <Label Text="Connect to your Optimizer desktop"
+                   FontSize="14"
+                   TextColor="{StaticResource MutedColor}"
+                   Margin="0,0,0,32"/>
+
+            <!-- Server URL -->
+            <Label Text="SERVER URL"
+                   FontSize="11"
+                   TextColor="{StaticResource MutedColor}"
+                   CharacterSpacing="1"
+                   Margin="0,0,0,6"/>
+            <Entry x:Name="UrlEntry"
+                   Placeholder="http://192.168.1.10:8765"
+                   Keyboard="Url"
+                   ReturnType="Next"
+                   Margin="0,0,0,16"/>
+
+            <!-- Token -->
+            <Label Text="API TOKEN"
+                   FontSize="11"
+                   TextColor="{StaticResource MutedColor}"
+                   CharacterSpacing="1"
+                   Margin="0,0,0,6"/>
+            <Entry x:Name="TokenEntry"
+                   Placeholder="Paste token from Settings"
+                   IsPassword="True"
+                   ReturnType="Done"
+                   ReturnCommand="{Binding ConnectCommand}"
+                   Margin="0,0,0,24"/>
+
+            <!-- Status label -->
+            <Label x:Name="StatusLabel"
+                   TextColor="{StaticResource RedColor}"
+                   FontSize="13"
+                   IsVisible="False"
+                   Margin="0,0,0,8"/>
+
+            <!-- Connect button -->
+            <Button Text="Connect"
+                    Style="{StaticResource PrimaryBtn}"
+                    HeightRequest="54"
+                    FontSize="16"
+                    Clicked="OnConnectClicked"/>
+
+            <!-- ActivityIndicator -->
+            <ActivityIndicator x:Name="Spinner"
+                               IsRunning="False"
+                               IsVisible="False"
+                               Color="{StaticResource AccentColor}"
+                               Margin="0,16,0,0"/>
+
+            <Label Text="Find these in Optimizer desktop → Settings → Remote API.&#x0a;Make sure your phone and PC are on the same Wi-Fi network."
+                   FontSize="12"
+                   TextColor="{StaticResource MutedColor}"
+                   LineHeight="1.5"
+                   Margin="0,24,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

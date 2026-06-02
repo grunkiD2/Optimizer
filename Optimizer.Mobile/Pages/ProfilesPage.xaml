@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Optimizer.Mobile.ViewModels"
+             x:Class="Optimizer.Mobile.Pages.ProfilesPage"
+             Title="Profiles"
+             BackgroundColor="{StaticResource BgColor}">
+    <ContentPage.BindingContext>
+        <vm:ProfilesViewModel/>
+    </ContentPage.BindingContext>
+
+    <Grid>
+        <!-- Loading indicator -->
+        <ActivityIndicator IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="{StaticResource AccentColor}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center"/>
+
+        <!-- Error / empty state -->
+        <Label Text="{Binding StatusMessage}"
+               IsVisible="{Binding HasError}"
+               TextColor="{StaticResource MutedColor}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               HorizontalTextAlignment="Center"
+               Padding="32"/>
+
+        <!-- List -->
+        <CollectionView ItemsSource="{Binding Profiles}"
+                        Margin="20,8">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:ProfileModel">
+                    <Frame BackgroundColor="{StaticResource ElevatedColor}"
+                           BorderColor="Transparent"
+                           CornerRadius="14"
+                           HasShadow="False"
+                           Padding="16"
+                           Margin="0,0,0,8">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" FontSize="15" FontAttributes="Bold"/>
+                                <Label Text="{Binding Description}" FontSize="12"
+                                       TextColor="{StaticResource MutedColor}" Margin="0,2,0,0"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="Apply"
+                                    BackgroundColor="{StaticResource AccentColor}"
+                                    TextColor="White"
+                                    CornerRadius="10"
+                                    FontAttributes="Bold"
+                                    Padding="12,8"
+                                    CommandParameter="{Binding Id}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfilesViewModel}}, Path=ApplyCommand}"/>
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>
