@@ -249,6 +249,101 @@ public class OptimizerCloudClient : IOptimizerCloudClient
         b.PublicId, b.Name, b.AuthorDisplayName, b.Description, b.Category,
         b.Tags, b.Optimizations, b.Downloads, b.AverageRating, b.RatingCount, b.Verified, b.Featured);
 
+    // ── Plugin marketplace ─────────────────────────────────────────────────
+
+    public async Task<RemotePluginBrowseResult?> BrowsePluginsAsync(string? category, string? search, string? sort, int page, int pageSize)
+    {
+        if (_session?.ServerUrl == null) return null;
+        try
+        {
+            var url = $"{_session.ServerUrl}/api/plugins?page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrEmpty(category) && category != "All") url += $"&category={Uri.EscapeDataString(category)}";
+            if (!string.IsNullOrEmpty(search)) url += $"&search={Uri.EscapeDataString(search)}";
+            if (!string.IsNullOrEmpty(sort)) url += $"&sort={Uri.EscapeDataString(sort)}";
+
+            using var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode) return null;
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var body = await resp.Content.ReadFromJsonAsync<PluginBrowseBody>(opts);
+            if (body == null) return null;
+            var listings = body.Listings.Select(MapPlugin).ToList();
+            return new RemotePluginBrowseResult(body.Total, body.Page, body.PageSize, listings);
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: plugin browse failed", ex);
+            return null;
+        }
+    }
+
+    public async Task<RemotePluginDetail?> GetPluginDetailAsync(string pluginId)
+    {
+        if (_session?.ServerUrl == null) return null;
+        try
+        {
+            using var resp = await _http.GetAsync($"{_session.ServerUrl}/api/plugins/{pluginId}");
+            if (!resp.IsSuccessStatusCode) return null;
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var body = await resp.Content.ReadFromJsonAsync<PluginDetailBody>(opts);
+            return body == null ? null : MapPluginDetail(body);
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: plugin get detail failed", ex);
+            return null;
+        }
+    }
+
+    public async Task<bool> IncrementPluginDownloadAsync(string pluginId)
+    {
+        if (_session?.ServerUrl == null) return false;
+        try
+        {
+            using var resp = await _http.PostAsync($"{_session.ServerUrl}/api/plugins/{pluginId}/download", null);
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: plugin increment download failed", ex);
+            return false;
+        }
+    }
+
+    public async Task<bool> SubmitPluginAsync(string manifestYaml)
+    {
+        if (_session?.ServerUrl == null) return false;
+        try
+        {
+            using var req = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/plugins/submit");
+            req.Content = JsonContent.Create(new { manifestYaml });
+            using var resp = await _http.SendAsync(req);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized && _session?.RefreshToken != null)
+            {
+                if (await TryRefreshAsync())
+                {
+                    using var req2 = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/plugins/submit");
+                    req2.Content = JsonContent.Create(new { manifestYaml });
+                    using var resp2 = await _http.SendAsync(req2);
+                    return resp2.IsSuccessStatusCode;
+                }
+            }
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: plugin submit failed", ex);
+            return false;
+        }
+    }
+
+    private static RemotePluginListing MapPlugin(PluginListingBody b) => new(
+        b.PluginId, b.Name, b.AuthorDisplayName, b.Description, b.Category,
+        b.Downloads, b.AverageRating, b.RatingCount, b.Verified);
+
+    private static RemotePluginDetail MapPluginDetail(PluginDetailBody b) => new(
+        b.PluginId, b.Name, b.AuthorDisplayName, b.Description, b.Category,
+        b.ManifestYaml, b.Signature, b.Verified, b.Downloads, b.AverageRating, b.RatingCount);
+
     // ── Private helpers ───────────────────────────────────────────────────
 
     private HttpRequestMessage NewAuthedRequest(HttpMethod method, string url)
@@ -376,4 +471,34 @@ public class OptimizerCloudClient : IOptimizerCloudClient
         int RatingCount,
         bool Verified,
         bool Featured);
+
+    private record PluginBrowseBody(
+        int Total,
+        int Page,
+        int PageSize,
+        IReadOnlyList<PluginListingBody> Listings);
+
+    private record PluginListingBody(
+        string PluginId,
+        string Name,
+        string AuthorDisplayName,
+        string Description,
+        string Category,
+        int Downloads,
+        double AverageRating,
+        int RatingCount,
+        bool Verified);
+
+    private record PluginDetailBody(
+        string PluginId,
+        string Name,
+        string AuthorDisplayName,
+        string Description,
+        string Category,
+        string ManifestYaml,
+        string? Signature,
+        bool Verified,
+        int Downloads,
+        double AverageRating,
+        int RatingCount);
 }

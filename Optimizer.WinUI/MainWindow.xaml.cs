@@ -28,6 +28,7 @@ public sealed partial class MainWindow : Window
         ["Services"] = typeof(ServicesPage),
         ["Profiles"] = typeof(ProfilesPage),
         ["Marketplace"] = typeof(MarketplacePage),
+        ["Plugins"]     = typeof(PluginsPage),
         ["History"] = typeof(HistoryPage),
         ["EventLogs"] = typeof(EventLogsPage),
         ["Reports"]      = typeof(ReportsPage),

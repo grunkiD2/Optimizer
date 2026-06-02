@@ -17,6 +17,8 @@ builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISyncService, SyncService>();
 builder.Services.AddScoped<IMarketplaceService, MarketplaceService>();
+builder.Services.AddScoped<IPluginMarketplaceService, PluginMarketplaceService>();
+builder.Services.AddSingleton<IPluginSigningService, PluginSigningService>();
 
 // Email: console for dev, smtp if Smtp:Host configured
 if (!string.IsNullOrEmpty(builder.Configuration["Smtp:Host"]))
@@ -62,6 +64,8 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
     var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     await MarketplaceSeeder.SeedAsync(db, seederLogger);
+    var pluginSigning = scope.ServiceProvider.GetRequiredService<IPluginSigningService>();
+    await PluginSeeder.SeedAsync(db, pluginSigning, seederLogger);
 }
 
 app.UseCors();
@@ -73,6 +77,7 @@ app.MapHealth();
 app.MapAuth();
 app.MapSync();
 app.MapMarketplace();
+app.MapPlugins();
 
 // Protected example endpoint to verify JWT works
 app.MapGet("/api/me", (HttpContext ctx) =>

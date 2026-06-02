@@ -124,6 +124,11 @@
                         <FontIcon Glyph="&#xE7BF;"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Plugins" Tag="Plugins">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE74C;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="History" Tag="History">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE81C;"/>

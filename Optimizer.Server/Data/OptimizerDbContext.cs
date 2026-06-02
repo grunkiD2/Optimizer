@@ -15,6 +15,8 @@ public class OptimizerDbContext : DbContext
     public DbSet<MarketplaceListing> MarketplaceListings => Set<MarketplaceListing>();
     public DbSet<MarketplaceRating> MarketplaceRatings => Set<MarketplaceRating>();
     public DbSet<MarketplaceReport> MarketplaceReports => Set<MarketplaceReport>();
+    public DbSet<PluginListing> PluginListings => Set<PluginListing>();
+    public DbSet<PluginRating> PluginRatings => Set<PluginRating>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -72,6 +74,21 @@ public class OptimizerDbContext : DbContext
         mb.Entity<MarketplaceReport>(e =>
         {
             e.HasIndex(r => r.ListingId);
+        });
+
+        mb.Entity<PluginListing>(e =>
+        {
+            e.HasIndex(l => l.PluginId).IsUnique();
+            e.HasIndex(l => new { l.Status, l.Verified });
+            e.Property(l => l.PluginId).IsRequired().HasMaxLength(128);
+            e.Property(l => l.Name).IsRequired().HasMaxLength(80);
+            e.Property(l => l.Category).HasMaxLength(64);
+            e.Property(l => l.ManifestSha256).HasMaxLength(64);
+        });
+
+        mb.Entity<PluginRating>(e =>
+        {
+            e.HasIndex(r => new { r.ListingId, r.UserId }).IsUnique();
         });
     }
 }

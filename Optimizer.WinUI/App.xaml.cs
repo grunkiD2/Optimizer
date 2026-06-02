@@ -140,6 +140,7 @@ public partial class App : Application
                 services.AddSingleton<IManifestParser, ManifestParser>();
                 services.AddSingleton<IDeclarativeChangeExecutor, DeclarativeChangeExecutor>();
                 services.AddSingleton<IPluginLoader, PluginLoader>();
+                services.AddSingleton<IPluginVerifier, PluginVerifier>();
                 services.AddSingleton<IMarketplaceService, MarketplaceService>();
                 services.AddSingleton<IIntelligenceService, IntelligenceService>();
 
@@ -178,6 +179,7 @@ public partial class App : Application
                 services.AddTransient<TuningViewModel>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddTransient<MarketplaceViewModel>();
+                services.AddTransient<PluginsViewModel>();
                 services.AddTransient<FleetViewModel>();
                 services.AddTransient<TemplatesViewModel>();
                 services.AddTransient<ComplianceViewModel>();

@@ -59,5 +59,6 @@
     <!-- OpenAPI / Swagger support for the REST API host -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
     <PackageReference Include="YamlDotNet" Version="16.2.1" />
+    <PackageReference Include="NSec.Cryptography" Version="24.4.0" />
   </ItemGroup>
 </Project>
