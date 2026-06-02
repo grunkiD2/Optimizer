@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Moq;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Cloud;
 using Xunit;
 
 namespace Optimizer.WinUI.Tests;
@@ -143,7 +144,9 @@ public class MarketplaceServiceExtendedTests
     public async Task GenerateSubmissionAsync_CreatesFile()
     {
         var optimizerMock = new Mock<IWindowsOptimizerService>();
-        var service = new MarketplaceService(optimizerMock.Object);
+        var cloudMock = new Mock<IOptimizerCloudClient>();
+        cloudMock.Setup(c => c.IsAuthenticated).Returns(false);
+        var service = new MarketplaceService(optimizerMock.Object, cloudMock.Object);
 
         var entry = new MarketplaceEntry { Id = "test-submit", Name = "Test Entry" };
         var path = await service.GenerateSubmissionAsync(entry);

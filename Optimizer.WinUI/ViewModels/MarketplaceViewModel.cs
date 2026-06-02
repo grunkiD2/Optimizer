@@ -3,12 +3,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.ViewModels;
 
 public partial class MarketplaceViewModel : ObservableObject
 {
     private readonly IMarketplaceService _marketplace;
+    private readonly IOptimizerCloudClient _cloud;
     private List<MarketplaceEntry> _allEntries = [];
 
     [ObservableProperty] private bool isLoading;
@@ -29,9 +31,13 @@ public partial class MarketplaceViewModel : ObservableObject
 
     public bool IsEmpty => !IsLoading && Entries.Count == 0;
 
-    public MarketplaceViewModel(IMarketplaceService marketplace)
+    /// <summary>True when the user is authenticated to the cloud — shows Submit Profile button.</summary>
+    public bool CanSubmit => _cloud.IsAuthenticated;
+
+    public MarketplaceViewModel(IMarketplaceService marketplace, IOptimizerCloudClient cloud)
     {
         _marketplace = marketplace;
+        _cloud = cloud;
         Entries.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
 
@@ -42,7 +48,7 @@ public partial class MarketplaceViewModel : ObservableObject
         IsLoading = true;
         try
         {
-            _allEntries = (await _marketplace.LoadCatalogAsync()).ToList();
+            _allEntries = (await _marketplace.LoadCatalogAsync(includeRemote: _cloud.IsAuthenticated)).ToList();
             ApplyFilters();
         }
         finally
@@ -85,7 +91,13 @@ public partial class MarketplaceViewModel : ObservableObject
     {
         if (entry is null) return;
         IsLoading = true;
-        try { await _marketplace.InstallAsync(entry); }
+        try
+        {
+            await _marketplace.InstallAsync(entry);
+            // Track download on server if authenticated
+            if (_cloud.IsAuthenticated)
+                _ = _cloud.IncrementMarketplaceDownloadAsync(entry.Id);
+        }
         finally { IsLoading = false; }
     }
 
@@ -96,6 +108,10 @@ public partial class MarketplaceViewModel : ObservableObject
         if (parameter is not (MarketplaceEntry entry, int rating)) return;
         await _marketplace.RateAsync(entry.Id, rating);
         entry.UserRating = rating;
+
+        // Also submit to server if authenticated
+        if (_cloud.IsAuthenticated)
+            _ = _cloud.RateMarketplaceListingAsync(entry.Id, rating, null);
     }
 
     [RelayCommand]
@@ -103,5 +119,12 @@ public partial class MarketplaceViewModel : ObservableObject
     {
         if (entry is null) return;
         await _marketplace.GenerateSubmissionAsync(entry);
+    }
+
+    [RelayCommand]
+    public async Task SubmitProfileAsync(MarketplaceSubmission submission)
+    {
+        if (!_cloud.IsAuthenticated || submission is null) return;
+        await _cloud.SubmitMarketplaceListingAsync(submission);
     }
 }

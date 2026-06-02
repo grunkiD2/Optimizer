@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Moq;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Cloud;
 using Xunit;
 
 namespace Optimizer.WinUI.Tests;
@@ -23,11 +24,19 @@ public class MarketplaceServiceTests
         return mock;
     }
 
+    private static Mock<IOptimizerCloudClient> BuildCloudMock(bool isAuthenticated = false)
+    {
+        var mock = new Mock<IOptimizerCloudClient>();
+        mock.Setup(c => c.IsAuthenticated).Returns(isAuthenticated);
+        return mock;
+    }
+
     [Fact]
     public void Constructor_DoesNotThrow()
     {
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var cloud = BuildCloudMock();
+        var service = new MarketplaceService(optimizer.Object, cloud.Object);
         Assert.NotNull(service);
     }
 
@@ -37,7 +46,7 @@ public class MarketplaceServiceTests
         // Fresh instance with no ratings file will have empty dict
         // (ratings file is in %LocalAppData%\Optimizer\marketplace-ratings.json)
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         var ratings = service.GetUserRatings();
         // Just verify the contract — may or may not be empty if real file exists
@@ -48,7 +57,7 @@ public class MarketplaceServiceTests
     public async Task RateAsync_StoresRatingForId()
     {
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         await service.RateAsync("profile-gaming", 4);
 
@@ -61,7 +70,7 @@ public class MarketplaceServiceTests
     public async Task RateAsync_ClampsRatingAboveFive()
     {
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         await service.RateAsync("id-x", 99);
 
@@ -72,7 +81,7 @@ public class MarketplaceServiceTests
     public async Task RateAsync_ClampsRatingBelowZero()
     {
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         await service.RateAsync("id-y", -5);
 
@@ -83,7 +92,7 @@ public class MarketplaceServiceTests
     public async Task RateAsync_OverwritesPreviousRating()
     {
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         await service.RateAsync("id-z", 2);
         await service.RateAsync("id-z", 5);
@@ -95,7 +104,7 @@ public class MarketplaceServiceTests
     public async Task InstallAsync_CallsApplyOptimizationForEachItem()
     {
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         var entry = new MarketplaceEntry
         {
@@ -117,7 +126,7 @@ public class MarketplaceServiceTests
     public async Task InstallAsync_EmptyOptimizations_Succeeds()
     {
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         var entry = new MarketplaceEntry
         {
@@ -137,7 +146,7 @@ public class MarketplaceServiceTests
     {
         // The catalog file won't be present in the test bin directory
         var optimizer = BuildOptimizerMock();
-        var service = new MarketplaceService(optimizer.Object);
+        var service = new MarketplaceService(optimizer.Object, BuildCloudMock().Object);
 
         var catalog = await service.LoadCatalogAsync();
 

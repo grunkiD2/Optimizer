@@ -1,24 +1,70 @@
 using System.Text.Json;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.Services;
 
 public class MarketplaceService : IMarketplaceService
 {
     private readonly IWindowsOptimizerService _optimizer;
+    protected readonly IOptimizerCloudClient _cloud;
 
     private static readonly string RatingsFile = AppPaths.GetDataFile("marketplace-ratings.json");
 
     private Dictionary<string, int> _ratings = new();
 
-    public MarketplaceService(IWindowsOptimizerService optimizer)
+    public MarketplaceService(IWindowsOptimizerService optimizer, IOptimizerCloudClient cloud)
     {
         _optimizer = optimizer;
+        _cloud = cloud;
         LoadRatings();
     }
 
-    public async Task<IReadOnlyList<MarketplaceEntry>> LoadCatalogAsync()
+    public virtual async Task<IReadOnlyList<MarketplaceEntry>> LoadCatalogAsync(bool includeRemote = false)
+    {
+        var local = await LoadBundledCatalogAsync();
+        if (!includeRemote || !_cloud.IsAuthenticated) return local;
+
+        try
+        {
+            var remote = await _cloud.BrowseMarketplaceAsync(null, null, "downloads", 1, 100);
+            if (remote == null) return local;
+
+            var remoteEntries = remote.Listings.Select(r => new MarketplaceEntry
+            {
+                Id = r.PublicId,
+                Name = r.Name,
+                Author = r.AuthorDisplayName,
+                Description = r.Description,
+                Category = r.Category,
+                Tags = r.Tags.ToList(),
+                Optimizations = r.Optimizations.ToList(),
+                Downloads = r.Downloads,
+                AverageRating = r.AverageRating,
+                RatingCount = r.RatingCount,
+                Verified = r.Verified,
+                Source = r.Featured ? "Featured" : "Community"
+            }).ToList();
+
+            // Apply local ratings to remote entries
+            foreach (var entry in remoteEntries)
+                if (_ratings.TryGetValue(entry.Id, out var rating))
+                    entry.UserRating = rating;
+
+            // Merge: remote entries take precedence for same PublicId
+            var localIds = new HashSet<string>(local.Select(l => l.Id));
+            var merged = local.Concat(remoteEntries.Where(r => !localIds.Contains(r.Id))).ToList();
+            return merged;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Marketplace remote merge failed", ex);
+            return local;
+        }
+    }
+
+    private async Task<List<MarketplaceEntry>> LoadBundledCatalogAsync()
     {
         try
         {
@@ -36,6 +82,8 @@ public class MarketplaceService : IMarketplaceService
                 {
                     var entry = JsonSerializer.Deserialize<MarketplaceEntry>(el.GetRawText(), opts);
                     if (entry is null) continue;
+
+                    entry.Source = "Bundled";
 
                     if (_ratings.TryGetValue(entry.Id, out var r))
                         entry.UserRating = r;

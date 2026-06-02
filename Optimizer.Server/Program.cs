@@ -16,6 +16,7 @@ builder.Services.AddDbContext<OptimizerDbContext>(opt => opt.UseSqlite(connectio
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISyncService, SyncService>();
+builder.Services.AddScoped<IMarketplaceService, MarketplaceService>();
 
 // Email: console for dev, smtp if Smtp:Host configured
 if (!string.IsNullOrEmpty(builder.Configuration["Smtp:Host"]))
@@ -54,11 +55,13 @@ builder.Services.AddCors(opts => opts.AddDefaultPolicy(p =>
 
 var app = builder.Build();
 
-// Ensure DB created
+// Ensure DB created and seed marketplace
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<OptimizerDbContext>();
     db.Database.EnsureCreated();
+    var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await MarketplaceSeeder.SeedAsync(db, seederLogger);
 }
 
 app.UseCors();
@@ -69,6 +72,7 @@ app.MapOpenApi();
 app.MapHealth();
 app.MapAuth();
 app.MapSync();
+app.MapMarketplace();
 
 // Protected example endpoint to verify JWT works
 app.MapGet("/api/me", (HttpContext ctx) =>

@@ -117,6 +117,138 @@ public class OptimizerCloudClient : IOptimizerCloudClient
         });
     }
 
+    // ── Marketplace ────────────────────────────────────────────────────────
+
+    public async Task<RemoteMarketplaceBrowseResult?> BrowseMarketplaceAsync(string? category, string? search, string? sort, int page, int pageSize)
+    {
+        if (_session?.ServerUrl == null) return null;
+        try
+        {
+            var url = $"{_session.ServerUrl}/api/marketplace?page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrEmpty(category) && category != "All") url += $"&category={Uri.EscapeDataString(category)}";
+            if (!string.IsNullOrEmpty(search)) url += $"&search={Uri.EscapeDataString(search)}";
+            if (!string.IsNullOrEmpty(sort)) url += $"&sort={Uri.EscapeDataString(sort)}";
+
+            using var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode) return null;
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var body = await resp.Content.ReadFromJsonAsync<MarketplaceBrowseBody>(opts);
+            if (body == null) return null;
+            var listings = body.Listings.Select(MapListing).ToList();
+            return new RemoteMarketplaceBrowseResult(body.Total, body.Page, body.PageSize, listings);
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: marketplace browse failed", ex);
+            return null;
+        }
+    }
+
+    public async Task<RemoteMarketplaceListing?> GetMarketplaceListingAsync(string publicId)
+    {
+        if (_session?.ServerUrl == null) return null;
+        try
+        {
+            using var resp = await _http.GetAsync($"{_session.ServerUrl}/api/marketplace/{publicId}");
+            if (!resp.IsSuccessStatusCode) return null;
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var body = await resp.Content.ReadFromJsonAsync<MarketplaceListingBody>(opts);
+            return body == null ? null : MapListing(body);
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: marketplace get listing failed", ex);
+            return null;
+        }
+    }
+
+    public async Task<bool> IncrementMarketplaceDownloadAsync(string publicId)
+    {
+        if (_session?.ServerUrl == null) return false;
+        try
+        {
+            using var resp = await _http.PostAsync($"{_session.ServerUrl}/api/marketplace/{publicId}/download", null);
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: marketplace increment download failed", ex);
+            return false;
+        }
+    }
+
+    public async Task<bool> SubmitMarketplaceListingAsync(MarketplaceSubmission submission)
+    {
+        if (_session?.ServerUrl == null) return false;
+        try
+        {
+            using var req = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/marketplace/submit");
+            req.Content = JsonContent.Create(new
+            {
+                name = submission.Name,
+                description = submission.Description,
+                category = submission.Category,
+                tags = submission.Tags,
+                optimizations = submission.Optimizations
+            });
+            using var resp = await _http.SendAsync(req);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized && _session?.RefreshToken != null)
+            {
+                if (await TryRefreshAsync())
+                {
+                    using var req2 = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/marketplace/submit");
+                    req2.Content = JsonContent.Create(new
+                    {
+                        name = submission.Name,
+                        description = submission.Description,
+                        category = submission.Category,
+                        tags = submission.Tags,
+                        optimizations = submission.Optimizations
+                    });
+                    using var resp2 = await _http.SendAsync(req2);
+                    return resp2.IsSuccessStatusCode;
+                }
+            }
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: marketplace submit failed", ex);
+            return false;
+        }
+    }
+
+    public async Task<bool> RateMarketplaceListingAsync(string publicId, int stars, string? comment)
+    {
+        if (_session?.ServerUrl == null) return false;
+        try
+        {
+            using var req = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/marketplace/{publicId}/rate");
+            req.Content = JsonContent.Create(new { stars, comment });
+            using var resp = await _http.SendAsync(req);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized && _session?.RefreshToken != null)
+            {
+                if (await TryRefreshAsync())
+                {
+                    using var req2 = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/marketplace/{publicId}/rate");
+                    req2.Content = JsonContent.Create(new { stars, comment });
+                    using var resp2 = await _http.SendAsync(req2);
+                    return resp2.IsSuccessStatusCode;
+                }
+            }
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: marketplace rate failed", ex);
+            return false;
+        }
+    }
+
+    private static RemoteMarketplaceListing MapListing(MarketplaceListingBody b) => new(
+        b.PublicId, b.Name, b.AuthorDisplayName, b.Description, b.Category,
+        b.Tags, b.Optimizations, b.Downloads, b.AverageRating, b.RatingCount, b.Verified, b.Featured);
+
     // ── Private helpers ───────────────────────────────────────────────────
 
     private HttpRequestMessage NewAuthedRequest(HttpMethod method, string url)
@@ -223,4 +355,25 @@ public class OptimizerCloudClient : IOptimizerCloudClient
         bool IsDeleted);
 
     private record SyncPushBody(long ServerVersion);
+
+    private record MarketplaceBrowseBody(
+        int Total,
+        int Page,
+        int PageSize,
+        IReadOnlyList<MarketplaceListingBody> Listings);
+
+    private record MarketplaceListingBody(
+        Guid Id,
+        string PublicId,
+        string Name,
+        string AuthorDisplayName,
+        string Description,
+        string Category,
+        IReadOnlyList<string> Tags,
+        IReadOnlyList<string> Optimizations,
+        int Downloads,
+        double AverageRating,
+        int RatingCount,
+        bool Verified,
+        bool Featured);
 }

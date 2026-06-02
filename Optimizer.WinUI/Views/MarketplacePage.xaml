@@ -10,6 +10,7 @@
 
     <Page.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:StringToSolidColorBrushConverter x:Key="StringToBrush"/>
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -21,15 +22,28 @@
             </StackPanel.ChildrenTransitions>
 
             <!-- ── Header ──────────────────────────────────────────────── -->
-            <StackPanel Spacing="2">
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <TextBlock Text="{x:Bind ViewModel.CategoryIcon}" FontSize="28" VerticalAlignment="Center"/>
-                    <TextBlock Text="{x:Bind ViewModel.CategoryName}" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="{x:Bind ViewModel.CategoryIcon}" FontSize="28" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind ViewModel.CategoryName}" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Community-shared optimization profiles"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               FontSize="13"/>
                 </StackPanel>
-                <TextBlock Text="Community-shared optimization profiles"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           FontSize="13"/>
-            </StackPanel>
+                <!-- Submit Profile button — visible only when cloud authenticated -->
+                <Button Grid.Column="1"
+                        x:Name="SubmitProfileButton"
+                        Content="Submit Profile"
+                        VerticalAlignment="Center"
+                        Click="SubmitProfile_Click"
+                        Visibility="{x:Bind ViewModel.CanSubmit, Converter={StaticResource BoolToVisibility}}"/>
+            </Grid>
 
             <!-- ── Filter row ───────────────────────────────────────────── -->
             <Grid ColumnSpacing="8">
@@ -111,12 +125,16 @@
                                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
                                     </StackPanel>
 
-                                    <Border Grid.Column="1"
-                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                            CornerRadius="4" Padding="6,2"
-                                            VerticalAlignment="Top">
-                                        <TextBlock Text="{x:Bind Category}" FontSize="10"/>
-                                    </Border>
+                                    <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="3" VerticalAlignment="Top">
+                                        <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                                CornerRadius="4" Padding="6,2">
+                                            <TextBlock Text="{x:Bind Category}" FontSize="10"/>
+                                        </Border>
+                                        <Border CornerRadius="4" Padding="6,2"
+                                                Background="{x:Bind SourceBadgeColor, Converter={StaticResource StringToBrush}}">
+                                            <TextBlock Text="{x:Bind Source}" FontSize="9" Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
                                 </Grid>
 
                                 <!-- description -->

@@ -12,6 +12,9 @@ public class OptimizerDbContext : DbContext
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<SyncItem> SyncItems => Set<SyncItem>();
     public DbSet<UserVersionCounter> UserVersionCounters => Set<UserVersionCounter>();
+    public DbSet<MarketplaceListing> MarketplaceListings => Set<MarketplaceListing>();
+    public DbSet<MarketplaceRating> MarketplaceRatings => Set<MarketplaceRating>();
+    public DbSet<MarketplaceReport> MarketplaceReports => Set<MarketplaceReport>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -49,6 +52,26 @@ public class OptimizerDbContext : DbContext
         {
             e.HasKey(c => c.UserId);
             e.HasOne(c => c.User).WithOne().HasForeignKey<UserVersionCounter>(c => c.UserId);
+        });
+
+        mb.Entity<MarketplaceListing>(e =>
+        {
+            e.HasIndex(l => l.PublicId).IsUnique();
+            e.HasIndex(l => new { l.Status, l.Featured });
+            e.HasIndex(l => l.Category);
+            e.Property(l => l.PublicId).IsRequired().HasMaxLength(128);
+            e.Property(l => l.Name).IsRequired().HasMaxLength(80);
+            e.Property(l => l.Category).HasMaxLength(64);
+        });
+
+        mb.Entity<MarketplaceRating>(e =>
+        {
+            e.HasIndex(r => new { r.ListingId, r.UserId }).IsUnique();
+        });
+
+        mb.Entity<MarketplaceReport>(e =>
+        {
+            e.HasIndex(r => r.ListingId);
         });
     }
 }

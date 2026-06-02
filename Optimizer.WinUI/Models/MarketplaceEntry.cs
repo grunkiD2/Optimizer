@@ -20,6 +20,15 @@ public partial class MarketplaceEntry : ObservableObject
     [ObservableProperty] private int userRating;   // 0-5, set if user rated locally
     [ObservableProperty] private bool isInstalled;
 
+    public string Source { get; set; } = "Bundled";  // "Bundled" | "Community" | "Featured"
+
+    public string SourceBadgeColor => Source switch
+    {
+        "Featured" => "#A78BFA",
+        "Community" => "#34D399",
+        _ => "#6B7280"
+    };
+
     public string DownloadsText => Downloads switch
     {
         >= 1_000_000 => string.Create(CultureInfo.InvariantCulture, $"{Downloads / 1_000_000.0:F1}M"),
