@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
@@ -21,6 +22,9 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private DispatcherTimer? _timer;
     private bool _disposed;
     private int _anomalyCheckCounter;
+    private DispatcherQueue? _dispatcherQueue;
+    private volatile bool _initialRefreshDone;
+    private volatile bool _refreshInFlight;
 
     // ── Metric properties ────────────────────────────────────────────────────
 
@@ -155,8 +159,14 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     {
         if (_timer != null) return;
 
-        // Take an immediate snapshot so the UI shows data right away.
-        RefreshNow();
+        // Capture UI dispatcher for marshaling background results.
+        _dispatcherQueue ??= DispatcherQueue.GetForCurrentThread();
+
+        // First refresh happens on a background thread because LibreHardwareMonitor's
+        // initial Update() enumerates all hardware sensors and can take 5-15 seconds
+        // on rich systems. Doing it inline froze the UI for ~20s on the first visit.
+        StatusMessage = "Loading sensors...";
+        _ = Task.Run(RefreshOffThread);
 
         _timer = new DispatcherTimer
         {
@@ -178,7 +188,9 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void OnTimerTick(object? sender, object e)
     {
-        RefreshNow();
+        // Skip ticks while a background refresh is still in flight to avoid pile-up.
+        if (!_refreshInFlight)
+            _ = Task.Run(RefreshOffThread);
 
         // Run anomaly check every 30 ticks to avoid per-second overhead
         _anomalyCheckCounter++;
@@ -189,41 +201,65 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void RefreshNow()
+    private void RefreshOffThread()
     {
+        if (_refreshInFlight) return;
+        _refreshInFlight = true;
         try
         {
+            // Gather everything on the background thread — this is the slow work.
             var snap = _monitor.CollectSnapshot();
-            ApplySnapshot(snap);
-
             var cores = _monitor.GetPerCoreUsage();
-            ApplyCoreUsage(cores);
-
             var procs = _processService.GetTopProcesses(10);
-            ApplyProcesses(procs);
+            var undoCount = _undoService.Count;
 
-            UndoableChanges = _undoService.Count;
-            LastUpdated = snap.Timestamp.ToString("HH:mm:ss");
-
-            // LHM sensor readings (graceful degradation if unavailable)
+            HardwareSnapshot? sensors = null;
             if (_sensorService.IsAvailable)
             {
-                var sensors = _sensorService.GetSnapshot();
-                if (sensors.CpuPackageTemperatureC.HasValue)
-                    CpuTempText = $"{sensors.CpuPackageTemperatureC:F0}°C";
-                if (sensors.GpuTemperatureC.HasValue)
-                    GpuTempText = $"{sensors.GpuTemperatureC:F0}°C";
-                if (sensors.CpuPowerWatts.HasValue)
-                    CpuPowerText = $"{sensors.CpuPowerWatts:F0}W";
-                if (sensors.GpuPowerWatts.HasValue)
-                    GpuPowerText = $"{sensors.GpuPowerWatts:F0}W";
+                try { sensors = _sensorService.GetSnapshot(); }
+                catch { /* sensors are optional */ }
             }
+
+            // Marshal the property updates onto the UI thread.
+            _dispatcherQueue?.TryEnqueue(() =>
+            {
+                ApplySnapshot(snap);
+                ApplyCoreUsage(cores);
+                ApplyProcesses(procs);
+                UndoableChanges = undoCount;
+                LastUpdated = snap.Timestamp.ToString("HH:mm:ss");
+
+                if (sensors != null)
+                {
+                    if (sensors.CpuPackageTemperatureC.HasValue)
+                        CpuTempText = $"{sensors.CpuPackageTemperatureC:F0}°C";
+                    if (sensors.GpuTemperatureC.HasValue)
+                        GpuTempText = $"{sensors.GpuTemperatureC:F0}°C";
+                    if (sensors.CpuPowerWatts.HasValue)
+                        CpuPowerText = $"{sensors.CpuPowerWatts:F0}W";
+                    if (sensors.GpuPowerWatts.HasValue)
+                        GpuPowerText = $"{sensors.GpuPowerWatts:F0}W";
+                }
+
+                if (!_initialRefreshDone)
+                {
+                    _initialRefreshDone = true;
+                    if (StatusMessage == "Loading sensors...")
+                        StatusMessage = "";
+                }
+            });
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Refresh error: {ex.Message}";
+            _dispatcherQueue?.TryEnqueue(() => StatusMessage = $"Refresh error: {ex.Message}");
+        }
+        finally
+        {
+            _refreshInFlight = false;
         }
     }
+
+    private void RefreshNow() => _ = Task.Run(RefreshOffThread);
 
     private void ApplySnapshot(SystemResource snap)
     {
