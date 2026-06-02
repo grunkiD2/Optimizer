@@ -1,3 +1,4 @@
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Services;
@@ -36,7 +37,19 @@ public sealed partial class MainWindow : Window
             (int)_settingsService.Settings.WindowWidth,
             (int)_settingsService.Settings.WindowHeight));
 
+        // Hook close button — minimize to tray when setting is enabled
+        AppWindow.Closing += AppWindow_Closing;
+
         InitializeElevationState();
+    }
+
+    private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_settingsService.Settings.MinimizeToTray)
+        {
+            args.Cancel = true;
+            AppWindow.Hide();
+        }
     }
 
     private void InitializeElevationState()

@@ -21,6 +21,8 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int chartHistorySeconds = 60;
     [ObservableProperty] private bool startWithWindows;
     [ObservableProperty] private bool confirmBeforeApply;
+    [ObservableProperty] private bool minimizeToTray;
+    [ObservableProperty] private bool startMinimized;
 
     public string CategoryName => "Settings";
     public string CategoryIcon => ""; // Settings gear icon
@@ -48,6 +50,8 @@ public partial class SettingsViewModel : ObservableObject
             MetricsRefreshSeconds = s.MetricsRefreshSeconds;
             ChartHistorySeconds = s.ChartHistorySeconds;
             ConfirmBeforeApply = s.ConfirmBeforeApply;
+            MinimizeToTray = s.MinimizeToTray;
+            StartMinimized = s.StartMinimized;
 
             // Reflect actual registry state rather than just saved preference
             StartWithWindows = IsAppRegisteredInStartup();
@@ -107,6 +111,20 @@ public partial class SettingsViewModel : ObservableObject
     {
         if (_isLoading) return;
         _settingsService.Settings.ConfirmBeforeApply = value;
+        _settingsService.Save();
+    }
+
+    partial void OnMinimizeToTrayChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.MinimizeToTray = value;
+        _settingsService.Save();
+    }
+
+    partial void OnStartMinimizedChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.StartMinimized = value;
         _settingsService.Save();
     }
 

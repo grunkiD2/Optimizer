@@ -14,4 +14,6 @@ public class AppSettings
     public double WindowWidth { get; set; } = 1200;
     public double WindowHeight { get; set; } = 800;
     public string LastNavigationItem { get; set; } = "Dashboard";
+    public bool MinimizeToTray { get; set; } = true;
+    public bool StartMinimized { get; set; } = false;
 }

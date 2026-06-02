@@ -113,6 +113,20 @@
                               VerticalAlignment="Center"/>
             </settingsControls:SettingsCard>
 
+            <settingsControls:SettingsCard Header="Minimize to System Tray"
+                                           Description="Closing the window minimizes to tray instead of exiting">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Start Minimized"
+                                           Description="Launch Optimizer minimized to the system tray">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.StartMinimized, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
             <settingsControls:SettingsCard Header="Clear Change History"
                                            Description="Permanently remove all recorded optimization events">
                 <Button Content="Clear History"

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
@@ -13,6 +14,9 @@ public partial class App : Application
     public static T GetService<T>() where T : class => AppHost.Services.GetRequiredService<T>();
 
     private Window? _window;
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     private static readonly string CrashLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -59,6 +63,7 @@ public partial class App : Application
                 services.AddSingleton<SettingsService>();
                 services.AddSingleton<ProfileService>();
                 services.AddSingleton<HistoryService>();
+                services.AddSingleton<ITrayIconService, TrayIconService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
@@ -120,6 +125,19 @@ public partial class App : Application
             themeService.Initialize(_window);
             themeService.ApplyBackdrop(settings.Settings.BackdropMaterial);
             themeService.ApplyTheme(settings.Settings.Theme);
+
+            // Initialize system tray icon
+            var trayService = GetService<ITrayIconService>();
+            trayService.Initialize(_window);
+
+            // Honor StartMinimized — hide window immediately after activation
+            if (settings.Settings.StartMinimized)
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
+                ShowWindow(hwnd, 6); // SW_MINIMIZE = 6
+                // Also hide from taskbar so it goes fully to tray
+                _window.AppWindow.Hide();
+            }
         }
         catch (Exception ex)
         {
