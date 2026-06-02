@@ -11,4 +11,5 @@
     <Deploy />
   </Project>
   <Project Path="Optimizer/Optimizer.csproj" />
+  <Project Path="Optimizer.WinUI/Optimizer.WinUI.csproj" />
 </Solution>
