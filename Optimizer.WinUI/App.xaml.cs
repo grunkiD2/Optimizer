@@ -36,7 +36,7 @@ public partial class App : Application
                 services.AddSingleton<HistoryService>();
 
                 // ViewModels
-                services.AddTransient<DashboardViewModel>();
+                services.AddSingleton<DashboardViewModel>();
                 services.AddTransient<PerformanceCategoryViewModel>();
                 services.AddTransient<NetworkCategoryViewModel>();
                 services.AddTransient<StorageCategoryViewModel>();
@@ -63,8 +63,7 @@ public partial class App : Application
         var profileService = GetService<ProfileService>();
         profileService.Load();
 
-        var undoService = GetService<IUndoService>() as UndoService;
-        undoService?.Load();
+        GetService<IUndoService>().Load();
 
         _window = GetService<MainWindow>();
         _window.Activate();

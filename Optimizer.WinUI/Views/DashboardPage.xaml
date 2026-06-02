@@ -47,7 +47,7 @@
             <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
                        FontSize="12"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                       Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+                       Visibility="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
             <!-- ── Health InfoBar ─────────────────────────────────────────── -->
             <Border CornerRadius="8" Padding="16,12">

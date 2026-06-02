@@ -37,12 +37,16 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int _healthScore = 100;
     [ObservableProperty] private string _healthText = "System is healthy";
 
-    [ObservableProperty] private int _activeOptimizations;
     [ObservableProperty] private int _undoableChanges;
 
     [ObservableProperty] private string _lastUpdated = "--:--:--";
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string _statusMessage = string.Empty;
+
+    public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
+
+    partial void OnStatusMessageChanged(string value)
+        => OnPropertyChanged(nameof(HasStatusMessage));
 
     // ── Formatted display strings (used by x:Bind in XAML) ─────────────────
 
