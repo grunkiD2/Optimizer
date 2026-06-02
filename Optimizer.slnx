@@ -12,4 +12,5 @@
   </Project>
   <Project Path="Optimizer/Optimizer.csproj" />
   <Project Path="Optimizer.WinUI/Optimizer.WinUI.csproj" />
+  <Project Path="Optimizer.Cli/Optimizer.Cli.csproj" />
 </Solution>
