@@ -1,6 +1,7 @@
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
@@ -10,6 +11,8 @@ namespace Optimizer.WinUI.ViewModels;
 public partial class HardwareViewModel : ObservableObject
 {
     private readonly IHardwareInfoService _hardwareService;
+    private readonly ISensorService _sensorService;
+    private DispatcherTimer? _sensorTimer;
 
     [ObservableProperty] private bool _isLoading;
 
@@ -28,6 +31,10 @@ public partial class HardwareViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(UefiText))]
     private HardwareInfo? _hardware;
 
+    [ObservableProperty] private HardwareSnapshot? _sensors;
+    [ObservableProperty] private bool _sensorsAvailable;
+    [ObservableProperty] private string _sensorUnavailableReason = string.Empty;
+
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
@@ -39,9 +46,42 @@ public partial class HardwareViewModel : ObservableObject
     public string CategoryName => "Hardware";
     public string CategoryIcon => ""; // HardDrive Segoe MDL2 glyph
 
-    public HardwareViewModel(IHardwareInfoService hardwareService)
+    public HardwareViewModel(IHardwareInfoService hardwareService, ISensorService sensorService)
     {
         _hardwareService = hardwareService;
+        _sensorService = sensorService;
+        SensorsAvailable = sensorService.IsAvailable;
+        SensorUnavailableReason = sensorService.InitializationError ?? string.Empty;
+    }
+
+    // ── Sensor timer lifecycle (called from page code-behind) ─────────────
+
+    public void StartSensorTimer()
+    {
+        if (_sensorTimer != null || !_sensorService.IsAvailable) return;
+        RefreshSensors(); // immediate first read
+        _sensorTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _sensorTimer.Tick += (_, _) => RefreshSensors();
+        _sensorTimer.Start();
+    }
+
+    public void StopSensorTimer()
+    {
+        if (_sensorTimer == null) return;
+        _sensorTimer.Stop();
+        _sensorTimer = null;
+    }
+
+    private void RefreshSensors()
+    {
+        try
+        {
+            Sensors = _sensorService.GetSnapshot();
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Sensor refresh failed", ex);
+        }
     }
 
     // ── Commands ─────────────────────────────────────────────────────────

@@ -12,10 +12,17 @@ public sealed partial class HardwarePage : Page
     {
         ViewModel = App.GetService<HardwareViewModel>();
         InitializeComponent();
+        Unloaded += Page_Unloaded;
     }
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
-        => await ViewModel.LoadAsync();
+    {
+        await ViewModel.LoadAsync();
+        ViewModel.StartSensorTimer();
+    }
+
+    private void Page_Unloaded(object sender, RoutedEventArgs e)
+        => ViewModel.StopSensorTimer();
 
     private async void Refresh_Click(object sender, RoutedEventArgs e)
         => await ViewModel.RefreshCommand.ExecuteAsync(null);

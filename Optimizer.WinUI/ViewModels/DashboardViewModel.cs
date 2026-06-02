@@ -15,6 +15,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private readonly IProcessService _processService;
     private readonly IUndoService _undoService;
     private readonly SettingsService _settings;
+    private readonly ISensorService _sensorService;
 
     private DispatcherTimer? _timer;
     private bool _disposed;
@@ -78,6 +79,12 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _lastUpdated = "--:--:--";
     [ObservableProperty] private bool _isBusy;
 
+    // ── Sensor properties (from LibreHardwareMonitor) ─────────────────────────
+    [ObservableProperty] private string _cpuTempText = "—";
+    [ObservableProperty] private string _gpuTempText = "—";
+    [ObservableProperty] private string _cpuPowerText = "—";
+    [ObservableProperty] private string _gpuPowerText = "—";
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
     private string _statusMessage = string.Empty;
@@ -123,13 +130,15 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         IWindowsOptimizerService optimizer,
         IProcessService processService,
         IUndoService undoService,
-        SettingsService settings)
+        SettingsService settings,
+        ISensorService sensorService)
     {
         _monitor = monitor;
         _optimizer = optimizer;
         _processService = processService;
         _undoService = undoService;
         _settings = settings;
+        _sensorService = sensorService;
 
         RefreshNowCommand = new RelayCommand(RefreshNow);
         ApplySafeTuneCommand = new AsyncRelayCommand(ApplySafeTuneAsync);
@@ -180,6 +189,20 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
             UndoableChanges = _undoService.Count;
             LastUpdated = snap.Timestamp.ToString("HH:mm:ss");
+
+            // LHM sensor readings (graceful degradation if unavailable)
+            if (_sensorService.IsAvailable)
+            {
+                var sensors = _sensorService.GetSnapshot();
+                if (sensors.CpuPackageTemperatureC.HasValue)
+                    CpuTempText = $"{sensors.CpuPackageTemperatureC:F0}°C";
+                if (sensors.GpuTemperatureC.HasValue)
+                    GpuTempText = $"{sensors.GpuTemperatureC:F0}°C";
+                if (sensors.CpuPowerWatts.HasValue)
+                    CpuPowerText = $"{sensors.CpuPowerWatts:F0}W";
+                if (sensors.GpuPowerWatts.HasValue)
+                    GpuPowerText = $"{sensors.GpuPowerWatts:F0}W";
+            }
         }
         catch (Exception ex)
         {
