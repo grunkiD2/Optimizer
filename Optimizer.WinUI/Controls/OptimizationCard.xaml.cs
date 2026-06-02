@@ -49,11 +49,11 @@ public sealed partial class OptimizationCard : UserControl
 
     public static readonly DependencyProperty ProsProperty =
         DependencyProperty.Register(nameof(Pros), typeof(List<string>), typeof(OptimizationCard),
-            new PropertyMetadata(new List<string>()));
+            new PropertyMetadata(null, OnDisplayPropertyChanged));
 
     public static readonly DependencyProperty ConsProperty =
         DependencyProperty.Register(nameof(Cons), typeof(List<string>), typeof(OptimizationCard),
-            new PropertyMetadata(new List<string>()));
+            new PropertyMetadata(null, OnDisplayPropertyChanged));
 
     // ── CLR wrappers ──────────────────────────────────────────────────────
 
@@ -113,13 +113,13 @@ public sealed partial class OptimizationCard : UserControl
 
     public List<string> Pros
     {
-        get => (List<string>)GetValue(ProsProperty);
+        get => (List<string>?)GetValue(ProsProperty) ?? [];
         set => SetValue(ProsProperty, value);
     }
 
     public List<string> Cons
     {
-        get => (List<string>)GetValue(ConsProperty);
+        get => (List<string>?)GetValue(ConsProperty) ?? [];
         set => SetValue(ConsProperty, value);
     }
 

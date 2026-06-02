@@ -8,6 +8,7 @@ namespace Optimizer.WinUI.Views;
 public sealed partial class PerformancePage : Page
 {
     public PerformanceCategoryViewModel ViewModel { get; }
+    private readonly Dictionary<string, EventHandler<bool>> _toggleHandlers = [];
 
     public PerformancePage()
     {
@@ -20,15 +21,20 @@ public sealed partial class PerformancePage : Page
 
     private void OptimizationCard_Loaded(object sender, RoutedEventArgs e)
     {
-        if (sender is OptimizationCard card && card.Tag is string id)
-        {
-            var model = ViewModel.Optimizations.FirstOrDefault(o => o.Id == id);
-            if (model != null)
-            {
-                card.LoadFromInfo(model.Info, model.IsActive, model.IsElevated);
-                card.Toggled += async (_, isOn) =>
-                    await ViewModel.ToggleOptimizationAsync(id, isOn);
-            }
-        }
+        if (sender is not OptimizationCard card || card.Tag is not string id) return;
+
+        var model = ViewModel.Optimizations.FirstOrDefault(o => o.Id == id);
+        if (model == null) return;
+
+        card.LoadFromInfo(model.Info, model.IsActive, model.IsElevated);
+
+        // Remove old handler before adding new (prevents duplicate subscriptions on recycling)
+        if (_toggleHandlers.TryGetValue(id, out var oldHandler))
+            card.Toggled -= oldHandler;
+
+        EventHandler<bool> handler = async (_, isOn) =>
+            await ViewModel.ToggleOptimizationAsync(id, isOn);
+        _toggleHandlers[id] = handler;
+        card.Toggled += handler;
     }
 }
