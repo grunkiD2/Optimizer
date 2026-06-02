@@ -150,7 +150,7 @@ public class TemplatesService : ITemplatesService
             new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = null });
 
         // Fix @odata.type (serializer changes _ to .)
-        json = json.Replace("odata_type", "@odata.type");
+        json = json.Replace("odata_type", "@odata.type", StringComparison.Ordinal);
 
         await File.WriteAllTextAsync(path, json);
         return path;
@@ -175,7 +175,7 @@ public class TemplatesService : ITemplatesService
         foreach (var (keyVal, data) in template.RegistryChanges)
         {
             var parts     = keyVal.Split('|');
-            var regKey    = parts[0].Replace("HKLM\\", "HKLM:\\");
+            var regKey    = parts[0].Replace("HKLM\\", "HKLM:\\", StringComparison.Ordinal);
             var valueName = parts.Length > 1 ? parts[1] : "Value";
 
             sb.AppendLine("    - resource: PSDscResources/Registry");

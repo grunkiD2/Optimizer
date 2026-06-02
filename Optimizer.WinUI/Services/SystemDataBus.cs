@@ -130,5 +130,6 @@ public class SystemDataBus : ISystemDataBus, IHostedService, IDisposable
         _sensorTimer?.Dispose();
         _latencyTimer?.Dispose();
         _ping.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

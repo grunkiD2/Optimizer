@@ -29,7 +29,11 @@ public class SystemDataBusTests : IDisposable
         _bus = new SystemDataBus(_monitorMock.Object, _sensorsMock.Object);
     }
 
-    public void Dispose() => _bus.Dispose();
+    public void Dispose()
+    {
+        _bus.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public void LatestMetrics_IsNullBeforeFirstTick()

@@ -102,7 +102,7 @@ public class SystemRepairService : ISystemRepairService
                 {
                     var line = await proc.StandardOutput.ReadLineAsync();
                     if (!string.IsNullOrEmpty(line) &&
-                        (line.Contains('%') || line.Contains("complete", StringComparison.OrdinalIgnoreCase)))
+                        (line.Contains('%', StringComparison.Ordinal) || line.Contains("complete", StringComparison.OrdinalIgnoreCase)))
                         progress?.Report(line.Trim());
                 }
                 else

@@ -23,7 +23,7 @@ public class PowerShellRunnerTests
         var result = await runner.RunAsync("Write-Output 'hello'", timeoutMs: 10_000);
 
         Assert.NotNull(result);
-        Assert.Contains("hello", result);
+        Assert.Contains("hello", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class PowerShellRunnerTests
         var result = await runner.RunAsync("Write-Output 'line1'; Write-Output 'line2'", timeoutMs: 10_000);
 
         Assert.NotNull(result);
-        Assert.Contains("line1", result);
-        Assert.Contains("line2", result);
+        Assert.Contains("line1", result, StringComparison.Ordinal);
+        Assert.Contains("line2", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class PowerShellRunnerTests
         var result = await runner.RunAsync("Write-Output 42", timeoutMs: 10_000);
 
         Assert.NotNull(result);
-        Assert.Contains("42", result);
+        Assert.Contains("42", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class PowerShellRunnerTests
 
         Assert.NotNull(result);
         Assert.Contains("\"key\"", result, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("value", result);
+        Assert.Contains("value", result, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -64,7 +64,7 @@ public class ByteFormatterExtendedTests
         // Negative speed is unusual (shouldn't occur in practice) but shouldn't throw
         var result = ByteFormatter.FormatSpeed(-100.0);
         Assert.NotNull(result);
-        Assert.Contains("B/s", result);
+        Assert.Contains("B/s", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,8 +86,8 @@ public class ByteFormatterExtendedTests
         // 1 TB — formatter has no TB tier, uses GB band
         long oneTb = 1_099_511_627_776L;
         var result = ByteFormatter.Format(oneTb);
-        Assert.Contains("GB", result);
-        Assert.DoesNotContain("B/s", result);
+        Assert.Contains("GB", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("B/s", result, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class ByteFormatterExtendedTests
     {
         double oneTbPerSec = 1_099_511_627_776.0;
         var result = ByteFormatter.FormatSpeed(oneTbPerSec);
-        Assert.Contains("GB/s", result);
+        Assert.Contains("GB/s", result, StringComparison.Ordinal);
     }
 
     // ── Negative bytes ────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ public class ByteFormatterExtendedTests
         // Negative values are unusual but the formatter should handle them gracefully
         var result = ByteFormatter.Format(-1024);
         Assert.NotNull(result);
-        Assert.Contains("B", result);
+        Assert.Contains("B", result, StringComparison.Ordinal);
     }
 
     [Fact]

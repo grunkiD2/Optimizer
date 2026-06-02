@@ -168,7 +168,7 @@ public partial class HistoryViewModel : ObservableObject
         if (SelectedAction != "All Actions")
         {
             // Map display label to enum — "One-Time" -> HistoryAction.OneTime
-            var actionStr = SelectedAction.Replace("-", "").Replace(" ", "");
+            var actionStr = SelectedAction.Replace("-", "", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal);
             filtered = filtered.Where(e =>
                 string.Equals(e.Action.ToString(), actionStr, StringComparison.OrdinalIgnoreCase));
         }

@@ -126,7 +126,7 @@ public class StressTestService : IStressTestService
 
         // Stop all worker threads gracefully
         _cts.Cancel();
-        try { await Task.WhenAll(threads).WaitAsync(TimeSpan.FromSeconds(5)); }
+        try { await Task.WhenAll(threads).WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None); }
         catch { /* swallow TaskCanceledException / TimeoutException */ }
 
         sw.Stop();

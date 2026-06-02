@@ -288,7 +288,7 @@ public partial class TuningViewModel : ObservableObject
                     {
                         if (t.IsCompletedSuccessfully && t.Result)
                             EngineLog.Write("Thermal watchdog: reverted to Stock preset.");
-                    });
+                    }, TaskScheduler.Default);
                 }
             }
         }

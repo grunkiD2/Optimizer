@@ -78,7 +78,7 @@ public class ApiHostService : IApiHostService
         // Bearer auth middleware — only applies to /api/* routes
         app.Use(async (context, next) =>
         {
-            if (context.Request.Path.StartsWithSegments("/api"))
+            if (context.Request.Path.StartsWithSegments("/api", StringComparison.Ordinal))
             {
                 var auth = context.Request.Headers["Authorization"].ToString();
                 if (!string.Equals(auth, $"Bearer {token}", StringComparison.Ordinal))

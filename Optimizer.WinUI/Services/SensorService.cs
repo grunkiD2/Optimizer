@@ -129,5 +129,6 @@ public class SensorService : ISensorService
         _disposed = true;
         try { _computer?.Close(); } catch { }
         _computer = null;
+        GC.SuppressFinalize(this);
     }
 }

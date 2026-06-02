@@ -28,8 +28,8 @@ public class ModelTests
     {
         var b = new ProcessBottleneck { Value = 512.5, ValueUnit = "MB" };
         // DisplayValue uses F1 formatting; just verify it contains the unit and non-empty value
-        Assert.Contains("MB", b.DisplayValue);
-        Assert.Contains("512", b.DisplayValue); // integer part always present
+        Assert.Contains("MB", b.DisplayValue, StringComparison.Ordinal);
+        Assert.Contains("512", b.DisplayValue, StringComparison.Ordinal); // integer part always present
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class ModelTests
     {
         var entry = new MarketplaceEntry { Downloads = downloads };
         // Culture-agnostic: just verify "K" suffix present
-        Assert.EndsWith("K", entry.DownloadsText);
+        Assert.EndsWith("K", entry.DownloadsText, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -68,7 +68,7 @@ public class ModelTests
     public void MarketplaceEntry_DownloadsText_Millions_HasMSuffix(int downloads)
     {
         var entry = new MarketplaceEntry { Downloads = downloads };
-        Assert.EndsWith("M", entry.DownloadsText);
+        Assert.EndsWith("M", entry.DownloadsText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class ModelTests
     {
         var entry = new MarketplaceEntry { AverageRating = 4.5, RatingCount = 123 };
         // Culture-agnostic: verify rating contains the count
-        Assert.Contains("(123)", entry.RatingText);
+        Assert.Contains("(123)", entry.RatingText, StringComparison.Ordinal);
     }
 
     [Fact]

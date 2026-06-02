@@ -86,7 +86,7 @@ public class IntelligenceServiceTests
         var alerts = await service.DetectAnomaliesAsync(values, "memory-usage");
 
         Assert.Single(alerts);
-        Assert.Contains("memory-usage", alerts[0].Description);
+        Assert.Contains("memory-usage", alerts[0].Description, StringComparison.Ordinal);
     }
 
     [Fact]

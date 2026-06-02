@@ -62,7 +62,11 @@ public class ProfileAutomationService : IProfileAutomationService, IHostedServic
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _timer?.Stop();
+    public void Dispose()
+    {
+        _timer?.Stop();
+        GC.SuppressFinalize(this);
+    }
 
     public void Start()
     {

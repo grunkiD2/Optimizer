@@ -51,6 +51,7 @@ public class BackgroundMonitorService : IHostedService, IDisposable
             _subscribed = false;
             _dataBus.MetricsUpdated -= OnMetricsUpdated;
         }
+        GC.SuppressFinalize(this);
     }
 
     // ── Metrics handler ───────────────────────────────────────────────────────

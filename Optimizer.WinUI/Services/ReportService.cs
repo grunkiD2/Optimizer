@@ -503,9 +503,9 @@ public class ReportService : IReportService
     private static string HtmlEncode(string? s)
     {
         if (string.IsNullOrEmpty(s)) return "";
-        return s.Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;")
-                .Replace("\"", "&quot;");
+        return s.Replace("&", "&amp;", StringComparison.Ordinal)
+                .Replace("<", "&lt;", StringComparison.Ordinal)
+                .Replace(">", "&gt;", StringComparison.Ordinal)
+                .Replace("\"", "&quot;", StringComparison.Ordinal);
     }
 }
