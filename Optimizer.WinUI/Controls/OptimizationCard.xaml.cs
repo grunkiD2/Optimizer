@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Optimizer.WinUI.Models;
 using Windows.UI;
+using Ids = Optimizer.WinUI.Models.OptimizationIds;
 
 namespace Optimizer.WinUI.Controls;
 
@@ -230,14 +231,14 @@ public sealed partial class OptimizationCard : UserControl
     /// <summary>Maps optimization IDs to representative emoji icons.</summary>
     private static string GetIconForOptimization(string id) => id switch
     {
-        "DisableBackgroundApps" => "🔕",
-        "DisableAnimations" => "✨",
-        "DisableVisualEffects" => "🎨",
-        "OptimizePowerSettings" => "⚡",
-        "AdjustPageFileSize" => "📄",
-        "DisableTelemetry" => "📡",
-        "OptimizeNetworkSettings" => "🌐",
-        "DisableHibernation" => "💤",
+        Ids.DisableBackgroundApps  => "🔕",
+        Ids.DisableAnimations      => "✨",
+        Ids.DisableVisualEffects   => "🎨",
+        Ids.OptimizePowerSettings  => "⚡",
+        Ids.AdjustPageFileSize     => "📄",
+        Ids.DisableTelemetry       => "📡",
+        Ids.OptimizeNetworkSettings => "🌐",
+        Ids.DisableHibernation     => "💤",
         _ => "⚙️"
     };
 }

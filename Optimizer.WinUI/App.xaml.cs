@@ -67,7 +67,7 @@ public partial class App : Application
                 services.AddTransient<StartupCategoryViewModel>();
                 services.AddTransient<ProfilesViewModel>();
                 services.AddTransient<HistoryViewModel>();
-                services.AddTransient<SettingsViewModel>();
+                services.AddSingleton<SettingsViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)
                 services.AddSingleton<MainWindow>();

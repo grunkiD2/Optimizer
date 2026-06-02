@@ -84,13 +84,13 @@ public partial class HistoryViewModel : ObservableObject
     private readonly HistoryService           _historyService;
     private readonly IWindowsOptimizerService _optimizer;
 
-    [ObservableProperty] private bool   isLoading;
-    [ObservableProperty] private string statusMessage = string.Empty;
+    [ObservableProperty] private bool isLoading;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
+    private string statusMessage = string.Empty;
 
     public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
-
-    partial void OnStatusMessageChanged(string value)
-        => OnPropertyChanged(nameof(HasStatusMessage));
 
     public ObservableCollection<HistoryEntryGroup> GroupedEntries { get; } = [];
 

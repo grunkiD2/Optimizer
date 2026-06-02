@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
 
@@ -13,40 +14,75 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private readonly IWindowsOptimizerService _optimizer;
     private readonly IProcessService _processService;
     private readonly IUndoService _undoService;
+    private readonly SettingsService _settings;
 
     private DispatcherTimer? _timer;
     private bool _disposed;
 
     // ── Metric properties ────────────────────────────────────────────────────
 
-    [ObservableProperty] private double _cpuUsage;
-    [ObservableProperty] private double _memoryUsage;
-    [ObservableProperty] private double _gpuUsage;
-    [ObservableProperty] private double _diskUsage;
-    [ObservableProperty] private double _networkUsage;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CpuText))]
+    private double _cpuUsage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MemoryText))]
+    private double _memoryUsage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GpuText))]
+    private double _gpuUsage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DiskText))]
+    private double _diskUsage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NetworkText))]
+    private double _networkUsage;
 
     [ObservableProperty] private int _totalCores;
-    [ObservableProperty] private long _totalMemoryBytes;
-    [ObservableProperty] private long _usedMemoryBytes;
 
-    [ObservableProperty] private double _diskReadSpeed;
-    [ObservableProperty] private double _diskWriteSpeed;
-    [ObservableProperty] private double _networkInSpeed;
-    [ObservableProperty] private double _networkOutSpeed;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TotalMemoryText))]
+    private long _totalMemoryBytes;
 
-    [ObservableProperty] private int _healthScore = 100;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UsedMemoryText))]
+    private long _usedMemoryBytes;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DiskReadText))]
+    private double _diskReadSpeed;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DiskWriteText))]
+    private double _diskWriteSpeed;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NetworkInText))]
+    private double _networkInSpeed;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NetworkOutText))]
+    private double _networkOutSpeed;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HealthScoreText))]
+    private int _healthScore = 100;
+
     [ObservableProperty] private string _healthText = "System is healthy";
 
     [ObservableProperty] private int _undoableChanges;
 
     [ObservableProperty] private string _lastUpdated = "--:--:--";
     [ObservableProperty] private bool _isBusy;
-    [ObservableProperty] private string _statusMessage = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
+    private string _statusMessage = string.Empty;
 
     public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
-
-    partial void OnStatusMessageChanged(string value)
-        => OnPropertyChanged(nameof(HasStatusMessage));
 
     // ── Formatted display strings (used by x:Bind in XAML) ─────────────────
 
@@ -55,35 +91,13 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public string GpuText => $"{GpuUsage:F1}%";
     public string DiskText => $"{DiskUsage:F1}%";
     public string NetworkText => $"{NetworkUsage:F1}%";
-    public string UsedMemoryText => FormatBytes(UsedMemoryBytes);
-    public string TotalMemoryText => FormatBytes(TotalMemoryBytes);
-    public string DiskReadText => $"{FormatBytes((long)DiskReadSpeed)}/s";
-    public string DiskWriteText => $"{FormatBytes((long)DiskWriteSpeed)}/s";
-    public string NetworkInText => $"{FormatBytes((long)NetworkInSpeed)}/s";
-    public string NetworkOutText => $"{FormatBytes((long)NetworkOutSpeed)}/s";
+    public string UsedMemoryText => ByteFormatter.Format(UsedMemoryBytes);
+    public string TotalMemoryText => ByteFormatter.Format(TotalMemoryBytes);
+    public string DiskReadText => ByteFormatter.FormatSpeed(DiskReadSpeed);
+    public string DiskWriteText => ByteFormatter.FormatSpeed(DiskWriteSpeed);
+    public string NetworkInText => ByteFormatter.FormatSpeed(NetworkInSpeed);
+    public string NetworkOutText => ByteFormatter.FormatSpeed(NetworkOutSpeed);
     public string HealthScoreText => $"{HealthScore}/100";
-
-    private static string FormatBytes(long bytes) => bytes switch
-    {
-        >= 1_073_741_824 => $"{bytes / 1073741824.0:F1} GB",
-        >= 1_048_576 => $"{bytes / 1048576.0:F0} MB",
-        >= 1024 => $"{bytes / 1024.0:F0} KB",
-        _ => $"{bytes} B"
-    };
-
-    // Notify computed string properties when backing values change
-    partial void OnCpuUsageChanged(double value) => OnPropertyChanged(nameof(CpuText));
-    partial void OnMemoryUsageChanged(double value) => OnPropertyChanged(nameof(MemoryText));
-    partial void OnGpuUsageChanged(double value) => OnPropertyChanged(nameof(GpuText));
-    partial void OnDiskUsageChanged(double value) => OnPropertyChanged(nameof(DiskText));
-    partial void OnNetworkUsageChanged(double value) => OnPropertyChanged(nameof(NetworkText));
-    partial void OnUsedMemoryBytesChanged(long value) => OnPropertyChanged(nameof(UsedMemoryText));
-    partial void OnTotalMemoryBytesChanged(long value) => OnPropertyChanged(nameof(TotalMemoryText));
-    partial void OnDiskReadSpeedChanged(double value) => OnPropertyChanged(nameof(DiskReadText));
-    partial void OnDiskWriteSpeedChanged(double value) => OnPropertyChanged(nameof(DiskWriteText));
-    partial void OnNetworkInSpeedChanged(double value) => OnPropertyChanged(nameof(NetworkInText));
-    partial void OnNetworkOutSpeedChanged(double value) => OnPropertyChanged(nameof(NetworkOutText));
-    partial void OnHealthScoreChanged(int value) => OnPropertyChanged(nameof(HealthScoreText));
 
     // ── Collections ─────────────────────────────────────────────────────────
 
@@ -101,12 +115,14 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         SystemMonitorService monitor,
         IWindowsOptimizerService optimizer,
         IProcessService processService,
-        IUndoService undoService)
+        IUndoService undoService,
+        SettingsService settings)
     {
         _monitor = monitor;
         _optimizer = optimizer;
         _processService = processService;
         _undoService = undoService;
+        _settings = settings;
 
         RefreshNowCommand = new RelayCommand(RefreshNow);
         ApplySafeTuneCommand = new AsyncRelayCommand(ApplySafeTuneAsync);
@@ -124,7 +140,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
         _timer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(1)
+            Interval = TimeSpan.FromSeconds(Math.Max(1, _settings.Settings.MetricsRefreshSeconds))
         };
         _timer.Tick += OnTimerTick;
         _timer.Start();
@@ -187,9 +203,10 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         // Represent network activity capped at 125 MB/s (1 Gbps)
         NetworkUsage = Math.Min(100.0, (snap.NetworkInSpeed + snap.NetworkOutSpeed) / (125.0 * 1_048_576) * 100.0);
 
-        // Add to chart history (keep last 60 seconds)
+        // Add to chart history (keep last N seconds as configured)
         ChartHistory.Add(snap);
-        while (ChartHistory.Count > 60)
+        var maxHistory = Math.Max(10, _settings.Settings.ChartHistorySeconds);
+        while (ChartHistory.Count > maxHistory)
             ChartHistory.RemoveAt(0);
 
         UpdateHealthScore();

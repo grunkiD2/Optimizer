@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.Win32;
 
 using Optimizer.WinUI.Models;
+using Ids = Optimizer.WinUI.Models.OptimizationIds;
 
 namespace Optimizer.WinUI.Services;
 
@@ -60,31 +61,31 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         {
             Id = "preset-gaming", Name = "Gaming", ProfileType = ProfileType.Gaming,
             Description = "Maximum responsiveness for games: high-performance power, no animations, low background load.",
-            Optimizations = { "OptimizePowerSettings", "DisableAnimations", "DisableVisualEffects", "DisableBackgroundApps", "OptimizeNetworkSettings" }
+            Optimizations = { Ids.OptimizePowerSettings, Ids.DisableAnimations, Ids.DisableVisualEffects, Ids.DisableBackgroundApps, Ids.OptimizeNetworkSettings }
         },
         new()
         {
             Id = "preset-productivity", Name = "Productivity", ProfileType = ProfileType.Productivity,
             Description = "Snappy UI with fewer background distractions, keeping the desktop looking normal.",
-            Optimizations = { "DisableAnimations", "DisableBackgroundApps" }
+            Optimizations = { Ids.DisableAnimations, Ids.DisableBackgroundApps }
         },
         new()
         {
             Id = "preset-battery", Name = "Battery Saver", ProfileType = ProfileType.BatterySaver,
             Description = "Reduce background and visual load to extend battery life on laptops.",
-            Optimizations = { "DisableBackgroundApps", "DisableVisualEffects", "DisableAnimations" }
+            Optimizations = { Ids.DisableBackgroundApps, Ids.DisableVisualEffects, Ids.DisableAnimations }
         },
         new()
         {
             Id = "preset-performance", Name = "Maximum Performance", ProfileType = ProfileType.Performance,
             Description = "Everything tuned for raw speed. Some items need administrator rights and a restart.",
-            Optimizations = { "OptimizePowerSettings", "DisableVisualEffects", "DisableAnimations", "DisableBackgroundApps", "AdjustPageFileSize", "OptimizeNetworkSettings" }
+            Optimizations = { Ids.OptimizePowerSettings, Ids.DisableVisualEffects, Ids.DisableAnimations, Ids.DisableBackgroundApps, Ids.AdjustPageFileSize, Ids.OptimizeNetworkSettings }
         },
         new()
         {
             Id = "preset-clean", Name = "Clean & Light", ProfileType = ProfileType.Custom,
             Description = "Free disk space and trim per-user startup programs.",
-            Optimizations = { "ClearTemporaryFiles", "DisableBackgroundApps", "DisableStartupPrograms" }
+            Optimizations = { Ids.ClearTemporaryFiles, Ids.DisableBackgroundApps, "DisableStartupPrograms" }
         }
     };
 

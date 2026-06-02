@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
+using Ids = Optimizer.WinUI.Models.OptimizationIds;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -18,11 +20,11 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
 
     protected override string[] OptimizationIds =>
     [
-        "DisableBackgroundApps",
-        "DisableAnimations",
-        "DisableVisualEffects",
-        "OptimizePowerSettings",
-        "AdjustPageFileSize"
+        Ids.DisableBackgroundApps,
+        Ids.DisableAnimations,
+        Ids.DisableVisualEffects,
+        Ids.OptimizePowerSettings,
+        Ids.AdjustPageFileSize
     ];
 
     public PerformanceCategoryViewModel(
@@ -56,10 +58,6 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
         MemoryUsage = totalMem > 0 ? 100.0 * usedBytes / totalMem : 0;
         MemoryText = $"{MemoryUsage:F0}%";
 
-        // Format used memory as MB or GB
-        if (usedBytes >= 1_073_741_824)
-            UsedMemoryText = $"{usedBytes / 1_073_741_824.0:F1} GB used";
-        else
-            UsedMemoryText = $"{usedBytes / 1_048_576} MB used";
+        UsedMemoryText = $"{ByteFormatter.Format(usedBytes)} used";
     }
 }

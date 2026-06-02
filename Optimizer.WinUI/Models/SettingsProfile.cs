@@ -10,11 +10,7 @@ public class SettingsProfile
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastAppliedAt { get; set; }
 
-    public Dictionary<string, string> Settings { get; set; } = new();
     public List<RegistrySetting> RegistrySettings { get; set; } = new();
-    public List<NlaSetting> NetworkSettings { get; set; } = new();
-    public List<PowerSetting> PowerSettings { get; set; } = new();
-    public List<DisplaySetting> DisplaySettings { get; set; } = new();
 
     /// <summary>Optimization IDs bundled into this profile; applied via the engine's optimization pipeline.</summary>
     public List<string> Optimizations { get; set; } = new();

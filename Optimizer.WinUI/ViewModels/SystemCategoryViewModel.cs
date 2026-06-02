@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Optimizer.WinUI.Services;
+using Ids = Optimizer.WinUI.Models.OptimizationIds;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -12,9 +13,9 @@ public partial class SystemCategoryViewModel : CategoryViewModelBase
 
     protected override string[] OptimizationIds =>
     [
-        "DisableTelemetry",
-        "DisableConsumerFeatures",
-        "DisableHibernation"
+        Ids.DisableTelemetry,
+        Ids.DisableConsumerFeatures,
+        Ids.DisableHibernation
     ];
 
     public SystemCategoryViewModel(
@@ -34,7 +35,7 @@ public partial class SystemCategoryViewModel : CategoryViewModelBase
 
     public void RefreshMetrics()
     {
-        TelemetryStatus = Optimizer.IsOptimizationApplied("DisableTelemetry") == true
+        TelemetryStatus = Optimizer.IsOptimizationApplied(Ids.DisableTelemetry) == true
             ? "Disabled"
             : "Active";
     }

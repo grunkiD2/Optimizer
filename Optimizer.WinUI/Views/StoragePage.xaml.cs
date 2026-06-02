@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Controls;
+using Optimizer.WinUI.Helpers;
+using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
@@ -8,11 +10,13 @@ namespace Optimizer.WinUI.Views;
 public sealed partial class StoragePage : Page
 {
     public StorageCategoryViewModel ViewModel { get; }
+    private readonly SettingsService _settings;
     private readonly Dictionary<string, EventHandler<bool>> _toggleHandlers = [];
 
     public StoragePage()
     {
         ViewModel = App.GetService<StorageCategoryViewModel>();
+        _settings = App.GetService<SettingsService>();
         InitializeComponent();
     }
 
@@ -32,7 +36,21 @@ public sealed partial class StoragePage : Page
             card.Toggled -= oldHandler;
 
         EventHandler<bool> handler = async (_, isOn) =>
+        {
+            if (isOn && _settings.Settings.ConfirmBeforeApply)
+            {
+                var confirmed = await DialogHelper.ConfirmAsync(
+                    XamlRoot,
+                    "Confirm Optimization",
+                    $"Apply \"{model.Info.Title}\"?");
+                if (!confirmed)
+                {
+                    card.IsActive = false;
+                    return;
+                }
+            }
             await ViewModel.ToggleOptimizationAsync(id, isOn);
+        };
         _toggleHandlers[id] = handler;
         card.Toggled += handler;
     }

@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
+using Ids = Optimizer.WinUI.Models.OptimizationIds;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -16,8 +18,8 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
 
     protected override string[] OptimizationIds =>
     [
-        "OptimizeNetworkSettings",
-        "FlushDnsCache"
+        Ids.OptimizeNetworkSettings,
+        Ids.FlushDnsCache
     ];
 
     public NetworkCategoryViewModel(
@@ -41,17 +43,8 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
     {
         var snapshot = _monitor.CollectSnapshot();
 
-        DownloadSpeedText = FormatSpeed(snapshot.NetworkInSpeed);
-        UploadSpeedText = FormatSpeed(snapshot.NetworkOutSpeed);
+        DownloadSpeedText = ByteFormatter.FormatSpeed(snapshot.NetworkInSpeed);
+        UploadSpeedText = ByteFormatter.FormatSpeed(snapshot.NetworkOutSpeed);
         LatencyText = "N/A";
-    }
-
-    private static string FormatSpeed(double bytesPerSec)
-    {
-        if (bytesPerSec >= 1_048_576)
-            return $"{bytesPerSec / 1_048_576:F1} MB/s";
-        if (bytesPerSec >= 1_024)
-            return $"{bytesPerSec / 1_024:F0} KB/s";
-        return $"{bytesPerSec:F0} B/s";
     }
 }

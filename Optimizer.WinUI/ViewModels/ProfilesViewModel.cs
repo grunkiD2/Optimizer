@@ -11,8 +11,12 @@ public partial class ProfilesViewModel : ObservableObject
     private readonly ProfileService _profileService;
 
     [ObservableProperty] private bool isBusy;
-    [ObservableProperty] private string statusMessage = string.Empty;
-    [ObservableProperty] private bool hasStatusMessage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
+    private string statusMessage = string.Empty;
+
+    public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
 
     public ObservableCollection<SettingsProfile> Presets { get; } = [];
     public ObservableCollection<SettingsProfile> Snapshots { get; } = [];
@@ -203,6 +207,5 @@ public partial class ProfilesViewModel : ObservableObject
     private void SetStatus(string message)
     {
         StatusMessage = message;
-        HasStatusMessage = !string.IsNullOrEmpty(message);
     }
 }
