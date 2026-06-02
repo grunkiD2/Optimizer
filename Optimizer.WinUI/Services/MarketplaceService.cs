@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -7,9 +8,7 @@ public class MarketplaceService : IMarketplaceService
 {
     private readonly IWindowsOptimizerService _optimizer;
 
-    private static readonly string RatingsFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "marketplace-ratings.json");
+    private static readonly string RatingsFile = AppPaths.GetDataFile("marketplace-ratings.json");
 
     private Dictionary<string, int> _ratings = new();
 

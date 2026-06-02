@@ -1,14 +1,13 @@
 using System.Net.NetworkInformation;
 using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class FleetService : IFleetService
 {
-    private readonly string _rosterFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "fleet-roster.json");
+    private readonly string _rosterFile = AppPaths.GetDataFile("fleet-roster.json");
 
     private List<FleetMachine> _machines = [];
 

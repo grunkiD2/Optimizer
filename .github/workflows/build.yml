@@ -22,14 +22,26 @@ jobs:
         include-prerelease: true
 
     - name: Restore dependencies
-      run: dotnet restore Optimizer.WinUI/Optimizer.WinUI.csproj
+      run: |
+        dotnet restore Optimizer.WinUI/Optimizer.WinUI.csproj
+        dotnet restore Optimizer.Cli/Optimizer.Cli.csproj
+        dotnet restore Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj
 
     - name: Build
       run: dotnet build Optimizer.WinUI/Optimizer.WinUI.csproj --configuration Release --no-restore
 
-    - name: Test
-      run: dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --no-build --configuration Release
-      continue-on-error: true  # Tests may need WinUI runtime setup
+    - name: Build CLI
+      run: dotnet build Optimizer.Cli/Optimizer.Cli.csproj --configuration Release --no-restore
+
+    - name: Build Tests
+      run: dotnet build Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --configuration Release --no-restore
+
+    # NOTE: Optimizer.Mobile (MAUI) is intentionally excluded — it requires
+    # the MAUI workload (dotnet workload install maui) which is not installed on
+    # the standard windows-latest runner without explicit setup steps.
+
+    - name: Run Tests
+      run: dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
 
     - name: Publish artifacts
       if: github.event_name == 'push'

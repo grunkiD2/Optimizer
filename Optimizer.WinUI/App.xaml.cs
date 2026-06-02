@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
 using Serilog;
@@ -18,9 +19,7 @@ public partial class App : Application
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-    private static readonly string CrashLogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "crash.log");
+    private static readonly string CrashLogPath = AppPaths.GetDataFile("crash.log");
 
     public App()
     {
@@ -136,10 +135,8 @@ public partial class App : Application
         try
         {
             // Wire Serilog before any service usage so all engine messages are captured.
-            var logPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Optimizer", "app.log");
-            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+            var logPath = AppPaths.GetDataFile("app.log");
+            AppPaths.EnsureFolderExists();
 
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Information()

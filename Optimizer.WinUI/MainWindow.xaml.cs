@@ -38,6 +38,12 @@ public sealed partial class MainWindow : Window
         ["Compliance"]   = typeof(CompliancePage),
     };
 
+    /// <summary>
+    /// Set to true by TrayIconService before calling Close() so the minimize-to-tray
+    /// handler knows this is a genuine exit and should not intercept the close.
+    /// </summary>
+    public bool IsExiting { get; set; }
+
     public MainWindow(NavigationService navigationService, SettingsService settingsService)
     {
         InitializeComponent();
@@ -59,6 +65,7 @@ public sealed partial class MainWindow : Window
 
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
+        if (IsExiting) return;  // genuine exit from tray — skip minimize
         if (_settingsService.Settings.MinimizeToTray)
         {
             args.Cancel = true;

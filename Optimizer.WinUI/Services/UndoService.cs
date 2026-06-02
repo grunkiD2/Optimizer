@@ -3,14 +3,13 @@ using System.IO;
 using System.Text.Json;
 
 using Microsoft.Win32;
+using Optimizer.WinUI.Helpers;
 
 namespace Optimizer.WinUI.Services;
 
 public class UndoService : IUndoService
 {
-    private static readonly string StorePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "undo.json");
+    private static readonly string StorePath = AppPaths.GetDataFile("undo.json");
 
     private readonly List<UndoEntry> _entries = new();
     private readonly object _gate = new();

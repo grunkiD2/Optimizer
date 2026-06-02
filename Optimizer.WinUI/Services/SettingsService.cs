@@ -1,13 +1,12 @@
 using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class SettingsService
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "app-settings.json");
+    private static readonly string FilePath = AppPaths.GetDataFile("app-settings.json");
 
     public AppSettings Settings { get; private set; } = new();
 

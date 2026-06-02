@@ -6,15 +6,14 @@ using System.Text.Json;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
 
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class StartupService : IStartupService
 {
-    private static readonly string BackupPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "startup-disabled.json");
+    private static readonly string BackupPath = AppPaths.GetDataFile("startup-disabled.json");
 
     private readonly IElevationService _elevation;
 
@@ -144,9 +143,7 @@ public class StartupService : IStartupService
 
     // ---------------------------------------------------------------- Services
 
-    private static readonly string ServicesManagedPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "services-managed.json");
+    private static readonly string ServicesManagedPath = AppPaths.GetDataFile("services-managed.json");
 
     private static List<StartupEntry> GetAutoServices()
     {

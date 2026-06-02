@@ -77,7 +77,7 @@ Get-HotFix |
                 for (int i = 0; i < lines.Length; i++)
                 {
                     var line = lines[i];
-                    if (line.Contains("Name") && line.Contains("Id") && line.Contains("Version") && line.Contains("Available"))
+                    if (line.Contains("Name", StringComparison.OrdinalIgnoreCase) && line.Contains("Id", StringComparison.OrdinalIgnoreCase) && line.Contains("Version", StringComparison.OrdinalIgnoreCase) && line.Contains("Available", StringComparison.OrdinalIgnoreCase))
                     {
                         headerIdx   = i;
                         nameStart   = line.IndexOf("Name",      StringComparison.Ordinal);
@@ -98,7 +98,7 @@ Get-HotFix |
                     if (line.Length < availStart + 1) continue;
 
                     // Skip lines that don't look like package rows
-                    if (line.TrimStart().StartsWith('-') || line.Contains("upgrades available") || line.Contains("No applicable"))
+                    if (line.TrimStart().StartsWith('-') || line.Contains("upgrades available", StringComparison.OrdinalIgnoreCase) || line.Contains("No applicable", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     string Extract(int start, int end)

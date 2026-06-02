@@ -1,14 +1,13 @@
 using System.Text;
 using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class TemplatesService : ITemplatesService
 {
-    private readonly string _storeFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "config-templates.json");
+    private readonly string _storeFile = AppPaths.GetDataFile("config-templates.json");
 
     private List<ConfigTemplate> _templates = [];
 

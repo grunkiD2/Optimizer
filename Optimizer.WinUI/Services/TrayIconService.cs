@@ -157,9 +157,32 @@ public class TrayIconService : ITrayIconService
 
     private void ExitApplication()
     {
-        Hide();
-        // Environment.Exit is the reliable exit path for unpackaged WinUI 3
-        Environment.Exit(0);
+        try
+        {
+            Hide();  // hide tray icon first
+
+            // Dispose singleton sensor service explicitly to release LHM
+            var sensors = App.GetService<ISensorService>();
+            if (sensors is IDisposable d) d.Dispose();
+
+            // Close the main window which triggers proper teardown
+            var mainWindow = App.GetService<MainWindow>();
+            if (mainWindow != null)
+            {
+                mainWindow.IsExiting = true;
+                mainWindow.Close();
+            }
+        }
+        catch { }
+        finally
+        {
+            // Fallback: exit cleanly after a short delay
+            Task.Run(async () =>
+            {
+                await Task.Delay(500);
+                Environment.Exit(0);
+            });
+        }
     }
 
     // ── Minimal ICommand adapter ──────────────────────────────────────────────

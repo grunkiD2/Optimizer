@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -13,13 +14,9 @@ public class RecommendationsService : IRecommendationsService
     // Personalization
     private readonly Dictionary<string, RecommendationPreference> _preferences = new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly string _dismissedFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "dismissed-recommendations.json");
+    private readonly string _dismissedFile = AppPaths.GetDataFile("dismissed-recommendations.json");
 
-    private readonly string _prefsFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "rec-preferences.json");
+    private readonly string _prefsFile = AppPaths.GetDataFile("rec-preferences.json");
 
     public RecommendationsService(IDiagnosticsService diagnostics, IWindowsOptimizerService optimizer)
     {

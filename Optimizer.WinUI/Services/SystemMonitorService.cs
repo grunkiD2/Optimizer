@@ -4,15 +4,14 @@ using System.IO;
 using System.Management;
 using System.Text.Json;
 
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class SystemMonitorService : IDisposable
 {
-    private static readonly string HistoryPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "history.json");
+    private static readonly string HistoryPath = AppPaths.GetDataFile("history.json");
 
     private readonly ConcurrentQueue<SystemResource> _history;
     private readonly int _maxHistorySize = 1000;

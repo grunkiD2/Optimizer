@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -6,9 +7,7 @@ namespace Optimizer.WinUI.Services;
 public class HistoryService
 {
     private readonly List<HistoryEntry> _entries = [];
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "change-history.json");
+    private static readonly string FilePath = AppPaths.GetDataFile("change-history.json");
 
     public IReadOnlyList<HistoryEntry> Entries => _entries;
 

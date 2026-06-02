@@ -184,7 +184,7 @@ public class WindowsOptimizerService : IWindowsOptimizerService
             // Apply the registry settings declared on the profile (each captured for undo).
             foreach (var setting in profile.RegistrySettings)
             {
-                var root = setting.HkeyBase.Contains("LOCAL_MACHINE") || setting.HkeyBase == "HKLM" ? "HKLM" : "HKCU";
+                var root = setting.HkeyBase.Contains("LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase) || setting.HkeyBase == "HKLM" ? "HKLM" : "HKCU";
                 var kind = setting.ValueKind == "REG_DWORD" ? RegistryValueKind.DWord : RegistryValueKind.String;
                 object value = kind == RegistryValueKind.DWord ? Convert.ToInt32(setting.ValueData) : setting.ValueData;
                 SetRegistryValue(root, setting.SubKey, setting.ValueName, value, kind, $"Profile '{profile.Name}': {setting.Description}");

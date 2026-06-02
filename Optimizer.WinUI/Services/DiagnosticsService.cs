@@ -175,7 +175,7 @@ public class DiagnosticsService : IDiagnosticsService
             using var log = new EventLog("System");
             var bsodCount = log.Entries.Cast<EventLogEntry>()
                 .Where(e => e.TimeWritten > DateTime.Now.AddDays(-7)
-                         && e.Source.Contains("BugCheck"))
+                         && e.Source.Contains("BugCheck", StringComparison.OrdinalIgnoreCase))
                 .Take(20).Count();
 
             if (bsodCount > 0)

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -12,9 +13,7 @@ public class ProfileAutomationService : IProfileAutomationService
     private DispatcherTimer? _timer;
     private string? _lastAppliedProfile;
 
-    private static readonly string RulesFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "profile-rules.json");
+    private static readonly string RulesFile = AppPaths.GetDataFile("profile-rules.json");
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {

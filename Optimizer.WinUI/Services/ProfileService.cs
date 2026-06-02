@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -7,9 +8,7 @@ public class ProfileService
 {
     private readonly IWindowsOptimizerService _optimizer;
     private readonly List<SettingsProfile> _snapshots = [];
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "snapshots.json");
+    private static readonly string FilePath = AppPaths.GetDataFile("snapshots.json");
 
     public ProfileService(IWindowsOptimizerService optimizer)
     {

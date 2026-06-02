@@ -1,5 +1,6 @@
 using Microsoft.ML;
 using Microsoft.ML.Data;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -12,9 +13,7 @@ public class IntelligenceService : IIntelligenceService
     private ITransformer? _acceptanceModel;
     private DataViewSchema? _modelSchema;
 
-    private readonly string _modelPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "ml-acceptance-model.zip");
+    private readonly string _modelPath = AppPaths.GetDataFile("ml-acceptance-model.zip");
 
     public bool IsTrained => _acceptanceModel != null;
     public DateTime? LastTrainedAt { get; private set; }
@@ -180,11 +179,11 @@ public class IntelligenceService : IIntelligenceService
 
     private static (string Category, string Severity) ParseIdHeuristic(string id)
     {
-        if (id.Contains("disk")) return ("Storage", "Warning");
-        if (id.Contains("cpu") || id.Contains("perf")) return ("Performance", "Info");
-        if (id.Contains("privacy") || id.Contains("telem")) return ("Privacy", "Info");
-        if (id.Contains("smart") || id.Contains("temp")) return ("Hardware", "Critical");
-        if (id.Contains("battery")) return ("Hardware", "Warning");
+        if (id.Contains("disk", StringComparison.OrdinalIgnoreCase)) return ("Storage", "Warning");
+        if (id.Contains("cpu", StringComparison.OrdinalIgnoreCase) || id.Contains("perf", StringComparison.OrdinalIgnoreCase)) return ("Performance", "Info");
+        if (id.Contains("privacy", StringComparison.OrdinalIgnoreCase) || id.Contains("telem", StringComparison.OrdinalIgnoreCase)) return ("Privacy", "Info");
+        if (id.Contains("smart", StringComparison.OrdinalIgnoreCase) || id.Contains("temp", StringComparison.OrdinalIgnoreCase)) return ("Hardware", "Critical");
+        if (id.Contains("battery", StringComparison.OrdinalIgnoreCase)) return ("Hardware", "Warning");
         return ("Performance", "Info");
     }
 }
