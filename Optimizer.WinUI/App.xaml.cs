@@ -4,6 +4,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Diagnostics;
+using Optimizer.WinUI.Services.Optimizations;
+using Optimizer.WinUI.Services.Optimizations.Network;
+using Optimizer.WinUI.Services.Optimizations.Performance;
+using Optimizer.WinUI.Services.Optimizations.Storage;
+using Optimizer.WinUI.Services.Optimizations.System;
 using Optimizer.WinUI.ViewModels;
 using Serilog;
 
@@ -58,6 +64,22 @@ public partial class App : Application
                 services.AddSingleton<IProcessService>(sp => sp.GetRequiredService<ProcessService>());
                 services.AddSingleton<SystemMonitorService>();
                 services.AddSingleton<ISystemMonitorService>(sp => sp.GetRequiredService<SystemMonitorService>());
+
+                // Optimization handlers (one per optimization)
+                services.AddTransient<IOptimizationHandler, DisableBackgroundAppsHandler>();
+                services.AddTransient<IOptimizationHandler, DisableAnimationsHandler>();
+                services.AddTransient<IOptimizationHandler, DisableVisualEffectsHandler>();
+                services.AddTransient<IOptimizationHandler, OptimizePowerSettingsHandler>();
+                services.AddTransient<IOptimizationHandler, AdjustPageFileSizeHandler>();
+                services.AddTransient<IOptimizationHandler, OptimizeNetworkSettingsHandler>();
+                services.AddTransient<IOptimizationHandler, FlushDnsCacheHandler>();
+                services.AddTransient<IOptimizationHandler, ClearTemporaryFilesHandler>();
+                services.AddTransient<IOptimizationHandler, ClearWindowsUpdateCacheHandler>();
+                services.AddTransient<IOptimizationHandler, DisableTelemetryHandler>();
+                services.AddTransient<IOptimizationHandler, DisableConsumerFeaturesHandler>();
+                services.AddTransient<IOptimizationHandler, DisableHibernationHandler>();
+                services.AddTransient<IOptimizationHandler, DisableStartupProgramsHandler>();
+
                 services.AddSingleton<IWindowsOptimizerService, WindowsOptimizerService>();
 
                 // New services
@@ -77,6 +99,18 @@ public partial class App : Application
                 services.AddSingleton<IServiceManagerService, ServiceManagerService>();
                 services.AddSingleton<IPowerService, PowerService>();
                 services.AddSingleton<IBootAnalysisService, BootAnalysisService>();
+                // Diagnostic plugins (one per diagnostic category)
+                services.AddTransient<IDiagnosticPlugin, MemoryUsagePlugin>();
+                services.AddTransient<IDiagnosticPlugin, DiskSmartPlugin>();
+                services.AddTransient<IDiagnosticPlugin, DiskSpacePlugin>();
+                services.AddTransient<IDiagnosticPlugin, PrivacyScorePlugin>();
+                services.AddTransient<IDiagnosticPlugin, UptimePlugin>();
+                services.AddTransient<IDiagnosticPlugin, BsodPlugin>();
+                services.AddTransient<IDiagnosticPlugin, HibernationPlugin>();
+                services.AddTransient<IDiagnosticPlugin, BootTimePlugin>();
+                services.AddTransient<IDiagnosticPlugin, ServicesAuditPlugin>();
+                services.AddTransient<IDiagnosticPlugin, HardwareSpecsPlugin>();
+
                 services.AddSingleton<IDiagnosticsService, DiagnosticsService>();
                 services.AddSingleton<IRecommendationsService, RecommendationsService>();
                 services.AddSingleton<IUpdateService, UpdateService>();
