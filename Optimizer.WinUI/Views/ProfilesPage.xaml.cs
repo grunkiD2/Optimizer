@@ -4,6 +4,7 @@ using Optimizer.WinUI.Models;
 using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using System.IO;
 
 namespace Optimizer.WinUI.Views;
 
@@ -144,22 +145,65 @@ public sealed partial class ProfilesPage : Page
 
     private async void Import_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker
+        try
         {
-            SuggestedStartLocation = PickerLocationId.DocumentsLibrary
-        };
-        picker.FileTypeFilter.Add(".json");
+            var picker = new FileOpenPicker
+            {
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+            };
+            picker.FileTypeFilter.Add(".json");
 
-        // Associate picker with the window handle
-        var hwnd = WindowNative.GetWindowHandle(App.GetService<MainWindow>());
-        InitializeWithWindow.Initialize(picker, hwnd);
+            // WinUI 3 requires an HWND to be associated before showing the picker.
+            var hwnd = WindowNative.GetWindowHandle(App.GetService<MainWindow>());
+            InitializeWithWindow.Initialize(picker, hwnd);
 
-        var file = await picker.PickSingleFileAsync();
-        if (file is not null)
-        {
+            var file = await picker.PickSingleFileAsync();
+            if (file is null) return;   // user cancelled — not an error
+
+            string json;
+            try
+            {
+                json = await File.ReadAllTextAsync(file.Path);
+            }
+            catch (Exception ioEx)
+            {
+                await ShowErrorDialogAsync("Import Failed", $"Could not read the file:\n{ioEx.Message}");
+                return;
+            }
+
+            // Basic JSON validation before handing off to the service.
+            if (string.IsNullOrWhiteSpace(json) || (!json.TrimStart().StartsWith('[') && !json.TrimStart().StartsWith('{')))
+            {
+                await ShowErrorDialogAsync("Import Failed", "The selected file does not appear to be a valid JSON profile export.");
+                return;
+            }
+
             await ViewModel.ImportCommand.ExecuteAsync(file.Path);
             UpdateEmptyState();
+
+            // If the ViewModel set an error status, surface it as a dialog too.
+            if (ViewModel.StatusMessage.StartsWith("Import failed", StringComparison.OrdinalIgnoreCase))
+            {
+                await ShowErrorDialogAsync("Import Failed", ViewModel.StatusMessage);
+            }
         }
+        catch (Exception ex)
+        {
+            await ShowErrorDialogAsync("Import Failed", $"An unexpected error occurred:\n{ex.Message}");
+        }
+    }
+
+    private async Task ShowErrorDialogAsync(string title, string message)
+    {
+        var dialog = new ContentDialog
+        {
+            Title = title,
+            Content = message,
+            CloseButtonText = "OK",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = XamlRoot
+        };
+        await dialog.ShowAsync();
     }
 
     private async void Export_Click(object sender, RoutedEventArgs e)

@@ -84,6 +84,9 @@ public partial class HistoryViewModel : ObservableObject
     private readonly HistoryService           _historyService;
     private readonly IWindowsOptimizerService _optimizer;
 
+    // Full unfiltered copy — kept in sync on each Load.
+    private List<HistoryEntry> _allEntries = [];
+
     [ObservableProperty] private bool isLoading;
 
     [ObservableProperty]
@@ -91,6 +94,31 @@ public partial class HistoryViewModel : ObservableObject
     private string statusMessage = string.Empty;
 
     public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
+
+    // ── Filter properties ─────────────────────────────────────────────────────
+
+    [ObservableProperty] private string searchText = "";
+    [ObservableProperty] private string selectedCategory = "All Categories";
+    [ObservableProperty] private string selectedAction   = "All Actions";
+    [ObservableProperty] private string selectedDateRange = "All Time";
+
+    partial void OnSearchTextChanged(string value)    => ApplyFilters();
+    partial void OnSelectedCategoryChanged(string value) => ApplyFilters();
+    partial void OnSelectedActionChanged(string value)   => ApplyFilters();
+    partial void OnSelectedDateRangeChanged(string value) => ApplyFilters();
+
+    // ── Filter option lists (bound by XAML ComboBoxes) ────────────────────────
+
+    public IReadOnlyList<string> CategoryOptions { get; } =
+        new[] { "All Categories", "Performance", "Network", "Storage", "System", "Startup" };
+
+    public IReadOnlyList<string> ActionOptions { get; } =
+        new[] { "All Actions", "Applied", "Undone", "One-Time" };
+
+    public IReadOnlyList<string> DateRangeOptions { get; } =
+        new[] { "All Time", "Last 24h", "Last 7 days", "Last 30 days" };
+
+    // ── Grouped output ────────────────────────────────────────────────────────
 
     public ObservableCollection<HistoryEntryGroup> GroupedEntries { get; } = [];
 
@@ -113,25 +141,73 @@ public partial class HistoryViewModel : ObservableObject
         IsLoading = true;
         try
         {
-            // Entries are already in most-recent-first order (each RecordX inserts at 0).
-            var grouped = _historyService.Entries
-                .Select(e => new HistoryEntryViewModel(e))
-                .GroupBy(vm => vm.TimestampUtc.ToLocalTime().Date)
-                .Select(g => new HistoryEntryGroup(g.Key, g.ToList()))
-                .ToList();
-
-            GroupedEntries.Clear();
-            foreach (var g in grouped)
-                GroupedEntries.Add(g);
-
-            OnPropertyChanged(nameof(TotalCount));
-            OnPropertyChanged(nameof(IsEmpty));
+            _allEntries = _historyService.Entries.ToList();
+            ApplyFilters();
         }
         finally
         {
             IsLoading = false;
         }
         return Task.CompletedTask;
+    }
+
+    // ── Filter logic ──────────────────────────────────────────────────────────
+
+    private void ApplyFilters()
+    {
+        IEnumerable<HistoryEntry> filtered = _allEntries;
+
+        if (!string.IsNullOrEmpty(SearchText))
+            filtered = filtered.Where(e =>
+                e.OptimizationTitle.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                e.Category.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+
+        if (SelectedCategory != "All Categories")
+            filtered = filtered.Where(e => e.Category == SelectedCategory);
+
+        if (SelectedAction != "All Actions")
+        {
+            // Map display label to enum — "One-Time" -> HistoryAction.OneTime
+            var actionStr = SelectedAction.Replace("-", "").Replace(" ", "");
+            filtered = filtered.Where(e =>
+                string.Equals(e.Action.ToString(), actionStr, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (SelectedDateRange != "All Time")
+        {
+            var cutoff = SelectedDateRange switch
+            {
+                "Last 24h"    => DateTime.UtcNow.AddDays(-1),
+                "Last 7 days" => DateTime.UtcNow.AddDays(-7),
+                "Last 30 days"=> DateTime.UtcNow.AddDays(-30),
+                _             => DateTime.MinValue
+            };
+            filtered = filtered.Where(e => e.TimestampUtc >= cutoff);
+        }
+
+        var grouped = filtered
+            .OrderByDescending(e => e.TimestampUtc)
+            .GroupBy(e => e.TimestampUtc.ToLocalTime().Date)
+            .Select(g => new HistoryEntryGroup(g.Key, g.Select(e => new HistoryEntryViewModel(e)).ToList()))
+            .ToList();
+
+        GroupedEntries.Clear();
+        foreach (var g in grouped)
+            GroupedEntries.Add(g);
+
+        OnPropertyChanged(nameof(TotalCount));
+        OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    // ── Reset all filters to defaults ─────────────────────────────────────────
+
+    public void ClearFilters()
+    {
+        SearchText       = "";
+        SelectedCategory = "All Categories";
+        SelectedAction   = "All Actions";
+        SelectedDateRange = "All Time";
+        // ApplyFilters() is called implicitly by the last property change.
     }
 
     // ── Undo a single history entry ──────────────────────────────────────────

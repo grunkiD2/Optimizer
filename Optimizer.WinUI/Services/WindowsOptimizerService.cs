@@ -77,6 +77,36 @@ public class WindowsOptimizerService : IWindowsOptimizerService
             Id = "preset-clean", Name = "Clean & Light", ProfileType = ProfileType.Custom,
             Description = "Free disk space and trim per-user startup programs.",
             Optimizations = { Ids.ClearTemporaryFiles, Ids.DisableBackgroundApps, "DisableStartupPrograms" }
+        },
+        new()
+        {
+            Id = "preset-streaming", Name = "Streaming", ProfileType = ProfileType.Custom,
+            Description = "Optimized for live streaming with OBS/XSplit",
+            Optimizations = { Ids.DisableBackgroundApps, Ids.DisableAnimations, Ids.OptimizePowerSettings, Ids.OptimizeNetworkSettings }
+        },
+        new()
+        {
+            Id = "preset-video-editing", Name = "Video Editing", ProfileType = ProfileType.Performance,
+            Description = "Maximum resources for video rendering workloads",
+            Optimizations = { Ids.DisableBackgroundApps, Ids.OptimizePowerSettings, Ids.AdjustPageFileSize, Ids.DisableVisualEffects }
+        },
+        new()
+        {
+            Id = "preset-music", Name = "Music Production", ProfileType = ProfileType.Custom,
+            Description = "Low-latency audio with minimal interruptions",
+            Optimizations = { Ids.DisableBackgroundApps, Ids.OptimizePowerSettings, Ids.DisableAnimations, Ids.DisableTelemetry }
+        },
+        new()
+        {
+            Id = "preset-privacy", Name = "Privacy Maximum", ProfileType = ProfileType.Custom,
+            Description = "All telemetry, consumer features, and tracking disabled",
+            Optimizations = { Ids.DisableTelemetry, Ids.DisableConsumerFeatures }
+        },
+        new()
+        {
+            Id = "preset-quiet", Name = "Quiet PC", ProfileType = ProfileType.BatterySaver,
+            Description = "Lower power for reduced fan noise and thermals",
+            Optimizations = { Ids.OptimizePowerSettings, Ids.DisableBackgroundApps }
         }
     };
 

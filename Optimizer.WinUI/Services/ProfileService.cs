@@ -98,13 +98,37 @@ public class ProfileService
 
     public void ImportFromJson(string json)
     {
-        var imported = JsonSerializer.Deserialize<List<SettingsProfile>>(json);
-        if (imported != null)
+        if (string.IsNullOrWhiteSpace(json))
+            throw new ArgumentException("Import file is empty.");
+
+        List<SettingsProfile>? imported;
+        try
         {
-            var newSnapshots = imported.Where(i => !_snapshots.Any(s => s.Id == i.Id)).ToList();
-            _snapshots.AddRange(newSnapshots);
-            SaveSnapshots();
+            // Accept both an array [ {...}, ... ] or a single object { ... }
+            var trimmed = json.TrimStart();
+            if (trimmed.StartsWith('{'))
+            {
+                var single = JsonSerializer.Deserialize<SettingsProfile>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                imported = single != null ? new List<SettingsProfile> { single } : null;
+            }
+            else
+            {
+                imported = JsonSerializer.Deserialize<List<SettingsProfile>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
         }
+        catch (JsonException jex)
+        {
+            throw new InvalidDataException($"The file does not contain valid profile data: {jex.Message}", jex);
+        }
+
+        if (imported == null || imported.Count == 0)
+            throw new InvalidDataException("No profiles found in the import file.");
+
+        var newSnapshots = imported.Where(i => !_snapshots.Any(s => s.Id == i.Id)).ToList();
+        _snapshots.AddRange(newSnapshots);
+        SaveSnapshots();
     }
 
     private void SaveSnapshots()

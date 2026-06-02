@@ -51,6 +51,40 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        Visibility="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
+            <!-- ── Filter bar ─────────────────────────────────────────────── -->
+            <Grid Margin="0,4,0,0" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0"
+                         PlaceholderText="Search history..."
+                         Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <ComboBox Grid.Column="1"
+                          ItemsSource="{x:Bind ViewModel.CategoryOptions}"
+                          SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}"
+                          MinWidth="150"/>
+
+                <ComboBox Grid.Column="2"
+                          ItemsSource="{x:Bind ViewModel.ActionOptions}"
+                          SelectedItem="{x:Bind ViewModel.SelectedAction, Mode=TwoWay}"
+                          MinWidth="130"/>
+
+                <ComboBox Grid.Column="3"
+                          ItemsSource="{x:Bind ViewModel.DateRangeOptions}"
+                          SelectedItem="{x:Bind ViewModel.SelectedDateRange, Mode=TwoWay}"
+                          MinWidth="140"/>
+
+                <Button Grid.Column="4"
+                        Content="Clear Filters"
+                        Click="ClearFilters_Click"/>
+            </Grid>
+
             <!-- ── Loading indicator ───────────────────────────────────────── -->
             <ProgressBar IsIndeterminate="True"
                          Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>

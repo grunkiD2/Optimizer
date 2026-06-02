@@ -41,4 +41,7 @@ public sealed partial class HistoryPage : Page
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
             await ViewModel.ClearHistoryCommand.ExecuteAsync(null);
     }
+
+    private void ClearFilters_Click(object sender, RoutedEventArgs e)
+        => ViewModel.ClearFilters();
 }
