@@ -158,7 +158,7 @@ public sealed partial class ProfilesPage : Page
         var file = await picker.PickSingleFileAsync();
         if (file is not null)
         {
-            await ViewModel.ImportFromFileCommand.ExecuteAsync(file.Path);
+            await ViewModel.ImportCommand.ExecuteAsync(file.Path);
             UpdateEmptyState();
         }
     }

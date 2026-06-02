@@ -18,10 +18,11 @@ public partial class ProfilesViewModel : ObservableObject
     public ObservableCollection<SettingsProfile> Snapshots { get; } = [];
 
     public string CategoryName => "Profiles";
-    public string CategoryIcon => "";   // Page icon (Segoe Fluent)
+    public string CategoryIcon => "📋";   // Page icon (Segoe Fluent)
 
     public int PresetCount => Presets.Count;
     public int SnapshotCount => Snapshots.Count;
+    public bool NoPresets => Presets.Count == 0;
 
     public ProfilesViewModel(ProfileService profileService)
     {
@@ -174,7 +175,7 @@ public partial class ProfilesViewModel : ObservableObject
 
     /// <summary>Import from a JSON file path (called from the page after the picker resolves).</summary>
     [RelayCommand]
-    public async Task ImportFromFileAsync(string filePath)
+    public async Task ImportAsync(string filePath)
     {
         if (string.IsNullOrEmpty(filePath)) return;
         IsBusy = true;

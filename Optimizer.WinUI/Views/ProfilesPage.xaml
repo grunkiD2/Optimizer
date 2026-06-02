@@ -114,8 +114,8 @@
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
-                    Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="Loading presets…"
+                    Visibility="{x:Bind ViewModel.NoPresets, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="No built-in presets available"
                            FontSize="13"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            HorizontalAlignment="Center"/>
