@@ -40,6 +40,11 @@ public sealed partial class DiagnosticsPage : Page
             () => ViewModel.RunNetworkDeepCommand.ExecuteAsync(null),
             XamlRoot, "Network deep scan");
 
+    private async void LoadPredictions_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.LoadPredictionsCommand.ExecuteAsync(null),
+            XamlRoot, "Predictions");
+
     private void OpenDisplayTest_Click(object sender, RoutedEventArgs e)
         => ViewModel.OpenDisplayTestCommand.Execute(null);
 }

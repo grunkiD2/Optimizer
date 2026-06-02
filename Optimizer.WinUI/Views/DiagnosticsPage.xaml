@@ -6,6 +6,7 @@
     xmlns:models="using:Optimizer.WinUI.Models"
     xmlns:converters="using:Optimizer.WinUI.Converters"
     xmlns:local="using:Optimizer.WinUI.Converters"
+    xmlns:svc="using:Optimizer.WinUI.Services"
     Background="Transparent">
 
     <Page.Resources>
@@ -420,6 +421,144 @@
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>
+                </StackPanel>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- ── PREDICTIONS section ───────────────────────────────────── -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="20"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="12">
+
+                    <!-- Header -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="&#x1F52E; Predictions" FontSize="16" FontWeight="SemiBold"/>
+                            <TextBlock Text="Drive-space exhaustion forecast and disk-health risk assessment."
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Content="Refresh Forecasts"
+                                VerticalAlignment="Center"
+                                Click="LoadPredictions_Click"/>
+                    </Grid>
+
+                    <ProgressBar IsIndeterminate="True"
+                                 Visibility="{x:Bind ViewModel.IsPredictionLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <TextBlock Text="{x:Bind ViewModel.PredictionStatus, Mode=OneWay}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                    <!-- Drive-space forecasts -->
+                    <TextBlock Text="Drive Space Forecasts"
+                               FontSize="14" FontWeight="SemiBold"/>
+
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.DriveForecasts, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Orientation="Vertical" Spacing="6"/>
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="svc:DriveSpaceForecast">
+                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="6" Padding="12">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Drive letter badge -->
+                                        <Border Grid.Column="0"
+                                                Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                                CornerRadius="6" Width="40" Height="40">
+                                            <TextBlock Text="{x:Bind Drive}"
+                                                       FontSize="16" FontWeight="Bold"
+                                                       Foreground="White"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+
+                                        <!-- Stats -->
+                                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock FontSize="13" FontWeight="SemiBold">
+                                                <Run Text="{x:Bind FreeGbText}"/>
+                                                <Run Text=" free of "/>
+                                                <Run Text="{x:Bind TotalGbText}"/>
+                                            </TextBlock>
+                                            <TextBlock Text="{x:Bind GbPerDayText}"
+                                                       FontSize="11"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+
+                                        <!-- Days-until-full badge -->
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                                                    HorizontalAlignment="Right" Spacing="2">
+                                            <TextBlock Text="{x:Bind DaysUntilFullText}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       HorizontalAlignment="Right"/>
+                                            <TextBlock Text="until full"
+                                                       FontSize="10"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       HorizontalAlignment="Right"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <!-- Disk-health forecasts -->
+                    <TextBlock Text="Disk Health Forecasts"
+                               FontSize="14" FontWeight="SemiBold"
+                               Margin="0,8,0,0"/>
+
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.DiskForecasts, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Orientation="Vertical" Spacing="6"/>
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="svc:DiskFailureForecast">
+                                <Border CornerRadius="6" Padding="12"
+                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Spacing="3">
+                                            <TextBlock Text="{x:Bind Model}"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{x:Bind Reason}"
+                                                       FontSize="11" TextWrapping="Wrap"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                                                    HorizontalAlignment="Right" Spacing="2">
+                                            <TextBlock Text="{x:Bind HealthScoreText}"
+                                                       FontSize="14" FontWeight="Bold"
+                                                       HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{x:Bind RiskBadge}"
+                                                       FontSize="10" FontWeight="Bold"
+                                                       HorizontalAlignment="Right"
+                                                       Foreground="{x:Bind RiskColor, Converter={StaticResource StringToSolidColorBrush}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
                 </StackPanel>
             </Border>
 

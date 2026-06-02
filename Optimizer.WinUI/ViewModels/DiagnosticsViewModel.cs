@@ -12,6 +12,7 @@ public partial class DiagnosticsViewModel : ObservableObject
     private readonly IDriverDiagnosticsService _driverDiagnostics;
     private readonly IBottleneckDetectorService _bottleneckDetector;
     private readonly NavigationService _navigation;
+    private readonly IPredictiveMaintenanceService? _predictive;
     private List<DiagnosticFinding> _allFindings = [];
 
     // ── Findings ────────────────────────────────────────────────────────────
@@ -37,6 +38,13 @@ public partial class DiagnosticsViewModel : ObservableObject
     [ObservableProperty] private bool isNetworkDeepRunning;
     [ObservableProperty] private string networkDeepStatus = "";
 
+    // ── Predictions ──────────────────────────────────────────────────────────
+    [ObservableProperty] private bool isPredictionLoading;
+    [ObservableProperty] private string predictionStatus = "";
+
+    public ObservableCollection<DriveSpaceForecast>  DriveForecasts { get; } = [];
+    public ObservableCollection<DiskFailureForecast> DiskForecasts  { get; } = [];
+
     public ObservableCollection<DiagnosticFinding> Findings { get; } = [];
     public ObservableCollection<DriverIssue> DriverIssues { get; } = [];
     public ObservableCollection<ProcessBottleneck> Bottlenecks { get; } = [];
@@ -55,12 +63,14 @@ public partial class DiagnosticsViewModel : ObservableObject
         IDiagnosticsService diagnostics,
         IDriverDiagnosticsService driverDiagnostics,
         IBottleneckDetectorService bottleneckDetector,
-        NavigationService navigation)
+        NavigationService navigation,
+        IPredictiveMaintenanceService? predictive = null)
     {
-        _diagnostics = diagnostics;
-        _driverDiagnostics = driverDiagnostics;
+        _diagnostics        = diagnostics;
+        _driverDiagnostics  = driverDiagnostics;
         _bottleneckDetector = bottleneckDetector;
-        _navigation = navigation;
+        _navigation         = navigation;
+        _predictive         = predictive;
     }
 
     // ── Quick / Full scan ────────────────────────────────────────────────────
@@ -178,6 +188,44 @@ public partial class DiagnosticsViewModel : ObservableObject
         finally
         {
             IsNetworkDeepRunning = false;
+        }
+    }
+
+    // ── Predictions ──────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    public async Task LoadPredictionsAsync()
+    {
+        if (_predictive == null)
+        {
+            PredictionStatus = "Predictive maintenance service unavailable.";
+            return;
+        }
+
+        IsPredictionLoading = true;
+        PredictionStatus    = "Loading forecasts…";
+        DriveForecasts.Clear();
+        DiskForecasts.Clear();
+
+        try
+        {
+            var drives = await _predictive.ForecastDriveSpaceAsync();
+            foreach (var d in drives)
+                DriveForecasts.Add(d);
+
+            var disks = await _predictive.ForecastDiskHealthAsync();
+            foreach (var d in disks)
+                DiskForecasts.Add(d);
+
+            PredictionStatus = $"Updated at {DateTime.Now:HH:mm:ss}";
+        }
+        catch (Exception ex)
+        {
+            PredictionStatus = $"Forecast failed: {ex.Message}";
+        }
+        finally
+        {
+            IsPredictionLoading = false;
         }
     }
 

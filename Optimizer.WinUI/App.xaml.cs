@@ -151,6 +151,8 @@ public partial class App : Application
                 services.AddSingleton<IPluginVerifier, PluginVerifier>();
                 services.AddSingleton<IMarketplaceService, MarketplaceService>();
                 services.AddSingleton<IIntelligenceService, IntelligenceService>();
+                services.AddSingleton<ITrendHistoryService, TrendHistoryService>();
+                services.AddSingleton<IPredictiveMaintenanceService, PredictiveMaintenanceService>();
 
                 // Enterprise services
                 services.AddSingleton<IFleetService, FleetService>();
@@ -279,6 +281,20 @@ public partial class App : Application
             {
                 await Task.Delay(TimeSpan.FromMinutes(2));
                 await GetService<IIntelligenceService>().TrainAsync();
+            });
+
+            // Record daily trend sample (drive space + SMART) — fire and forget
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(15)); // let services settle
+                    await GetService<ITrendHistoryService>().RecordSampleAsync();
+                }
+                catch (Exception ex)
+                {
+                    WriteCrashLog("TrendHistoryService.RecordSampleAsync", ex);
+                }
             });
 
             // Honor StartMinimized — hide window immediately after activation

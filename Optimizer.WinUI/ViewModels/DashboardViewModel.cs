@@ -392,17 +392,41 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     {
         try
         {
-            var cpuAnomalies = await _intelligence.DetectAnomaliesAsync(
+            var cpuAnalysis = await _intelligence.AnalyzeSeriesAsync(
                 CpuHistory.ToList(), "CPU Usage");
-            var memAnomalies = await _intelligence.DetectAnomaliesAsync(
+            var memAnalysis = await _intelligence.AnalyzeSeriesAsync(
                 MemoryHistory.ToList(), "Memory Usage");
 
-            var alerts = cpuAnomalies.Concat(memAnomalies).ToList();
-            if (alerts.Count > 0)
+            // Surface memory leak signal prominently
+            if (memAnalysis.IsAnomaly && memAnalysis.Class == AnomalyClass.UpwardTrend)
             {
-                var top = alerts.OrderByDescending(a => a.Severity).First();
-                StatusMessage = $"⚠️ {top.Description}";
+                StatusMessage = $"Possible memory leak — {memAnalysis.Description}";
+                return;
             }
+
+            // Surface other anomalies
+            var bestAnomaly = new[] { cpuAnalysis, memAnalysis }
+                .Where(a => a.IsAnomaly)
+                .OrderByDescending(a => a.Score)
+                .FirstOrDefault();
+
+            if (bestAnomaly != null)
+            {
+                StatusMessage = $"⚠️ {bestAnomaly.Description}";
+                return;
+            }
+
+            // Fallback: legacy alert-based path for other metrics
+            var cpuAlerts = await _intelligence.DetectAnomaliesAsync(
+                CpuHistory.ToList(), "CPU Usage");
+            var memAlerts = await _intelligence.DetectAnomaliesAsync(
+                MemoryHistory.ToList(), "Memory Usage");
+
+            var legacyTop = cpuAlerts.Concat(memAlerts)
+                .OrderByDescending(a => a.Severity)
+                .FirstOrDefault();
+            if (legacyTop != null)
+                StatusMessage = $"⚠️ {legacyTop.Description}";
         }
         catch (Exception ex)
         {

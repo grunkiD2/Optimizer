@@ -1,3 +1,4 @@
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -9,6 +10,7 @@ public class SmartInsightsService : ISmartInsightsService
     private readonly IServiceManagerService _services;
     private readonly ISystemMonitorService _monitor;
     private readonly IWmiQueryService _wmi;
+    private readonly IPredictiveMaintenanceService? _predictive;
 
     private static readonly TimeSpan BatteryTtl = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan GpuDriverTtl = TimeSpan.FromMinutes(5);
@@ -18,13 +20,15 @@ public class SmartInsightsService : ISmartInsightsService
         IHardwareInfoService hardware,
         IServiceManagerService services,
         ISystemMonitorService monitor,
-        IWmiQueryService wmi)
+        IWmiQueryService wmi,
+        IPredictiveMaintenanceService? predictive = null)
     {
-        _sensors = sensors;
-        _hardware = hardware;
-        _services = services;
-        _monitor = monitor;
-        _wmi = wmi;
+        _sensors    = sensors;
+        _hardware   = hardware;
+        _services   = services;
+        _monitor    = monitor;
+        _wmi        = wmi;
+        _predictive = predictive;
     }
 
     public async Task<IReadOnlyList<SmartInsight>> GenerateAsync()
@@ -311,6 +315,60 @@ public class SmartInsightsService : ISmartInsightsService
             }
         }
         catch { }
+
+        // ── 10. Predictive maintenance insights ───────────────────────────────
+        if (_predictive != null)
+        {
+            try
+            {
+                // Drive-space exhaustion forecast
+                var driveForecasts = await _predictive.ForecastDriveSpaceAsync();
+                foreach (var f in driveForecasts)
+                {
+                    if (!f.DaysUntilFull.HasValue) continue;   // growing or insufficient data
+
+                    var severity   = f.DaysUntilFull.Value <= 7  ? "critically low" :
+                                     f.DaysUntilFull.Value <= 30 ? "low" : null;
+                    if (severity == null) continue;
+
+                    insights.Add(new SmartInsight
+                    {
+                        Id       = $"drive-space-forecast-{f.Drive}",
+                        Title    = $"Drive {f.Drive}: disk space running out",
+                        Body     = $"Drive {f.Drive} is projected to be full in ~{f.DaysUntilFull} days " +
+                                   $"at the current consumption rate of {f.GbPerDay:F1} GB/day. " +
+                                   $"Currently {f.FreeGb:F1} GB free of {f.TotalGb:F1} GB ({f.UsedPercent:F0}% used). " +
+                                   "Use the Cleanup page to reclaim space.",
+                        SupportingDataText = $"{f.DaysUntilFull} days until full · {f.GbPerDay:F1} GB/day",
+                        Category   = FindingCategory.Storage,
+                        GeneratedAt = now
+                    });
+                }
+
+                // Disk-health / SMART failure forecast
+                var diskForecasts = await _predictive.ForecastDiskHealthAsync();
+                foreach (var f in diskForecasts.Where(f => f.AtRisk))
+                {
+                    var daysText = f.EstimatedDaysRemaining.HasValue
+                        ? $" (~{f.EstimatedDaysRemaining} days estimated remaining)"
+                        : "";
+
+                    insights.Add(new SmartInsight
+                    {
+                        Id       = $"disk-health-forecast-{f.Serial}",
+                        Title    = $"{f.Model}: disk at risk",
+                        Body     = $"{f.Reason}{daysText} Back up important data immediately.",
+                        SupportingDataText = $"Health score: {f.HealthScore}/100",
+                        Category   = FindingCategory.Hardware,
+                        GeneratedAt = now
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                EngineLog.Error("SmartInsightsService: predictive insights failed", ex);
+            }
+        }
 
         return insights;
     }

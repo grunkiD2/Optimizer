@@ -1,5 +1,6 @@
 using Microsoft.ML;
 using Microsoft.ML.Data;
+using Microsoft.ML.Transforms.TimeSeries;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services.Events;
@@ -169,6 +170,202 @@ public class IntelligenceService : IIntelligenceService
         }
 
         return Task.FromResult<IReadOnlyList<AnomalyAlert>>(alerts);
+    }
+
+    // ── SSA anomaly analysis ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Analyzes a time series with ML.NET SSA (Singular Spectrum Analysis).
+    /// Falls back to the 3-sigma heuristic when there are fewer than 24 points
+    /// or when SSA throws. Never throws to the caller.
+    /// </summary>
+    public Task<AnomalyAnalysis> AnalyzeSeriesAsync(IReadOnlyList<double> values, string metricName)
+    {
+        if (values == null || values.Count == 0)
+            return Task.FromResult(new AnomalyAnalysis(false, AnomalyClass.None, 0, 0, 0, ""));
+
+        // Sanitise: replace NaN/Infinity so SSA doesn't blow up
+        var clean = values.Select(v => double.IsFinite(v) ? v : 0.0).ToArray();
+
+        var latest     = clean[^1];
+        var mean       = clean.Average();
+
+        const int SsaMinPoints = 24;
+
+        if (clean.Length >= SsaMinPoints)
+        {
+            try
+            {
+                return Task.FromResult(RunSsaAnalysis(clean, metricName, latest, mean));
+            }
+            catch (Exception ex)
+            {
+                EngineLog.Error($"SSA analysis failed for {metricName}, falling back to 3-sigma", ex);
+            }
+        }
+
+        // Fallback: 3-sigma
+        return Task.FromResult(ThreeSigmaAnalysis(clean, metricName, latest, mean));
+    }
+
+    private AnomalyAnalysis RunSsaAnalysis(double[] values, string metricName, double latest, double mean)
+    {
+        int n         = values.Length;
+        // Seasonality and training window heuristics
+        int trainSize = Math.Min(n, 100);
+        int window    = Math.Max(4, trainSize / 4);
+        int season    = Math.Max(2, window / 2);
+
+        // ── Spike detection ───────────────────────────────────────────────────
+        bool spikeAlert     = false;
+        double spikeScore   = 0;
+        bool dipAlert       = false;
+
+        try
+        {
+            var mlSpike = new MLContext(seed: 1);
+            var inputData = mlSpike.Data.LoadFromEnumerable(
+                values.Select(v => new SsaInput { Value = (float)v }));
+
+            var spikePipeline = mlSpike.Transforms.DetectSpikeBySsa(
+                outputColumnName: "Alert",
+                inputColumnName: nameof(SsaInput.Value),
+                confidence: 95.0,
+                pvalueHistoryLength: Math.Max(2, n / 4),
+                trainingWindowSize: trainSize,
+                seasonalityWindowSize: season);
+
+            var spikeModel    = spikePipeline.Fit(inputData);
+            var spikeOutput   = spikeModel.Transform(inputData);
+            var spikeCol      = spikeOutput.GetColumn<VBuffer<double>>("Alert").ToArray();
+
+            if (spikeCol.Length > 0)
+            {
+                var lastRow = spikeCol[^1].GetValues().ToArray();
+                // lastRow[0] = alert flag (0/1), lastRow[1] = raw score, lastRow[2] = p-value
+                if (lastRow.Length >= 1 && lastRow[0] > 0)
+                {
+                    spikeAlert  = true;
+                    spikeScore  = lastRow.Length >= 3 ? Math.Min(1.0, 1.0 - lastRow[2]) : 0.8;
+                    dipAlert    = latest < mean;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error($"SSA spike detection failed for {metricName}", ex);
+        }
+
+        // ── Change-point detection (sustained trend) ──────────────────────────
+        bool changeAlert      = false;
+        double changeScore    = 0;
+        bool changeTrendUp    = false;
+
+        try
+        {
+            var mlChange = new MLContext(seed: 2);
+            var inputData = mlChange.Data.LoadFromEnumerable(
+                values.Select(v => new SsaInput { Value = (float)v }));
+
+            var changePipeline = mlChange.Transforms.DetectChangePointBySsa(
+                outputColumnName: "Alert",
+                inputColumnName: nameof(SsaInput.Value),
+                confidence: 90.0,
+                changeHistoryLength: Math.Max(2, n / 4),
+                trainingWindowSize: trainSize,
+                seasonalityWindowSize: season);
+
+            var changeModel   = changePipeline.Fit(inputData);
+            var changeOutput  = changeModel.Transform(inputData);
+            var changeCol     = changeOutput.GetColumn<VBuffer<double>>("Alert").ToArray();
+
+            if (changeCol.Length > 0)
+            {
+                // Find the most-recent change point
+                for (int i = changeCol.Length - 1; i >= 0; i--)
+                {
+                    var row = changeCol[i].GetValues().ToArray();
+                    if (row.Length >= 1 && row[0] > 0)
+                    {
+                        changeAlert  = true;
+                        changeScore  = row.Length >= 3 ? Math.Min(1.0, 1.0 - row[2]) : 0.7;
+                        // Check whether the trailing window (after change point) trends up or down
+                        var tail = values.Skip(i).ToArray();
+                        changeTrendUp = tail.Average() > mean;
+                        break;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error($"SSA change-point detection failed for {metricName}", ex);
+        }
+
+        // ── Classify ──────────────────────────────────────────────────────────
+        // A spike alert that coincides with a change point and a rising tail =>
+        // treat as UpwardTrend (more useful diagnostic).
+        // A standalone spike without a persistent change => Spike.
+        if (changeAlert && !spikeAlert)
+        {
+            var cls     = changeTrendUp ? AnomalyClass.UpwardTrend : AnomalyClass.DownwardTrend;
+            var desc    = BuildDescription(metricName, cls, latest, mean);
+            return new AnomalyAnalysis(true, cls, Math.Round(changeScore, 2), latest, mean, desc);
+        }
+
+        if (changeAlert && spikeAlert)
+        {
+            // Both: favour trend classification (more actionable)
+            var cls     = changeTrendUp ? AnomalyClass.UpwardTrend : AnomalyClass.DownwardTrend;
+            var score   = Math.Max(spikeScore, changeScore);
+            var desc    = BuildDescription(metricName, cls, latest, mean);
+            return new AnomalyAnalysis(true, cls, Math.Round(score, 2), latest, mean, desc);
+        }
+
+        if (spikeAlert)
+        {
+            var cls     = dipAlert ? AnomalyClass.Dip : AnomalyClass.Spike;
+            var desc    = BuildDescription(metricName, cls, latest, mean);
+            return new AnomalyAnalysis(true, cls, Math.Round(spikeScore, 2), latest, mean, desc);
+        }
+
+        return new AnomalyAnalysis(false, AnomalyClass.None, 0, latest, mean, "");
+    }
+
+    private static string BuildDescription(string metricName, AnomalyClass cls, double latest, double mean) =>
+        cls switch
+        {
+            AnomalyClass.Spike        => $"{metricName} spike detected: {latest:F1} vs typical {mean:F1}.",
+            AnomalyClass.Dip          => $"{metricName} sudden drop detected: {latest:F1} vs typical {mean:F1}.",
+            AnomalyClass.UpwardTrend  => $"{metricName} shows a sustained upward trend (possible leak): now {latest:F1}% vs baseline {mean:F1}%.",
+            AnomalyClass.DownwardTrend=> $"{metricName} shows a sustained downward trend: now {latest:F1} vs baseline {mean:F1}.",
+            _                         => ""
+        };
+
+    private static AnomalyAnalysis ThreeSigmaAnalysis(double[] values, string metricName, double latest, double mean)
+    {
+        if (values.Length < 2)
+            return new AnomalyAnalysis(false, AnomalyClass.None, 0, latest, mean, "");
+
+        var stdDev    = Math.Sqrt(values.Sum(v => Math.Pow(v - mean, 2)) / values.Length);
+        var threshold = 3 * stdDev;
+
+        if (Math.Abs(latest - mean) > threshold && stdDev > 1)
+        {
+            var isHigh  = latest > mean;
+            var cls     = isHigh ? AnomalyClass.Spike : AnomalyClass.Dip;
+            var score   = Math.Min(1.0, Math.Abs(latest - mean) / (5 * stdDev));
+            var desc    = $"{metricName} is unusually {(isHigh ? "high" : "low")}: {latest:F1} vs expected ~{mean:F1} ±{threshold:F1}";
+            return new AnomalyAnalysis(true, cls, Math.Round(score, 2), latest, mean, desc);
+        }
+
+        return new AnomalyAnalysis(false, AnomalyClass.None, 0, latest, mean, "");
+    }
+
+    // ML.NET input schema for SSA transforms
+    private sealed class SsaInput
+    {
+        public float Value { get; set; }
     }
 
     private List<RecommendationFeature> CollectTrainingData()
