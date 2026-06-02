@@ -72,11 +72,18 @@ public class ModelTests
     }
 
     [Fact]
-    public void MarketplaceEntry_DownloadsText_ExactlyThousand_IsRawNumber()
+    public void MarketplaceEntry_DownloadsText_ExactlyThousand_FormatsAsK()
     {
-        // Note: the Downloads switch uses > 1_000 (exclusive), so exactly 1000 returns raw "1000"
+        // Boundary at >= 1_000 (inclusive) — exactly 1000 returns "1.0K"
         var entry = new MarketplaceEntry { Downloads = 1_000 };
-        Assert.Equal("1000", entry.DownloadsText);
+        Assert.Equal("1.0K", entry.DownloadsText);
+    }
+
+    [Fact]
+    public void MarketplaceEntry_DownloadsText_NineHundredNinetyNine_IsRawNumber()
+    {
+        var entry = new MarketplaceEntry { Downloads = 999 };
+        Assert.Equal("999", entry.DownloadsText);
     }
 
     [Fact]

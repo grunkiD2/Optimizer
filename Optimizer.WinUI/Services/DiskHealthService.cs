@@ -52,16 +52,16 @@ public class DiskHealthService : IDiskHealthService
             {
                 var info = new DiskHealthInfo
                 {
-                    Model = el.TryGetProperty("Model", out var p1) ? (p1.GetString() ?? "") : "",
-                    SerialNumber = el.TryGetProperty("SerialNumber", out var p2) ? (p2.GetString()?.Trim() ?? "") : "",
+                    Model = SafeGetString(el, "Model"),
+                    SerialNumber = SafeGetString(el, "SerialNumber").Trim(),
                     BusType = ConvertBusType(el.TryGetProperty("BusType", out var p3) ? p3 : default),
                     MediaType = ConvertMediaType(el.TryGetProperty("MediaType", out var p4) ? p4 : default),
-                    SizeBytes = el.TryGetProperty("Size", out var p5) && p5.TryGetInt64(out var sz) ? sz : 0,
+                    SizeBytes = SafeGetInt64(el, "Size") ?? 0,
                     HealthStatus = ConvertHealthStatus(el.TryGetProperty("HealthStatus", out var p6) ? p6 : default),
-                    OperationalStatus = el.TryGetProperty("OperationalStatus", out var p7) ? (p7.GetString() ?? "") : "",
-                    TemperatureCelsius = el.TryGetProperty("Temperature", out var p8) && p8.TryGetInt32(out var t) ? t : null,
-                    WearPercentage = el.TryGetProperty("Wear", out var p9) && p9.TryGetInt32(out var w) ? w : null,
-                    PowerOnHours = el.TryGetProperty("PowerOnHours", out var p10) && p10.TryGetInt64(out var ph) ? ph : null,
+                    OperationalStatus = SafeGetString(el, "OperationalStatus"),
+                    TemperatureCelsius = SafeGetInt32(el, "Temperature"),
+                    WearPercentage = SafeGetInt32(el, "Wear"),
+                    PowerOnHours = SafeGetInt64(el, "PowerOnHours"),
                 };
                 info.IsPredictedToFail = info.HealthStatus.Equals("Unhealthy", StringComparison.OrdinalIgnoreCase)
                                       || info.OperationalStatus.Contains("Predictive Failure", StringComparison.OrdinalIgnoreCase);
@@ -118,4 +118,26 @@ public class DiskHealthService : IDiskHealthService
         JsonValueKind.String => el.GetString() ?? "Unknown",
         _ => "Unknown"
     };
+
+    // ── Null-safe JSON extractors ────────────────────────────────────────────
+    // .NET 10's JsonElement.GetString() throws InvalidOperationException on
+    // JsonValueKind.Null. These helpers check ValueKind first.
+
+    private static string SafeGetString(JsonElement parent, string propertyName)
+    {
+        if (!parent.TryGetProperty(propertyName, out var el)) return "";
+        return el.ValueKind == JsonValueKind.String ? (el.GetString() ?? "") : "";
+    }
+
+    private static int? SafeGetInt32(JsonElement parent, string propertyName)
+    {
+        if (!parent.TryGetProperty(propertyName, out var el)) return null;
+        return el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v) ? v : null;
+    }
+
+    private static long? SafeGetInt64(JsonElement parent, string propertyName)
+    {
+        if (!parent.TryGetProperty(propertyName, out var el)) return null;
+        return el.ValueKind == JsonValueKind.Number && el.TryGetInt64(out var v) ? v : null;
+    }
 }

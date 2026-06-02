@@ -1,3 +1,4 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Optimizer.WinUI.Models;
@@ -21,11 +22,11 @@ public partial class MarketplaceEntry : ObservableObject
 
     public string DownloadsText => Downloads switch
     {
-        > 1_000_000 => $"{Downloads / 1_000_000.0:F1}M",
-        > 1_000     => $"{Downloads / 1_000.0:F1}K",
-        _           => Downloads.ToString()
+        >= 1_000_000 => string.Create(CultureInfo.InvariantCulture, $"{Downloads / 1_000_000.0:F1}M"),
+        >= 1_000     => string.Create(CultureInfo.InvariantCulture, $"{Downloads / 1_000.0:F1}K"),
+        _            => Downloads.ToString(CultureInfo.InvariantCulture)
     };
 
-    public string RatingText => $"{AverageRating:F1} ({RatingCount})";
+    public string RatingText => string.Create(CultureInfo.InvariantCulture, $"{AverageRating:F1} ({RatingCount})");
     public string TagsText   => string.Join(" • ", Tags);
 }

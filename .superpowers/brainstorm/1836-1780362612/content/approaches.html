@@ -1,0 +1,226 @@
+<h2>Three approaches — now with WinUI 3</h2>
+<p class="subtitle">Same design brief, different information architecture. Click to select.</p>
+
+<div class="cards">
+  <div class="card" data-choice="hub-spokes" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #0d1117;">
+      <div style="display: flex; height: 260px; font-family: 'Segoe UI', sans-serif; font-size: 12px; border-radius: 8px; overflow: hidden; border: 1px solid #1e2a3a;">
+        <!-- Sidebar -->
+        <div style="width: 180px; background: #111827; padding: 12px 0; border-right: 1px solid #1e2a3a; flex-shrink: 0;">
+          <div style="padding: 8px 16px; font-size: 13px; font-weight: 600; color: #e0e0e0; margin-bottom: 8px;">☰ Optimizer</div>
+          <div style="padding: 8px 16px; background: #1e3a5f; color: #60a5fa; font-size: 12px; border-left: 3px solid #60a5fa;">◆ Dashboard</div>
+          <div style="padding: 6px 16px; color: #666; font-size: 10px; text-transform: uppercase; margin-top: 10px; letter-spacing: 0.5px;">Optimize</div>
+          <div style="padding: 6px 16px; color: #9ca3af; font-size: 12px;">⚡ Performance</div>
+          <div style="padding: 6px 16px; color: #9ca3af; font-size: 12px;">🌐 Network</div>
+          <div style="padding: 6px 16px; color: #9ca3af; font-size: 12px;">💾 Storage</div>
+          <div style="padding: 6px 16px; color: #9ca3af; font-size: 12px;">🖥 System</div>
+          <div style="padding: 6px 16px; color: #9ca3af; font-size: 12px;">🚀 Startup</div>
+          <div style="padding: 6px 16px; color: #666; font-size: 10px; text-transform: uppercase; margin-top: 10px; letter-spacing: 0.5px;">Manage</div>
+          <div style="padding: 6px 16px; color: #9ca3af; font-size: 12px;">📋 Profiles</div>
+          <div style="padding: 6px 16px; color: #9ca3af; font-size: 12px;">📜 History</div>
+        </div>
+        <!-- Main content: Dashboard -->
+        <div style="flex: 1; background: #0d1117; padding: 16px; overflow: hidden;">
+          <div style="font-size: 16px; font-weight: 600; color: #e0e0e0; margin-bottom: 4px;">System Dashboard</div>
+          <div style="font-size: 11px; color: #4ade80; margin-bottom: 12px;">● Health: Good (88)</div>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <div style="flex: 1; background: #111827; border-radius: 6px; padding: 8px; border: 1px solid #1e2a3a;">
+              <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">CPU</div>
+              <div style="font-size: 18px; font-weight: 700; color: #60a5fa; font-family: 'Cascadia Code', monospace;">3.5%</div>
+              <div style="height: 3px; background: #1e2a3a; border-radius: 1px; margin-top: 4px;"><div style="height: 100%; width: 3.5%; background: #60a5fa; border-radius: 1px;"></div></div>
+            </div>
+            <div style="flex: 1; background: #111827; border-radius: 6px; padding: 8px; border: 1px solid #1e2a3a;">
+              <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">MEM</div>
+              <div style="font-size: 18px; font-weight: 700; color: #34d399; font-family: 'Cascadia Code', monospace;">21%</div>
+              <div style="height: 3px; background: #1e2a3a; border-radius: 1px; margin-top: 4px;"><div style="height: 100%; width: 21%; background: #34d399; border-radius: 1px;"></div></div>
+            </div>
+            <div style="flex: 1; background: #111827; border-radius: 6px; padding: 8px; border: 1px solid #1e2a3a;">
+              <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">GPU</div>
+              <div style="font-size: 18px; font-weight: 700; color: #f59e0b; font-family: 'Cascadia Code', monospace;">0.0%</div>
+              <div style="height: 3px; background: #1e2a3a; border-radius: 1px; margin-top: 4px;"><div style="height: 100%; width: 0%; background: #f59e0b; border-radius: 1px;"></div></div>
+            </div>
+          </div>
+          <!-- Mini chart placeholder -->
+          <div style="background: #111827; border-radius: 6px; padding: 8px; border: 1px solid #1e2a3a; height: 60px; display: flex; align-items: flex-end; gap: 2px;">
+            <div style="font-size: 9px; color: #6b7280; position: absolute; margin-top: -50px;">Live Performance (60s)</div>
+            <div style="flex:1;height:20%;background:#60a5fa40;border-radius:1px;"></div>
+            <div style="flex:1;height:35%;background:#60a5fa50;border-radius:1px;"></div>
+            <div style="flex:1;height:25%;background:#60a5fa40;border-radius:1px;"></div>
+            <div style="flex:1;height:40%;background:#60a5fa60;border-radius:1px;"></div>
+            <div style="flex:1;height:30%;background:#60a5fa50;border-radius:1px;"></div>
+            <div style="flex:1;height:45%;background:#60a5fa60;border-radius:1px;"></div>
+            <div style="flex:1;height:35%;background:#60a5fa50;border-radius:1px;"></div>
+            <div style="flex:1;height:50%;background:#60a5fa70;border-radius:1px;"></div>
+            <div style="flex:1;height:20%;background:#60a5fa40;border-radius:1px;"></div>
+            <div style="flex:1;height:15%;background:#60a5fa30;border-radius:1px;"></div>
+            <div style="flex:1;height:25%;background:#60a5fa40;border-radius:1px;"></div>
+            <div style="flex:1;height:55%;background:#60a5fa70;border-radius:1px;"></div>
+          </div>
+          <div style="font-size: 10px; color: #6b7280; margin-top: 8px;">Top Processes · Disk I/O · Network ↓</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Dashboard Hub + Category Spokes ★</h3>
+      <p>Full monitoring dashboard as home. Each category page has its own relevant metrics + optimization controls. NavigationView sidebar ties it together. <strong>Recommended.</strong></p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="unified" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #0d1117;">
+      <div style="display: flex; height: 260px; font-family: 'Segoe UI', sans-serif; font-size: 12px; border-radius: 8px; overflow: hidden; border: 1px solid #1e2a3a;">
+        <!-- Narrow sidebar -->
+        <div style="width: 140px; background: #111827; padding: 12px 0; border-right: 1px solid #1e2a3a; flex-shrink: 0;">
+          <div style="padding: 8px 12px; font-size: 13px; font-weight: 600; color: #e0e0e0; margin-bottom: 8px;">☰ Optimizer</div>
+          <div style="padding: 8px 12px; background: #1e3a5f; color: #60a5fa; font-size: 12px; border-left: 3px solid #60a5fa;">◆ Dashboard</div>
+          <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px; margin-top: 4px;">📋 Profiles</div>
+          <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">📜 History</div>
+          <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">⚙ Settings</div>
+        </div>
+        <!-- Unified scroll -->
+        <div style="flex: 1; background: #0d1117; padding: 16px; overflow: hidden;">
+          <div style="font-size: 16px; font-weight: 600; color: #e0e0e0; margin-bottom: 12px;">System Dashboard</div>
+          <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+            <div style="flex: 1; background: #111827; border-radius: 4px; padding: 6px; border: 1px solid #1e2a3a; text-align: center;">
+              <div style="font-size: 9px; color: #6b7280;">CPU</div>
+              <div style="font-size: 14px; font-weight: 700; color: #60a5fa;">3.5%</div>
+            </div>
+            <div style="flex: 1; background: #111827; border-radius: 4px; padding: 6px; border: 1px solid #1e2a3a; text-align: center;">
+              <div style="font-size: 9px; color: #6b7280;">MEM</div>
+              <div style="font-size: 14px; font-weight: 700; color: #34d399;">21%</div>
+            </div>
+            <div style="flex: 1; background: #111827; border-radius: 4px; padding: 6px; border: 1px solid #1e2a3a; text-align: center;">
+              <div style="font-size: 9px; color: #6b7280;">GPU</div>
+              <div style="font-size: 14px; font-weight: 700; color: #f59e0b;">0%</div>
+            </div>
+          </div>
+          <!-- Inline category -->
+          <div style="border: 1px solid #1e2a3a; border-radius: 6px; margin-bottom: 8px; overflow: hidden;">
+            <div style="padding: 8px 12px; background: #111827; color: #e0e0e0; font-weight: 600; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+              ⚡ Performance <span style="color: #4ade80; font-size: 10px;">3/5 active</span>
+            </div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px; border-top: 1px solid #1e2a3a; display: flex; justify-content: space-between;">
+              Disable Background Apps <span style="color: #4ade80;">ON</span>
+            </div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px; border-top: 1px solid #0d1117; display: flex; justify-content: space-between;">
+              Disable Animations <span style="color: #4ade80;">ON</span>
+            </div>
+          </div>
+          <div style="border: 1px solid #1e2a3a; border-radius: 6px; overflow: hidden;">
+            <div style="padding: 8px 12px; background: #111827; color: #e0e0e0; font-weight: 600; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+              🌐 Network <span style="color: #6b7280; font-size: 10px;">0/2 active</span>
+            </div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px; border-top: 1px solid #1e2a3a; display: flex; justify-content: space-between;">
+              Optimize Network Settings <span style="color: #6b7280;">OFF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Unified Dashboard</h3>
+      <p>One scrollable page: compact metrics up top, then collapsible category sections with inline controls. Minimal sidebar (just Profiles, History, Settings). Everything discoverable without navigation.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dual-panel" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #0d1117;">
+      <div style="height: 260px; font-family: 'Segoe UI', sans-serif; font-size: 12px; border-radius: 8px; overflow: hidden; border: 1px solid #1e2a3a; display: flex; flex-direction: column;">
+        <!-- Top monitoring strip -->
+        <div style="background: #111827; padding: 8px 16px; border-bottom: 1px solid #1e2a3a; display: flex; gap: 16px; align-items: center; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 9px; color: #6b7280;">CPU</span>
+            <span style="font-size: 13px; font-weight: 700; color: #60a5fa; font-family: monospace;">3.5%</span>
+            <div style="display: flex; align-items: flex-end; gap: 1px; height: 16px;">
+              <div style="width: 3px; height: 30%; background: #60a5fa50;"></div>
+              <div style="width: 3px; height: 50%; background: #60a5fa60;"></div>
+              <div style="width: 3px; height: 20%; background: #60a5fa40;"></div>
+              <div style="width: 3px; height: 60%; background: #60a5fa70;"></div>
+              <div style="width: 3px; height: 35%; background: #60a5fa50;"></div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 9px; color: #6b7280;">MEM</span>
+            <span style="font-size: 13px; font-weight: 700; color: #34d399; font-family: monospace;">21%</span>
+            <div style="display: flex; align-items: flex-end; gap: 1px; height: 16px;">
+              <div style="width: 3px; height: 40%; background: #34d39950;"></div>
+              <div style="width: 3px; height: 45%; background: #34d39960;"></div>
+              <div style="width: 3px; height: 42%; background: #34d39950;"></div>
+              <div style="width: 3px; height: 48%; background: #34d39960;"></div>
+              <div style="width: 3px; height: 43%; background: #34d39950;"></div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 9px; color: #6b7280;">GPU</span>
+            <span style="font-size: 13px; font-weight: 700; color: #f59e0b; font-family: monospace;">0.0%</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 9px; color: #6b7280;">DSK</span>
+            <span style="font-size: 13px; font-weight: 700; color: #a78bfa; font-family: monospace;">2%</span>
+          </div>
+          <div style="margin-left: auto; font-size: 10px; color: #4ade80;">● Good (88)</div>
+        </div>
+        <!-- Bottom: sidebar + content -->
+        <div style="display: flex; flex: 1;">
+          <div style="width: 150px; background: #111827; padding: 8px 0; border-right: 1px solid #1e2a3a;">
+            <div style="padding: 6px 12px; color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Optimize</div>
+            <div style="padding: 6px 12px; background: #1e3a5f; color: #60a5fa; font-size: 11px; border-left: 3px solid #60a5fa;">⚡ Performance</div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">🌐 Network</div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">💾 Storage</div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">🖥 System</div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">🚀 Startup</div>
+            <div style="padding: 6px 12px; color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px;">Manage</div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">📋 Profiles</div>
+            <div style="padding: 6px 12px; color: #9ca3af; font-size: 11px;">📜 History</div>
+          </div>
+          <div style="flex: 1; background: #0d1117; padding: 12px;">
+            <div style="font-size: 14px; font-weight: 600; color: #e0e0e0; margin-bottom: 8px;">⚡ Performance</div>
+            <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 6px; margin-bottom: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="color: #e0e0e0; font-size: 12px;">Disable Background Apps</div>
+                <div style="color: #6b7280; font-size: 10px;">Prevent apps from running in background</div>
+              </div>
+              <div style="width: 36px; height: 20px; background: #1e3a5f; border-radius: 10px; position: relative;">
+                <div style="width: 16px; height: 16px; background: #60a5fa; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
+              </div>
+            </div>
+            <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="color: #e0e0e0; font-size: 12px;">Disable Animations</div>
+                <div style="color: #6b7280; font-size: 10px;">Remove UI transition effects</div>
+              </div>
+              <div style="width: 36px; height: 20px; background: #374151; border-radius: 10px; position: relative;">
+                <div style="width: 16px; height: 16px; background: #6b7280; border-radius: 50%; position: absolute; left: 2px; top: 2px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Dual-Panel (Always-On Monitor)</h3>
+      <p>Persistent monitoring strip across the top with live sparklines. Sidebar + category pages below. You always see system impact while toggling optimizations — ideal for before/after. No separate Dashboard page needed.</p>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top: 24px;">
+  <div class="pros">
+    <h4>All approaches share</h4>
+    <ul>
+      <li>WinUI 3 NavigationView sidebar</li>
+      <li>Dark theme with Mica backdrop</li>
+      <li>Syncfusion charts for monitoring</li>
+      <li>Category pages with toggle controls</li>
+      <li>Profiles (presets + snapshots)</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Key differences</h4>
+    <ul>
+      <li><strong>A:</strong> Most room for monitoring, slight metric overlap</li>
+      <li><strong>B:</strong> Everything on one page, risks long-scroll fatigue</li>
+      <li><strong>C:</strong> Always-on monitoring, costs vertical space</li>
+    </ul>
+  </div>
+</div>

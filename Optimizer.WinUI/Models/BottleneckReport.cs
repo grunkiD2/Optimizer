@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Optimizer.WinUI.Models;
 
 public class ProcessBottleneck
@@ -16,7 +18,7 @@ public class ProcessBottleneck
         _        => "#3B82F6"
     };
 
-    public string DisplayValue => $"{Value:F1} {ValueUnit}";
+    public string DisplayValue => string.Create(CultureInfo.InvariantCulture, $"{Value:F1} {ValueUnit}");
 }
 
 public class BottleneckReport

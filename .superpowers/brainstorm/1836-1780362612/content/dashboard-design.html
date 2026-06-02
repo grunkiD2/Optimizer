@@ -1,0 +1,277 @@
+<h2>Dashboard Page Design</h2>
+<p class="subtitle">The home view — full system monitoring + quick actions</p>
+
+<div class="mockup">
+  <div class="mockup-header">Dashboard Page Layout</div>
+  <div class="mockup-body" style="background: #0d1117; padding: 0; font-family: 'Segoe UI', sans-serif;">
+    <div style="display: flex; height: 580px;">
+      <!-- Sidebar -->
+      <div style="width: 200px; background: #111827; padding: 12px 0; border-right: 1px solid #1e2a3a; flex-shrink: 0;">
+        <div style="padding: 10px 16px; font-size: 15px; font-weight: 600; color: #e0e0e0; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 24px; height: 24px; border-radius: 4px; background: linear-gradient(135deg, #60a5fa, #3b82f6); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 700;">O</div>
+          Optimizer
+        </div>
+        <div style="padding: 10px 16px; background: #1e3a5f; color: #60a5fa; font-size: 13px; border-left: 3px solid #60a5fa; margin: 2px 0; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px;">📊</span> Dashboard
+        </div>
+        <div style="padding: 6px 16px; color: #4b5563; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-top: 12px;">Optimize</div>
+        <div style="padding: 9px 16px; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <span style="font-size: 15px;">⚡</span> Performance
+        </div>
+        <div style="padding: 9px 16px; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px;">🌐</span> Network
+        </div>
+        <div style="padding: 9px 16px; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px;">💾</span> Storage
+        </div>
+        <div style="padding: 9px 16px; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px;">🖥️</span> System
+        </div>
+        <div style="padding: 9px 16px; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px;">🚀</span> Startup
+        </div>
+        <div style="padding: 6px 16px; color: #4b5563; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-top: 12px;">Manage</div>
+        <div style="padding: 9px 16px; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px;">📋</span> Profiles
+        </div>
+        <div style="padding: 9px 16px; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px;">📜</span> History
+        </div>
+        <div style="margin-top: auto; position: absolute; bottom: 16px; width: 200px;">
+          <div style="padding: 9px 16px; color: #6b7280; font-size: 13px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #1e2a3a; padding-top: 12px;">
+            <span style="font-size: 15px;">⚙️</span> Settings
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div style="flex: 1; background: #0d1117; padding: 24px; overflow-y: auto;">
+        <!-- Header row -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <div style="font-size: 22px; font-weight: 600; color: #f0f0f0;">System Dashboard</div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">Updated 03:15:42</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="padding: 6px 14px; background: #111827; border: 1px solid #1e2a3a; border-radius: 6px; color: #9ca3af; font-size: 12px; cursor: pointer;">↻ Refresh</div>
+            <div style="padding: 6px 14px; background: #1e3a5f; border: 1px solid #2563eb; border-radius: 6px; color: #60a5fa; font-size: 12px; font-weight: 600; cursor: pointer;">⚡ Apply Safe Tune</div>
+            <div style="padding: 6px 14px; background: #111827; border: 1px solid #b9441c44; border-radius: 6px; color: #f87171; font-size: 12px; cursor: pointer;">↶ Undo All (14)</div>
+          </div>
+        </div>
+
+        <!-- Health banner -->
+        <div style="background: #064e3b; border: 1px solid #065f46; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: #4ade80;"></div>
+          <span style="color: #a7f3d0; font-size: 13px; font-weight: 500;">System Health: Good</span>
+          <span style="color: #6ee7b7; font-size: 20px; font-weight: 700; margin-left: 8px; font-family: 'Cascadia Code', monospace;">88</span>
+          <span style="color: #6b7280; font-size: 11px; margin-left: auto;">5 optimizations active · 14 changes undoable</span>
+        </div>
+
+        <!-- Metric cards row -->
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">CPU</span>
+              <span style="font-size: 10px; color: #4b5563;">24 cores</span>
+            </div>
+            <div style="font-size: 26px; font-weight: 700; color: #60a5fa; font-family: 'Cascadia Code', monospace;">3.5%</div>
+            <div style="height: 4px; background: #1e2a3a; border-radius: 2px; margin-top: 8px;">
+              <div style="height: 100%; width: 3.5%; background: #60a5fa; border-radius: 2px;"></div>
+            </div>
+          </div>
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Memory</span>
+              <span style="font-size: 10px; color: #4b5563;">63.7 GB</span>
+            </div>
+            <div style="font-size: 26px; font-weight: 700; color: #34d399; font-family: 'Cascadia Code', monospace;">21%</div>
+            <div style="height: 4px; background: #1e2a3a; border-radius: 2px; margin-top: 8px;">
+              <div style="height: 100%; width: 21%; background: #34d399; border-radius: 2px;"></div>
+            </div>
+          </div>
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">GPU</span>
+              <span style="font-size: 10px; color: #4b5563;">RTX 4090</span>
+            </div>
+            <div style="font-size: 26px; font-weight: 700; color: #f59e0b; font-family: 'Cascadia Code', monospace;">0.0%</div>
+            <div style="height: 4px; background: #1e2a3a; border-radius: 2px; margin-top: 8px;">
+              <div style="height: 100%; width: 0%; background: #f59e0b; border-radius: 2px;"></div>
+            </div>
+          </div>
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Disk</span>
+              <span style="font-size: 10px; color: #4b5563;">NVMe</span>
+            </div>
+            <div style="font-size: 26px; font-weight: 700; color: #a78bfa; font-family: 'Cascadia Code', monospace;">2%</div>
+            <div style="height: 4px; background: #1e2a3a; border-radius: 2px; margin-top: 8px;">
+              <div style="height: 100%; width: 2%; background: #a78bfa; border-radius: 2px;"></div>
+            </div>
+          </div>
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Network</span>
+              <span style="font-size: 10px; color: #4b5563;">Ethernet</span>
+            </div>
+            <div style="font-size: 26px; font-weight: 700; color: #f472b6; font-family: 'Cascadia Code', monospace;">0.1%</div>
+            <div style="height: 4px; background: #1e2a3a; border-radius: 2px; margin-top: 8px;">
+              <div style="height: 100%; width: 0.1%; background: #f472b6; border-radius: 2px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <!-- Performance chart -->
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span style="font-size: 13px; font-weight: 600; color: #e0e0e0;">Performance History</span>
+              <div style="display: flex; gap: 12px; font-size: 10px;">
+                <span style="color: #60a5fa;">● CPU</span>
+                <span style="color: #34d399;">● Memory</span>
+                <span style="color: #f59e0b;">● GPU</span>
+              </div>
+            </div>
+            <!-- Sparkline area chart mockup -->
+            <div style="height: 100px; display: flex; align-items: flex-end; gap: 2px; padding-top: 8px; position: relative;">
+              <div style="position: absolute; top: 0; left: 0; font-size: 9px; color: #374151;">100%</div>
+              <div style="position: absolute; top: 50%; left: 0; font-size: 9px; color: #374151;">50%</div>
+              <div style="position: absolute; bottom: 0; left: 0; font-size: 9px; color: #374151;">0%</div>
+              <div style="flex:1;height:15%;background:linear-gradient(#60a5fa40,#60a5fa10);border-radius:1px;margin-left:24px;"></div>
+              <div style="flex:1;height:22%;background:linear-gradient(#60a5fa50,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:18%;background:linear-gradient(#60a5fa40,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:35%;background:linear-gradient(#60a5fa60,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:28%;background:linear-gradient(#60a5fa50,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:20%;background:linear-gradient(#60a5fa40,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:42%;background:linear-gradient(#60a5fa60,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:15%;background:linear-gradient(#60a5fa30,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:25%;background:linear-gradient(#60a5fa50,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:12%;background:linear-gradient(#60a5fa30,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:30%;background:linear-gradient(#60a5fa50,#60a5fa10);border-radius:1px;"></div>
+              <div style="flex:1;height:18%;background:linear-gradient(#60a5fa40,#60a5fa10);border-radius:1px;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 9px; color: #374151; margin-top: 4px; padding-left: 24px;">
+              <span>60s ago</span><span>45s</span><span>30s</span><span>15s</span><span>Now</span>
+            </div>
+          </div>
+
+          <!-- Per-core CPU -->
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: #e0e0e0; margin-bottom: 12px;">Per-Core CPU</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C0</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 12%; background: #60a5fa; border-radius: 0 0 3px 3px;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C1</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 45%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C2</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 8%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C3</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 22%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C4</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 55%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C5</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 5%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C6</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 30%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C7</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 3%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C8</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 18%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C9</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 40%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C10</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 7%; background: #60a5fa;"></div></div></div>
+              <div style="text-align: center;"><div style="font-size: 9px; color: #4b5563; margin-bottom: 2px;">C11</div><div style="height: 28px; background: #1e2a3a; border-radius: 3px; position: relative; overflow: hidden;"><div style="position: absolute; bottom: 0; width: 100%; height: 15%; background: #60a5fa;"></div></div></div>
+            </div>
+            <div style="font-size: 10px; color: #4b5563; margin-top: 8px; text-align: center;">+ 12 more cores</div>
+          </div>
+        </div>
+
+        <!-- Bottom row: Top processes + Disk/Network I/O -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <!-- Top processes -->
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: #e0e0e0; margin-bottom: 12px;">Top Processes</div>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #4b5563; padding-bottom: 6px; border-bottom: 1px solid #1e2a3a; margin-bottom: 4px;">
+              <span>Name</span><span style="display: flex; gap: 24px;"><span>CPU</span><span>Memory</span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; color: #d1d5db; border-bottom: 1px solid #0d1117;">
+              <span>chrome.exe</span><span style="display: flex; gap: 24px; color: #9ca3af; font-family: monospace; font-size: 11px;"><span>1.2%</span><span>842 MB</span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; color: #d1d5db; border-bottom: 1px solid #0d1117;">
+              <span>explorer.exe</span><span style="display: flex; gap: 24px; color: #9ca3af; font-family: monospace; font-size: 11px;"><span>0.4%</span><span>128 MB</span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; color: #d1d5db; border-bottom: 1px solid #0d1117;">
+              <span>svchost.exe</span><span style="display: flex; gap: 24px; color: #9ca3af; font-family: monospace; font-size: 11px;"><span>0.3%</span><span>96 MB</span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; color: #d1d5db;">
+              <span>dwm.exe</span><span style="display: flex; gap: 24px; color: #9ca3af; font-family: monospace; font-size: 11px;"><span>0.1%</span><span>64 MB</span></span>
+            </div>
+          </div>
+
+          <!-- Disk / Network I/O -->
+          <div style="background: #111827; border: 1px solid #1e2a3a; border-radius: 8px; padding: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: #e0e0e0; margin-bottom: 12px;">I/O Activity</div>
+            <div style="margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px;">
+                <span style="color: #a78bfa;">Disk Read</span>
+                <span style="color: #9ca3af; font-family: monospace;">12.4 MB/s</span>
+              </div>
+              <div style="height: 3px; background: #1e2a3a; border-radius: 2px;"><div style="height: 100%; width: 25%; background: #a78bfa; border-radius: 2px;"></div></div>
+            </div>
+            <div style="margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px;">
+                <span style="color: #c084fc;">Disk Write</span>
+                <span style="color: #9ca3af; font-family: monospace;">3.1 MB/s</span>
+              </div>
+              <div style="height: 3px; background: #1e2a3a; border-radius: 2px;"><div style="height: 100%; width: 8%; background: #c084fc; border-radius: 2px;"></div></div>
+            </div>
+            <div style="margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px;">
+                <span style="color: #f472b6;">Net ↓</span>
+                <span style="color: #9ca3af; font-family: monospace;">0.8 MB/s</span>
+              </div>
+              <div style="height: 3px; background: #1e2a3a; border-radius: 2px;"><div style="height: 100%; width: 5%; background: #f472b6; border-radius: 2px;"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px;">
+                <span style="color: #fb923c;">Net ↑</span>
+                <span style="color: #9ca3af; font-family: monospace;">0.1 MB/s</span>
+              </div>
+              <div style="height: 3px; background: #1e2a3a; border-radius: 2px;"><div style="height: 100%; width: 1%; background: #fb923c; border-radius: 2px;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">Dashboard layout breakdown</h3>
+<div class="options">
+  <div class="option" style="cursor: default;">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Header Row</h3>
+      <p>Title + timestamp on the left. Action buttons on the right: subtle "Refresh", primary "Apply Safe Tune" (accent blue), cautionary "Undo All" (red text). Clear visual hierarchy.</p>
+    </div>
+  </div>
+  <div class="option" style="cursor: default;">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Health Banner</h3>
+      <p>WinUI InfoBar-style strip. Green dot + "Good" text + large score number. Right side shows quick stats (active optimizations, undoable changes). Color shifts green → yellow → red by score.</p>
+    </div>
+  </div>
+  <div class="option" style="cursor: default;">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Metric Cards (5-column grid)</h3>
+      <p>CPU (blue), Memory (green), GPU (amber), Disk (purple), Network (pink). Each: label + secondary info, large monospace value, thin progress bar. Clickable → navigates to related category page.</p>
+    </div>
+  </div>
+  <div class="option" style="cursor: default;">
+    <div class="letter">4</div>
+    <div class="content">
+      <h3>Charts Row (2:1 split)</h3>
+      <p>Left: Syncfusion SfCartesianChart with 60-second rolling area chart (CPU/Memory/GPU overlaid). Right: Per-core CPU vertical bars in a grid, collapsible "show all cores".</p>
+    </div>
+  </div>
+  <div class="option" style="cursor: default;">
+    <div class="letter">5</div>
+    <div class="content">
+      <h3>Bottom Row (1:1 split)</h3>
+      <p>Left: Top processes table (sortable by CPU or Memory, with "End Process" option). Right: Disk + Network I/O bars with live throughput values.</p>
+    </div>
+  </div>
+</div>
