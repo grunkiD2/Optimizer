@@ -74,6 +74,8 @@ public partial class App : Application
                 services.AddSingleton<IRecommendationsService, RecommendationsService>();
                 services.AddSingleton<IUpdateService, UpdateService>();
                 services.AddSingleton<ISecurityService, SecurityService>();
+                services.AddSingleton<INetworkSpeedTestService, NetworkSpeedTestService>();
+                services.AddSingleton<IEventLogService, EventLogService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
@@ -90,6 +92,7 @@ public partial class App : Application
                 services.AddTransient<RecommendationsViewModel>();
                 services.AddTransient<UpdatesViewModel>();
                 services.AddTransient<SecurityViewModel>();
+                services.AddTransient<EventLogsViewModel>();
                 services.AddSingleton<SettingsViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)

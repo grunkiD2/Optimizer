@@ -24,7 +24,16 @@ public sealed partial class NetworkPage : Page
     {
         ViewModel.Load();
         await ViewModel.LoadDnsAsync();
+        ViewModel.StartLatencyMonitor(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
     }
+
+    private void Page_Unloaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.StopLatencyMonitor();
+    }
+
+    private async void RunSpeedTest_Click(object sender, RoutedEventArgs e)
+        => await ViewModel.RunSpeedTestCommand.ExecuteAsync(null);
 
     private async void ApplyDns_Click(object sender, RoutedEventArgs e)
     {

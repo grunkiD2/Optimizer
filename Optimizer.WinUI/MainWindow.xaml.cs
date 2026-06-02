@@ -27,6 +27,7 @@ public sealed partial class MainWindow : Window
         ["Services"] = typeof(ServicesPage),
         ["Profiles"] = typeof(ProfilesPage),
         ["History"] = typeof(HistoryPage),
+        ["EventLogs"] = typeof(EventLogsPage),
         ["Settings"] = typeof(SettingsPage),
     };
 

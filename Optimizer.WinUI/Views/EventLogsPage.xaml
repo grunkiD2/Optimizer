@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Optimizer.WinUI.Views.EventLogsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:Optimizer.WinUI.Models"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
+    Background="Transparent"
+    Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter     x:Key="BoolToVisibility"/>
+        <converters:StringToSolidColorBrushConverter x:Key="StringToBrush"/>
+    </Page.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── Page header ──────────────────────────────────────────────────── -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE7C3;" FontSize="28" VerticalAlignment="Center"/>
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="Event Logs"
+                               Style="{StaticResource TitleTextBlockStyle}"/>
+                    <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </StackPanel>
+            <Button Grid.Column="1" Content="Refresh" VerticalAlignment="Center"
+                    Command="{x:Bind ViewModel.LoadCommand}"/>
+        </Grid>
+
+        <!-- ── Filter bar ───────────────────────────────────────────────────── -->
+        <Grid Grid.Row="1" ColumnSpacing="8" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="150"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox Grid.Column="0"
+                     PlaceholderText="Search by source or message…"
+                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     KeyDown="Search_KeyDown"/>
+
+            <ComboBox Grid.Column="1"
+                      Header="Log"
+                      ItemsSource="{x:Bind ViewModel.LogOptions}"
+                      SelectedItem="{x:Bind ViewModel.SelectedLog, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch"/>
+
+            <ComboBox Grid.Column="2"
+                      Header="Level"
+                      ItemsSource="{x:Bind ViewModel.LevelOptions}"
+                      SelectedItem="{x:Bind ViewModel.SelectedLevel, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch"/>
+        </Grid>
+
+        <!-- ── Loading indicator ────────────────────────────────────────────── -->
+        <ProgressBar Grid.Row="2" IsIndeterminate="True" Margin="0,0,0,8"
+                     Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+        <!-- ── Column headers ───────────────────────────────────────────────── -->
+        <Grid Grid.Row="3" Margin="0,0,0,4" Padding="12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="130"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="55"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="TIME"   FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <TextBlock Grid.Column="1" Text="LEVEL"  FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <TextBlock Grid.Column="2" Text="ID"     FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <TextBlock Grid.Column="3" Text="SOURCE / MESSAGE" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+        </Grid>
+
+        <!-- ── Entry list ────────────────────────────────────────────────────── -->
+        <ListView Grid.Row="4"
+                  ItemsSource="{x:Bind ViewModel.Entries, Mode=OneWay}"
+                  SelectionMode="Single"
+                  ItemClick="Entry_ItemClick"
+                  IsItemClickEnabled="True">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="Padding" Value="12,6"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:EventLogEntryInfo">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="55"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Time -->
+                        <TextBlock Grid.Column="0"
+                                   Text="{x:Bind TimeText}"
+                                   FontSize="11"
+                                   FontFamily="Consolas"
+                                   VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                        <!-- Level badge -->
+                        <Border Grid.Column="1"
+                                CornerRadius="4"
+                                Padding="6,2"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Left"
+                                Background="{x:Bind LevelColor, Converter={StaticResource StringToBrush}}">
+                            <TextBlock Text="{x:Bind Level}"
+                                       FontSize="9"
+                                       FontWeight="Bold"
+                                       Foreground="White"/>
+                        </Border>
+
+                        <!-- Event ID -->
+                        <TextBlock Grid.Column="2"
+                                   Text="{x:Bind EventId}"
+                                   FontSize="11"
+                                   FontFamily="Consolas"
+                                   VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+
+                        <!-- Source + message -->
+                        <StackPanel Grid.Column="3" Spacing="1" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Source}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{x:Bind Message}"
+                                       FontSize="11"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxLines="2"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- ── Detail flyout (shown as overlay when an entry is selected) ───── -->
+        <Border Grid.Row="4"
+                Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="20"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Stretch"
+                Margin="0,0,0,8"
+                Visibility="{x:Bind ViewModel.IsDetailOpen, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Spacing="10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{x:Bind ViewModel.SelectedEntry.Source, Mode=OneWay}"
+                                   FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                            <Run Text="Event"/>
+                            <Run Text="{x:Bind ViewModel.SelectedEntry.EventId, Mode=OneWay}"/>
+                            <Run Text="·"/>
+                            <Run Text="{x:Bind ViewModel.SelectedEntry.TimeText, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="✕" Click="CloseDetail_Click"
+                            Background="Transparent" BorderThickness="0" Padding="8,4"/>
+                </Grid>
+                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+                <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{x:Bind ViewModel.SelectedEntry.Message, Mode=OneWay}"
+                               FontSize="12" TextWrapping="Wrap"
+                               FontFamily="Consolas"
+                               IsTextSelectionEnabled="True"/>
+                </ScrollViewer>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</Page>

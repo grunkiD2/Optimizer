@@ -6,8 +6,16 @@
     xmlns:controls="using:Optimizer.WinUI.Controls"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
     xmlns:services="using:Optimizer.WinUI.Services"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent"
-    Loaded="Page_Loaded">
+    Loaded="Page_Loaded"
+    Unloaded="Page_Unloaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter    x:Key="BoolToVisibility"/>
+        <converters:OneDecimalConverter          x:Key="OneDecimal"/>
+        <converters:NullToVisibilityConverter    x:Key="NullToVisibility"/>
+    </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
@@ -87,6 +95,114 @@
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <!-- ── Speed Test ──────────────────────────────────────────────── -->
+            <TextBlock Text="SPEED TEST"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,16,0,8"/>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="16">
+                <StackPanel Spacing="12">
+
+                    <!-- Header row -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Speed Test" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind ViewModel.SpeedTestPhase, Mode=OneWay}"
+                                       FontSize="11"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Run Test"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                Click="RunSpeedTest_Click"/>
+                    </Grid>
+
+                    <!-- Progress bar during test -->
+                    <ProgressBar IsIndeterminate="True"
+                                 Visibility="{x:Bind ViewModel.IsTestingSpeed, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Result grid (shown only when a result is available) -->
+                    <Grid ColumnSpacing="8"
+                          Visibility="{x:Bind ViewModel.LastSpeedTest, Mode=OneWay, Converter={StaticResource NullToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Download -->
+                        <StackPanel>
+                            <TextBlock Text="DOWNLOAD" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock FontSize="20" FontWeight="Bold">
+                                <Run Text="{x:Bind ViewModel.DownloadResultText, Mode=OneWay}"/>
+                                <Run Text=" Mbps" FontSize="10"/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Upload -->
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="UPLOAD" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock FontSize="20" FontWeight="Bold">
+                                <Run Text="{x:Bind ViewModel.UploadResultText, Mode=OneWay}"/>
+                                <Run Text=" Mbps" FontSize="10"/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Ping -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="PING" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock FontSize="20" FontWeight="Bold">
+                                <Run Text="{x:Bind ViewModel.PingResultText, Mode=OneWay}"/>
+                                <Run Text=" ms" FontSize="10"/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Jitter -->
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="JITTER" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock FontSize="20" FontWeight="Bold">
+                                <Run Text="{x:Bind ViewModel.JitterResultText, Mode=OneWay}"/>
+                                <Run Text=" ms" FontSize="10"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ── Live Latency Monitor ─────────────────────────────────────── -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="16">
+                <StackPanel Spacing="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Live Latency (1.1.1.1)" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" FontWeight="Bold">
+                            <Run Text="{x:Bind ViewModel.CurrentPingText, Mode=OneWay}"/>
+                            <Run Text=" ms" FontSize="10"/>
+                        </TextBlock>
+                    </Grid>
+                    <controls:SparklineChart Height="48"
+                        Values="{x:Bind ViewModel.LatencyHistory, Mode=OneWay}"
+                        LineColor="#34D399"/>
+                </StackPanel>
+            </Border>
 
             <!-- ── DNS Configuration ───────────────────────────────────── -->
             <TextBlock Text="DNS CONFIGURATION"
