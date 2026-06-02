@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Optimizer.WinUI.Views.ProfilesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+    <TextBlock Text="Profiles" Style="{StaticResource TitleTextBlockStyle}" Margin="24"/>
+</Page>
