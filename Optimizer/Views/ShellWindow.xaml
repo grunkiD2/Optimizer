@@ -1,0 +1,13 @@
+﻿<shared:ChromelessWindow
+    x:Class="Optimizer.Views.ShellWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shared="clr-namespace:Syncfusion.Windows.Shared;assembly=Syncfusion.Shared.WPF"
+    Title="Optimizer"
+    Width="1200"
+    Height="800"
+    WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Frame x:Name="shellFrame" NavigationUIVisibility="Hidden" />
+    </Grid>
+</shared:ChromelessWindow>

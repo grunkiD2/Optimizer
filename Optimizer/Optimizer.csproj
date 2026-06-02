@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Optimizer</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <!-- Syncfusion WPF Controls -->
+      <PackageReference Include="Syncfusion.Shared.WPF" Version="33.2.8" />
+      <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="33.2.8" />
+      <!-- Syncfusion themes (enable runtime theme switching) -->
+      <PackageReference Include="Syncfusion.Themes.FluentLight.WPF" Version="33.2.8" />
+      <PackageReference Include="Syncfusion.Themes.FluentDark.WPF" Version="33.2.8" />
+      <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="33.2.8" />
+      <PackageReference Include="Syncfusion.Themes.Windows11Dark.WPF" Version="33.2.8" />
+      <PackageReference Include="Syncfusion.Themes.MaterialLight.WPF" Version="33.2.8" />
+      <PackageReference Include="Syncfusion.Themes.MaterialDark.WPF" Version="33.2.8" />
+      <!-- DI and Hosting -->
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+      <!-- Logging -->
+      <PackageReference Include="Serilog" Version="4.3.1" />
+      <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+      <!-- Optimization engine (system metrics + WMI) -->
+      <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.0" />
+      <PackageReference Include="System.Management" Version="10.0.0" />
+      <PackageReference Include="TaskScheduler" Version="2.11.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Copy the (untracked) Syncfusion license key next to the exe when present. -->
+  <ItemGroup Condition="Exists('license.key')">
+    <None Include="license.key" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

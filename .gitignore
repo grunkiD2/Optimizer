@@ -1,0 +1,21 @@
+## Build outputs
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.cache
+
+## WinUI 3 / MSIX
+AppPackages/
+BundleArtifacts/
+*.msix
+*.msixbundle
+
+## Worktrees
+.worktrees/
+.claude/worktrees/
+
+## User-specific
+*.rsuser
+.localhistory/
