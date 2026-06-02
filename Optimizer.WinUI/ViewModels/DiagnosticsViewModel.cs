@@ -9,8 +9,12 @@ namespace Optimizer.WinUI.ViewModels;
 public partial class DiagnosticsViewModel : ObservableObject
 {
     private readonly IDiagnosticsService _diagnostics;
+    private readonly IDriverDiagnosticsService _driverDiagnostics;
+    private readonly IBottleneckDetectorService _bottleneckDetector;
+    private readonly NavigationService _navigation;
     private List<DiagnosticFinding> _allFindings = [];
 
+    // ── Findings ────────────────────────────────────────────────────────────
     [ObservableProperty] private bool isScanning;
     [ObservableProperty] private string progressText = "";
     [ObservableProperty] private string filterSeverity = "All";
@@ -20,7 +24,23 @@ public partial class DiagnosticsViewModel : ObservableObject
     [ObservableProperty] private int warningCount;
     [ObservableProperty] private int infoCount;
 
+    // ── Drivers ─────────────────────────────────────────────────────────────
+    [ObservableProperty] private bool isDriverScanning;
+    [ObservableProperty] private string driverScanStatus = "";
+
+    // ── Bottlenecks ─────────────────────────────────────────────────────────
+    [ObservableProperty] private bool isBottleneckRunning;
+    [ObservableProperty] private string bottleneckStatus = "";
+    [ObservableProperty] private string bottleneckSummary = "";
+
+    // ── Network deep ────────────────────────────────────────────────────────
+    [ObservableProperty] private bool isNetworkDeepRunning;
+    [ObservableProperty] private string networkDeepStatus = "";
+
     public ObservableCollection<DiagnosticFinding> Findings { get; } = [];
+    public ObservableCollection<DriverIssue> DriverIssues { get; } = [];
+    public ObservableCollection<ProcessBottleneck> Bottlenecks { get; } = [];
+    public ObservableCollection<NetworkDiagnostic> NetworkDiagnostics { get; } = [];
 
     public List<string> SeverityOptions { get; } = ["All", "Critical", "Warning", "Info"];
     public List<string> CategoryOptions { get; } = ["All", "Performance", "Storage", "Security", "Privacy", "Stability", "Network", "Hardware", "Maintenance"];
@@ -28,10 +48,19 @@ public partial class DiagnosticsViewModel : ObservableObject
     public string CategoryName => "Diagnostics";
     public string CategoryIcon => "🩺";
 
-    public DiagnosticsViewModel(IDiagnosticsService diagnostics)
+    public DiagnosticsViewModel(
+        IDiagnosticsService diagnostics,
+        IDriverDiagnosticsService driverDiagnostics,
+        IBottleneckDetectorService bottleneckDetector,
+        NavigationService navigation)
     {
         _diagnostics = diagnostics;
+        _driverDiagnostics = driverDiagnostics;
+        _bottleneckDetector = bottleneckDetector;
+        _navigation = navigation;
     }
+
+    // ── Quick / Full scan ────────────────────────────────────────────────────
 
     [RelayCommand]
     public async Task QuickScanAsync()
@@ -69,6 +98,95 @@ public partial class DiagnosticsViewModel : ObservableObject
             IsScanning = false;
         }
     }
+
+    // ── Driver scan ──────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    public async Task ScanDriversAsync()
+    {
+        IsDriverScanning = true;
+        DriverScanStatus = "Scanning device drivers...";
+        DriverIssues.Clear();
+        try
+        {
+            var issues = await _driverDiagnostics.ScanAsync();
+            foreach (var issue in issues)
+                DriverIssues.Add(issue);
+            DriverScanStatus = issues.Count == 0
+                ? "No driver issues found."
+                : $"Found {issues.Count} issue(s).";
+        }
+        catch (Exception ex)
+        {
+            DriverScanStatus = $"Scan failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDriverScanning = false;
+        }
+    }
+
+    // ── Bottleneck detection ─────────────────────────────────────────────────
+
+    [RelayCommand]
+    public async Task DetectBottlenecksAsync()
+    {
+        IsBottleneckRunning = true;
+        BottleneckSummary = "";
+        Bottlenecks.Clear();
+        var progress = new Progress<string>(s => BottleneckStatus = s);
+        try
+        {
+            var report = await _bottleneckDetector.DetectAsync(progress);
+            foreach (var b in report.TopOffenders)
+                Bottlenecks.Add(b);
+            BottleneckSummary = report.Summary;
+            BottleneckStatus = $"Completed at {report.GeneratedAt:HH:mm:ss}";
+        }
+        catch (Exception ex)
+        {
+            BottleneckStatus = $"Detection failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBottleneckRunning = false;
+        }
+    }
+
+    // ── Network deep diagnostics ─────────────────────────────────────────────
+
+    [RelayCommand]
+    public async Task RunNetworkDeepAsync()
+    {
+        IsNetworkDeepRunning = true;
+        NetworkDiagnostics.Clear();
+        var progress = new Progress<string>(s => NetworkDeepStatus = s);
+        try
+        {
+            var results = await _diagnostics.RunNetworkDeepAsync(progress);
+            foreach (var r in results)
+                NetworkDiagnostics.Add(r);
+            NetworkDeepStatus = $"Completed {results.Count} test(s).";
+        }
+        catch (Exception ex)
+        {
+            NetworkDeepStatus = $"Failed: {ex.Message}";
+        }
+        finally
+        {
+            IsNetworkDeepRunning = false;
+        }
+    }
+
+    // ── Display test ─────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    public void OpenDisplayTest()
+    {
+        _navigation.NavigateTo(typeof(Views.DisplayTestPage));
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
     partial void OnFilterSeverityChanged(string value) => ApplyFilters();
     partial void OnFilterCategoryChanged(string value) => ApplyFilters();

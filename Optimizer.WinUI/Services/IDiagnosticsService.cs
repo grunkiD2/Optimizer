@@ -6,4 +6,5 @@ public interface IDiagnosticsService
 {
     Task<IReadOnlyList<DiagnosticFinding>> RunQuickScanAsync();
     Task<IReadOnlyList<DiagnosticFinding>> RunFullScanAsync(IProgress<string>? progress = null);
+    Task<IReadOnlyList<NetworkDiagnostic>> RunNetworkDeepAsync(IProgress<string>? progress = null);
 }

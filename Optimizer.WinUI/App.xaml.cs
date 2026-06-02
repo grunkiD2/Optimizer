@@ -85,6 +85,8 @@ public partial class App : Application
                 services.AddSingleton<ISystemRepairService, SystemRepairService>();
                 services.AddSingleton<ISensorService, SensorService>();
                 services.AddSingleton<IStressTestService, StressTestService>();
+                services.AddSingleton<IDriverDiagnosticsService, DriverDiagnosticsService>();
+                services.AddSingleton<IBottleneckDetectorService, BottleneckDetectorService>();
 
                 // ViewModels
                 services.AddTransient<OnboardingViewModel>();

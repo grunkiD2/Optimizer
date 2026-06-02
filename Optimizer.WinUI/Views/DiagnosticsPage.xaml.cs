@@ -19,4 +19,16 @@ public sealed partial class DiagnosticsPage : Page
 
     private async void FullScan_Click(object sender, RoutedEventArgs e)
         => await ViewModel.FullScanCommand.ExecuteAsync(null);
+
+    private async void ScanDrivers_Click(object sender, RoutedEventArgs e)
+        => await ViewModel.ScanDriversCommand.ExecuteAsync(null);
+
+    private async void DetectBottlenecks_Click(object sender, RoutedEventArgs e)
+        => await ViewModel.DetectBottlenecksCommand.ExecuteAsync(null);
+
+    private async void RunNetworkDeep_Click(object sender, RoutedEventArgs e)
+        => await ViewModel.RunNetworkDeepCommand.ExecuteAsync(null);
+
+    private void OpenDisplayTest_Click(object sender, RoutedEventArgs e)
+        => ViewModel.OpenDisplayTestCommand.Execute(null);
 }
