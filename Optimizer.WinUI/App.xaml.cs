@@ -81,6 +81,7 @@ public partial class App : Application
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<BackgroundMonitorService>();
                 services.AddSingleton<IReportService, ReportService>();
+                services.AddSingleton<ITuningService, TuningService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
@@ -99,6 +100,7 @@ public partial class App : Application
                 services.AddTransient<SecurityViewModel>();
                 services.AddTransient<EventLogsViewModel>();
                 services.AddTransient<ReportsViewModel>();
+                services.AddTransient<TuningViewModel>();
                 services.AddSingleton<SettingsViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)

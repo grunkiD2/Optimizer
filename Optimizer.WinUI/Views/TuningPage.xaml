@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Optimizer.WinUI.Views.TuningPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
+    xmlns:models="using:Optimizer.WinUI.Models"
+    xmlns:services="using:Optimizer.WinUI.Services"
+    Background="Transparent"
+    Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="24,16,24,24">
+
+            <!-- ── Page header ─────────────────────────────────────────────── -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind ViewModel.CategoryIcon}"
+                               FontSize="28" VerticalAlignment="Center"/>
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.CategoryName}"
+                                   Style="{StaticResource TitleTextBlockStyle}"/>
+                        <TextBlock Text="CPU power management tuning, GPU info, RAM info"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Content="Revert to Defaults"
+                        Click="Revert_Click"
+                        VerticalAlignment="Center"
+                        IsEnabled="{x:Bind ViewModel.IsApplying, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"/>
+            </Grid>
+
+            <!-- ── Loading indicator ───────────────────────────────────────── -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{x:Bind ViewModel.IsApplying, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- ── Status message ──────────────────────────────────────────── -->
+            <InfoBar x:Name="StatusInfoBar"
+                     Severity="Informational"
+                     IsClosable="True"
+                     IsOpen="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay}"
+                     Title="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"/>
+
+            <!-- ── Disclaimer banner ───────────────────────────────────────── -->
+            <InfoBar Severity="Warning"
+                     IsOpen="True"
+                     IsClosable="False"
+                     Title="Warranty and stability notice">
+                <InfoBar.Content>
+                    <StackPanel Spacing="8" Margin="0,4,0,8">
+                        <TextBlock TextWrapping="Wrap" FontSize="12">
+                            CPU tuning changes Windows power management settings that affect processor frequency,
+                            boost behavior, and heat output. Aggressive presets may increase power consumption,
+                            reduce CPU lifespan on sustained loads, and trigger thermal throttling on
+                            cooling-limited systems. Use the Stock preset to revert at any time.
+                            Administrator privileges are required to apply changes.
+                        </TextBlock>
+                        <CheckBox Content="I understand the risks and want to proceed"
+                                  IsChecked="{x:Bind ViewModel.HasReadDisclaimer, Mode=TwoWay}"/>
+                    </StackPanel>
+                </InfoBar.Content>
+            </InfoBar>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 TUNING PRESETS
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="TUNING PRESETS"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.Presets}">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="270" MinColumnSpacing="8" MinRowSpacing="8"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:TuningPreset">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14">
+                            <StackPanel Spacing="6">
+
+                                <!-- Name + risk badge -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{x:Bind Name}"
+                                               FontWeight="SemiBold" FontSize="14"
+                                               VerticalAlignment="Center"/>
+                                    <Border Grid.Column="1"
+                                            CornerRadius="4" Padding="6,2"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Risk}" FontSize="10" FontWeight="SemiBold"/>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Description -->
+                                <TextBlock Text="{x:Bind Description}"
+                                           FontSize="12" TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                <!-- Apply button — passes the preset Id via Tag -->
+                                <Button Content="Apply"
+                                        Tag="{x:Bind Id}"
+                                        Click="ApplyPreset_Click"
+                                        Style="{ThemeResource AccentButtonStyle}"
+                                        HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 CPU MANUAL TUNING
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="CPU MANUAL TUNING"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16">
+                <StackPanel Spacing="14">
+
+                    <!-- Min Processor State -->
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Minimum Processor State"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                <Run Text="{x:Bind ViewModel.CurrentCpu.MinProcessorState, Mode=OneWay}"/>
+                                <Run Text="%"/>
+                            </TextBlock>
+                        </Grid>
+                        <Slider x:Name="MinStateSlider"
+                                Value="{x:Bind ViewModel.CurrentCpu.MinProcessorState, Mode=TwoWay}"
+                                Minimum="0" Maximum="100"
+                                StepFrequency="5"
+                                TickFrequency="25"
+                                TickPlacement="Outside"/>
+                    </StackPanel>
+
+                    <!-- Max Processor State -->
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Maximum Processor State"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                <Run Text="{x:Bind ViewModel.CurrentCpu.MaxProcessorState, Mode=OneWay}"/>
+                                <Run Text="%"/>
+                            </TextBlock>
+                        </Grid>
+                        <Slider x:Name="MaxStateSlider"
+                                Value="{x:Bind ViewModel.CurrentCpu.MaxProcessorState, Mode=TwoWay}"
+                                Minimum="20" Maximum="100"
+                                StepFrequency="5"
+                                TickFrequency="20"
+                                TickPlacement="Outside"/>
+                    </StackPanel>
+
+                    <!-- Boost Mode -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Processor Performance Boost Mode"
+                                   FontWeight="SemiBold"/>
+                        <ComboBox x:Name="BoostModeCombo"
+                                  HorizontalAlignment="Stretch"
+                                  SelectionChanged="BoostModeCombo_SelectionChanged">
+                            <ComboBoxItem Content="Disabled"                           Tag="0"/>
+                            <ComboBoxItem Content="Enabled"                            Tag="1"/>
+                            <ComboBoxItem Content="Aggressive"                         Tag="2"/>
+                            <ComboBoxItem Content="Efficient Enabled"                  Tag="3"/>
+                            <ComboBoxItem Content="Efficient Aggressive"               Tag="4"/>
+                            <ComboBoxItem Content="Aggressive at Guaranteed"           Tag="5"/>
+                            <ComboBoxItem Content="Efficient Aggressive at Guaranteed" Tag="6"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Boost Policy -->
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Processor Performance Boost Policy"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                <Run Text="{x:Bind ViewModel.CurrentCpu.BoostPolicy, Mode=OneWay}"/>
+                                <Run Text="%"/>
+                            </TextBlock>
+                        </Grid>
+                        <Slider x:Name="BoostPolicySlider"
+                                Value="{x:Bind ViewModel.CurrentCpu.BoostPolicy, Mode=TwoWay}"
+                                Minimum="0" Maximum="100"
+                                StepFrequency="5"
+                                TickFrequency="25"
+                                TickPlacement="Outside"/>
+                    </StackPanel>
+
+                    <!-- Action buttons -->
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="1"
+                                Content="Revert Defaults"
+                                Click="Revert_Click"
+                                IsEnabled="{x:Bind ViewModel.IsApplying, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"/>
+                        <Button Grid.Column="2"
+                                Content="Apply CPU Tuning"
+                                Click="ApplyCpu_Click"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                IsEnabled="{x:Bind ViewModel.IsApplying, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"/>
+                    </Grid>
+
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 GPU (READ-ONLY)
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="GPU (READ-ONLY)"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <InfoBar Severity="Informational"
+                     IsOpen="True"
+                     IsClosable="False"
+                     Title="For GPU overclocking, use vendor tools"
+                     Message="MSI Afterburner, EVGA Precision X, NVIDIA Performance Tuning (in NVCP), or AMD Adrenalin Software provide safe, full-featured GPU overclocking with their own hardware watchdogs. Optimizer reads basic GPU info via WMI but does not directly control GPU clocks."/>
+
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.Gpus}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="4"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="services:GpuClockInfo">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE7F4;" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="{x:Bind Name}"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 RAM (READ-ONLY)
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="RAM (READ-ONLY)"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <InfoBar Severity="Informational"
+                     IsOpen="True"
+                     IsClosable="False"
+                     Title="For RAM tuning, use BIOS XMP / DOCP / EXPO"
+                     Message="RAM frequency, timings, and voltage can only be configured in BIOS firmware. Enable XMP (Intel) / DOCP (AMD) / EXPO (AMD AM5) profiles in your motherboard BIOS for safe, vendor-validated RAM overclocking."/>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12,10">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE950;" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock VerticalAlignment="Center">
+                        <Run Text="Detected speed:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <Run Text=" "/>
+                        <Run Text="{x:Bind ViewModel.RamInfo.FrequencyMhz, Mode=OneWay}" FontWeight="SemiBold"/>
+                        <Run Text=" MHz"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
