@@ -14,11 +14,17 @@ public sealed partial class StartupPage : Page
         InitializeComponent();
     }
 
-    private void Page_Loaded(object sender, RoutedEventArgs e)
-        => ViewModel.Load();
+    private async void Page_Loaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Load();
+        await ViewModel.LoadBootMetricsAsync();
+    }
 
-    private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        => ViewModel.Load();
+    private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Load();
+        await ViewModel.LoadBootMetricsAsync();
+    }
 
     private void StartupToggle_Toggled(object sender, RoutedEventArgs e)
     {

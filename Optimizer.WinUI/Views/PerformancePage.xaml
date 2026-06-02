@@ -4,9 +4,16 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Optimizer.WinUI.Controls"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
+    xmlns:services="using:Optimizer.WinUI.Services"
+    xmlns:models="using:Optimizer.WinUI.Models"
     Background="Transparent"
     Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
@@ -94,6 +101,113 @@
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <!-- ── Power Plan ───────────────────────────────────────────── -->
+            <TextBlock Text="POWER PLAN" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,8,0,4"/>
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="14"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="10">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Active Plan" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind ViewModel.ActivePowerPlan.Name, Mode=OneWay, FallbackValue=Loading...}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                        </StackPanel>
+
+                        <ToggleSwitch Grid.Column="1" Header="Game Mode"
+                                      IsOn="{x:Bind ViewModel.GameModeEnabled, Mode=TwoWay}"/>
+
+                        <Button Grid.Column="2" Content="Enable Ultimate Perf"
+                                VerticalAlignment="Center"
+                                Click="UltimatePerf_Click"/>
+                    </Grid>
+
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.PowerPlans, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="180" MinColumnSpacing="8" MinRowSpacing="8"/>
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="services:PowerPlan">
+                                <Button Click="PowerPlan_Click" Tag="{x:Bind Guid}"
+                                        HorizontalAlignment="Stretch" Padding="12,8">
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="ACTIVE" FontSize="9"
+                                                   Foreground="{ThemeResource SystemAccentColor}"
+                                                   Visibility="{x:Bind IsActive, Converter={StaticResource BoolToVisibility}}"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
+
+            <!-- ── Process Priority Manager ─────────────────────────────── -->
+            <TextBlock Text="RUNNING PROCESSES" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,8,0,4"/>
+            <ListView x:Name="ProcessListView"
+                      ItemsSource="{x:Bind ViewModel.Processes, Mode=OneWay}"
+                      SelectionMode="None" MaxHeight="400">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ProcessPriorityInfo">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="6" Padding="10,6" Margin="0,0,0,2">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel>
+                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock FontSize="10" Foreground="{ThemeResource TextFillColorTertiaryBrush}">
+                                        <Run Text="PID:"/>
+                                        <Run Text="{x:Bind PidText}"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="1" Text="{x:Bind MemoryText}"
+                                           FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                <TextBlock Grid.Column="2" Text="{x:Bind Priority}"
+                                           FontSize="11" VerticalAlignment="Center"
+                                           MinWidth="80"/>
+
+                                <ComboBox Grid.Column="3" Tag="{x:Bind Pid}"
+                                          SelectionChanged="Priority_Changed"
+                                          SelectedItem="{x:Bind Priority, Mode=OneWay}"
+                                          MinWidth="120">
+                                    <ComboBoxItem Content="High"/>
+                                    <ComboBoxItem Content="AboveNormal"/>
+                                    <ComboBoxItem Content="Normal"/>
+                                    <ComboBoxItem Content="BelowNormal"/>
+                                    <ComboBoxItem Content="Idle"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
 
             <!-- ── Optimization cards ───────────────────────────────────── -->
             <TextBlock Text="Optimizations"

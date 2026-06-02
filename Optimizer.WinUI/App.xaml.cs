@@ -51,7 +51,8 @@ public partial class App : Application
                 services.AddSingleton<IElevationService, ElevationService>();
                 services.AddSingleton<IUndoService, UndoService>();
                 services.AddSingleton<IStartupService, StartupService>();
-                services.AddSingleton<IProcessService, ProcessService>();
+                services.AddSingleton<ProcessService>();
+                services.AddSingleton<IProcessService>(sp => sp.GetRequiredService<ProcessService>());
                 services.AddSingleton<SystemMonitorService>();
                 services.AddSingleton<IWindowsOptimizerService, WindowsOptimizerService>();
 
@@ -67,6 +68,8 @@ public partial class App : Application
                 services.AddSingleton<IHardwareInfoService, HardwareInfoService>();
                 services.AddSingleton<IDiskHealthService, DiskHealthService>();
                 services.AddSingleton<IServiceManagerService, ServiceManagerService>();
+                services.AddSingleton<IPowerService, PowerService>();
+                services.AddSingleton<IBootAnalysisService, BootAnalysisService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();

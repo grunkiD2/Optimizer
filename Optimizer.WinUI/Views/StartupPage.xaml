@@ -75,6 +75,67 @@
                 </Border>
             </Grid>
 
+            <!-- ── Boot Performance ─────────────────────────────────────── -->
+            <TextBlock Text="BOOT PERFORMANCE" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,8,0,4"/>
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="14"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Last boot duration -->
+                        <StackPanel>
+                            <TextBlock Text="LAST BOOT" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.LastBoot.BootDurationText, Mode=OneWay, FallbackValue=—}"
+                                       FontSize="28" FontWeight="Bold" FontFamily="Consolas"/>
+                            <TextBlock Text="{x:Bind ViewModel.LastBoot.BootTimeText, Mode=OneWay, FallbackValue=—}"
+                                       FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                        </StackPanel>
+
+                        <!-- Average boot duration -->
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="AVERAGE (10 BOOTS)" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.AverageBootText, Mode=OneWay}"
+                                       FontSize="28" FontWeight="Bold" FontFamily="Consolas"/>
+                            <TextBlock Text="recent boots" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                        </StackPanel>
+
+                        <!-- Boot history sparkline -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="HISTORY" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,0,4"/>
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.BootHistory, Mode=OneWay}"
+                                           Height="40">
+                                <ItemsRepeater.Layout>
+                                    <StackLayout Orientation="Horizontal" Spacing="3"/>
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="models:BootMetrics">
+                                        <Border Width="8"
+                                                Height="{x:Bind BarHeight}"
+                                                Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                                VerticalAlignment="Bottom"
+                                                CornerRadius="2"
+                                                ToolTipService.ToolTip="{x:Bind BootDurationText}"/>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- ── Startup entries list ─────────────────────────────────── -->
             <TextBlock Text="Startup Programs"
                        FontSize="16" FontWeight="SemiBold"

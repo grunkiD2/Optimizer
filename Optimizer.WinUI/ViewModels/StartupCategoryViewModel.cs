@@ -10,9 +10,15 @@ public partial class StartupCategoryViewModel : ObservableObject, ICategoryViewM
 {
     private readonly IStartupService _startupService;
     private readonly IElevationService _elevationService;
+    private readonly IBootAnalysisService _bootService;
 
     [ObservableProperty] private int enabledCount;
     [ObservableProperty] private int totalCount;
+
+    // ── Boot metrics ─────────────────────────────────────────────────────────
+    public ObservableCollection<BootMetrics> BootHistory { get; } = [];
+    [ObservableProperty] private BootMetrics? lastBoot;
+    [ObservableProperty] private string averageBootText = "—";
 
     public ObservableCollection<StartupEntry> Entries { get; } = [];
 
@@ -22,10 +28,14 @@ public partial class StartupCategoryViewModel : ObservableObject, ICategoryViewM
     // ICategoryViewModel: alias EnabledCount as ActiveCount
     int ICategoryViewModel.ActiveCount => EnabledCount;
 
-    public StartupCategoryViewModel(IStartupService startupService, IElevationService elevationService)
+    public StartupCategoryViewModel(
+        IStartupService startupService,
+        IElevationService elevationService,
+        IBootAnalysisService bootService)
     {
         _startupService = startupService;
         _elevationService = elevationService;
+        _bootService = bootService;
     }
 
     public void Load()
@@ -37,6 +47,27 @@ public partial class StartupCategoryViewModel : ObservableObject, ICategoryViewM
 
         TotalCount = Entries.Count;
         EnabledCount = Entries.Count(e => e.Enabled);
+    }
+
+    public async Task LoadBootMetricsAsync()
+    {
+        var history = await _bootService.GetBootHistoryAsync(10);
+        BootHistory.Clear();
+        foreach (var b in history) BootHistory.Add(b);
+        LastBoot = history.FirstOrDefault();
+
+        if (history.Count > 0)
+        {
+            // Only average entries that have a meaningful duration (>0)
+            var meaningful = history.Where(b => b.BootDuration.TotalSeconds > 0).ToList();
+            AverageBootText = meaningful.Count > 0
+                ? $"{meaningful.Average(b => b.BootDuration.TotalSeconds):F1}s"
+                : "—";
+        }
+        else
+        {
+            AverageBootText = "—";
+        }
     }
 
     [RelayCommand]
