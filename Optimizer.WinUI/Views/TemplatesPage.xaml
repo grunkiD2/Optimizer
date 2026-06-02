@@ -12,12 +12,13 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
     </Page.Resources>
 
-    <Grid Margin="24">
+    <Grid Margin="24,16,24,24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- ── Page header ──────────────────────────────────────────────── -->
@@ -128,5 +129,22 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <!-- ── Empty state ─────────────────────────────────────────────── -->
+        <Border Grid.Row="4" CornerRadius="8" Padding="32"
+                Margin="0,8,0,0"
+                Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <StackPanel HorizontalAlignment="Center" Spacing="12">
+                <TextBlock Text="&#x1F4CB;" FontSize="48" HorizontalAlignment="Center" Opacity="0.6"/>
+                <TextBlock Text="No templates yet"
+                           FontSize="16" FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Click Create from Current State to save your settings as a DSC, Intune, or WinGet template."
+                           FontSize="12" HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
     </Grid>
 </Page>

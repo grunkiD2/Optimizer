@@ -12,16 +12,14 @@ public sealed partial class MarketplacePage : Page
     {
         ViewModel = App.GetService<MarketplaceViewModel>();
         InitializeComponent();
-        ViewModel.Entries.CollectionChanged += (_, _) => UpdateEmptyState();
+        ViewModel.Entries.CollectionChanged += (_, _) => UpdateCountText();
     }
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
         => await ViewModel.LoadAsync();
 
-    private void UpdateEmptyState()
+    private void UpdateCountText()
     {
-        var isEmpty = ViewModel.Entries.Count == 0 && !ViewModel.IsLoading;
-        EmptyState.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
         CountText.Text = ViewModel.Entries.Count > 0
             ? $"{ViewModel.Entries.Count} profile(s) available"
             : "";

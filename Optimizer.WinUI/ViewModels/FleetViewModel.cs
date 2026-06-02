@@ -26,10 +26,15 @@ public partial class FleetViewModel : ObservableObject
     public string CategoryName => "Fleet";
     public string CategoryIcon => "🖧";
 
+    public bool IsEmpty => !IsLoading && Machines.Count == 0;
+
     public FleetViewModel(IFleetService fleet)
     {
         _fleet = fleet;
+        Machines.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
+
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
 
     // ── Load ──────────────────────────────────────────────────────────────────
 

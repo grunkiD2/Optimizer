@@ -19,6 +19,11 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="20"/>
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
 
             <!-- ── Page header ──────────────────────────────────────────── -->
             <Grid>

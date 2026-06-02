@@ -29,6 +29,8 @@ public partial class RecommendationsViewModel : ObservableObject
         ? $"ML model active — trained {_intelligence.LastTrainedAt:g}"
         : "ML model not yet trained";
 
+    public bool IsEmpty => !IsLoading && Recommendations.Count == 0;
+
     public RecommendationsViewModel(
         IRecommendationsService recommendations,
         ISmartInsightsService insights,
@@ -37,7 +39,10 @@ public partial class RecommendationsViewModel : ObservableObject
         _recommendations = recommendations;
         _insights = insights;
         _intelligence = intelligence;
+        Recommendations.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
+
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
 
     public async Task LoadAsync()
     {

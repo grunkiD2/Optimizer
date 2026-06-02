@@ -13,7 +13,12 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="24" Spacing="16">
+        <StackPanel Padding="24,16,24,24" Spacing="16">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="20"/>
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
 
             <!-- ── Header ──────────────────────────────────────────────── -->
             <StackPanel Spacing="2">
@@ -169,15 +174,21 @@
             </ItemsRepeater>
 
             <!-- ── Empty state ──────────────────────────────────────────── -->
-            <StackPanel HorizontalAlignment="Center" Spacing="8"
-                        Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
-                <!-- Shown from code-behind when Entries is empty -->
-                <TextBlock x:Name="EmptyState"
-                           Text="No profiles match your search."
-                           HorizontalAlignment="Center"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Visibility="Collapsed"/>
-            </StackPanel>
+            <Border CornerRadius="8" Padding="32"
+                    Margin="0,16,0,0"
+                    Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <TextBlock Text="&#x1F4ED;" FontSize="48" HorizontalAlignment="Center" Opacity="0.6"/>
+                    <TextBlock Text="No matching profiles"
+                               FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Try a different search term, category, or sort order."
+                               FontSize="12" HorizontalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap" MaxWidth="280" TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
         </StackPanel>
     </ScrollViewer>

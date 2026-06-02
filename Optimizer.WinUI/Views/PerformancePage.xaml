@@ -17,6 +17,11 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="20"/>
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
 
             <!-- ── Page header ──────────────────────────────────────────── -->
             <Grid>
@@ -141,7 +146,7 @@
                                     <StackPanel>
                                         <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="ACTIVE" FontSize="9"
+                                        <TextBlock Text="ACTIVE" FontSize="10"
                                                    Foreground="{ThemeResource SystemAccentColor}"
                                                    Visibility="{x:Bind IsActive, Converter={StaticResource BoolToVisibility}}"/>
                                     </StackPanel>

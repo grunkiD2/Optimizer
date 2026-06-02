@@ -15,7 +15,7 @@
 
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="24" Spacing="16">
+        <StackPanel Padding="24,16,24,24" Spacing="16">
 
             <!-- ── Header ────────────────────────────────────────────────── -->
             <Grid>
@@ -115,6 +115,22 @@
                           MinWidth="140"/>
             </Grid>
 
+            <!-- ── No findings empty state ──────────────────────────────── -->
+            <Border CornerRadius="8" Padding="32"
+                    Visibility="{x:Bind ViewModel.IsFindingsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <TextBlock Text="&#x2705;" FontSize="48" HorizontalAlignment="Center" Opacity="0.8"/>
+                    <TextBlock Text="No issues found"
+                               FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Your system is healthy! Run a full scan periodically to stay on top of any changes."
+                               FontSize="12" HorizontalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
             <!-- ── Findings list ─────────────────────────────────────────── -->
             <ItemsRepeater x:Name="FindingsRepeater"
                            ItemsSource="{x:Bind ViewModel.Findings, Mode=OneWay}">
@@ -170,7 +186,7 @@
                                         CornerRadius="4" Padding="10,8">
                                     <StackPanel Spacing="3">
                                         <TextBlock Text="RECOMMENDATION"
-                                                   FontSize="9" FontWeight="Bold"
+                                                   FontSize="10" FontWeight="Bold"
                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                         <TextBlock Text="{x:Bind Recommendation, Mode=OneWay}"
                                                    TextWrapping="Wrap" FontSize="12"/>

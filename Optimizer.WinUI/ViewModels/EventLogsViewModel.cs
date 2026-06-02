@@ -25,10 +25,15 @@ public partial class EventLogsViewModel : ObservableObject
 
     public ObservableCollection<EventLogEntryInfo> Entries { get; } = [];
 
+    public bool IsEmpty => !IsLoading && Entries.Count == 0;
+
     public EventLogsViewModel(IEventLogService eventService)
     {
         _eventService = eventService;
+        Entries.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
+
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
 
     [RelayCommand]
     public async Task LoadAsync()

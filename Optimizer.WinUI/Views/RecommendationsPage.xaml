@@ -14,7 +14,12 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="24" Spacing="16">
+        <StackPanel Padding="24,16,24,24" Spacing="16">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="20"/>
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
 
             <!-- ── Header ────────────────────────────────────────────────── -->
             <Grid>
@@ -150,6 +155,22 @@
                           SelectedItem="{x:Bind ViewModel.FilterCategory, Mode=TwoWay}"
                           MinWidth="140"/>
             </Grid>
+
+            <!-- ── Empty state ───────────────────────────────────────────── -->
+            <Border CornerRadius="8" Padding="32"
+                    Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <TextBlock Text="&#x1F389;" FontSize="48" HorizontalAlignment="Center" Opacity="0.8"/>
+                    <TextBlock Text="Your system looks great!"
+                               FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="No recommendations right now. Keep using your system and we'll surface improvements as they arise."
+                               FontSize="12" HorizontalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
             <!-- ── Recommendations list ──────────────────────────────────── -->
             <ItemsRepeater ItemsSource="{x:Bind ViewModel.Recommendations, Mode=OneWay}">

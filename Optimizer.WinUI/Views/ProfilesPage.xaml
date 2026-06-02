@@ -15,6 +15,11 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="20"/>
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
 
             <!-- ── Page header ────────────────────────────────────────────── -->
             <Grid>
@@ -230,19 +235,19 @@
 
             <!-- Empty state for snapshots -->
             <Border x:Name="SnapshotsEmptyState"
-                    CornerRadius="8" Padding="24,20"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
+                    CornerRadius="8" Padding="32"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}"
                     Visibility="Collapsed">
-                <StackPanel Spacing="8" HorizontalAlignment="Center">
-                    <TextBlock Text="No snapshots yet"
-                               FontSize="14" FontWeight="SemiBold"
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <TextBlock Text="&#x1F4F8;" FontSize="48" HorizontalAlignment="Center" Opacity="0.6"/>
+                    <TextBlock Text="No saved snapshots"
+                               FontSize="16" FontWeight="SemiBold"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Click &quot;Save Snapshot&quot; to capture your current optimization state."
+                    <TextBlock Text="Click Save Snapshot to capture your current optimization state."
                                FontSize="12"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               HorizontalAlignment="Center"/>
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap" MaxWidth="300" TextAlignment="Center"/>
                 </StackPanel>
             </Border>
 
@@ -339,20 +344,19 @@
 
             <!-- Empty state for rules -->
             <Border x:Name="RulesEmptyState"
-                    CornerRadius="8" Padding="24,20"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
+                    CornerRadius="8" Padding="32"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}"
                     Visibility="Collapsed">
-                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+                    <TextBlock Text="&#x23F2;&#xFE0F;" FontSize="48" HorizontalAlignment="Center" Opacity="0.6"/>
                     <TextBlock Text="No automation rules configured"
-                               FontSize="14" FontWeight="SemiBold"
+                               FontSize="16" FontWeight="SemiBold"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Click &quot;Add Rule&quot; to automatically switch profiles based on time or running processes."
+                    <TextBlock Text="Click Add Rule to automatically switch profiles based on time of day or running processes."
                                FontSize="12"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                HorizontalAlignment="Center"
-                               TextWrapping="Wrap"/>
+                               TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center"/>
                 </StackPanel>
             </Border>
 

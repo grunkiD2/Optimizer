@@ -48,6 +48,9 @@ public partial class DiagnosticsViewModel : ObservableObject
     public string CategoryName => "Diagnostics";
     public string CategoryIcon => "🩺";
 
+    /// <summary>True after a scan completed with zero findings (scan ran but everything is clean).</summary>
+    public bool IsFindingsEmpty => !IsScanning && _allFindings.Count == 0 && LastScanTime.HasValue;
+
     public DiagnosticsViewModel(
         IDiagnosticsService diagnostics,
         IDriverDiagnosticsService driverDiagnostics,
@@ -190,6 +193,8 @@ public partial class DiagnosticsViewModel : ObservableObject
 
     partial void OnFilterSeverityChanged(string value) => ApplyFilters();
     partial void OnFilterCategoryChanged(string value) => ApplyFilters();
+    partial void OnIsScanningChanged(bool value)       => OnPropertyChanged(nameof(IsFindingsEmpty));
+    partial void OnLastScanTimeChanged(DateTime? value) => OnPropertyChanged(nameof(IsFindingsEmpty));
 
     private void UpdateCounts()
     {

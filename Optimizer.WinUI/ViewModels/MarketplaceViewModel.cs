@@ -27,10 +27,15 @@ public partial class MarketplaceViewModel : ObservableObject
     public string CategoryName => "Marketplace";
     public string CategoryIcon => "🛒";
 
+    public bool IsEmpty => !IsLoading && Entries.Count == 0;
+
     public MarketplaceViewModel(IMarketplaceService marketplace)
     {
         _marketplace = marketplace;
+        Entries.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
+
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
 
     public async Task LoadAsync()
     {

@@ -22,10 +22,15 @@ public partial class TemplatesViewModel : ObservableObject
     public string CategoryName => "Templates";
     public string CategoryIcon => "📋";
 
+    public bool IsEmpty => !IsLoading && Templates.Count == 0;
+
     public TemplatesViewModel(ITemplatesService templates)
     {
         _templates = templates;
+        Templates.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
+
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
 
     // ── Load ──────────────────────────────────────────────────────────────────
 

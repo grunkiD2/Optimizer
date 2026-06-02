@@ -289,7 +289,7 @@
                                             Background="{ThemeResource SubtleFillColorTransparentBrush}"
                                             BorderBrush="{ThemeResource SubtleFillColorSecondaryBrush}"
                                             BorderThickness="1">
-                                        <TextBlock Text="{x:Bind CpuVendor}" FontSize="9"
+                                        <TextBlock Text="{x:Bind CpuVendor}" FontSize="10"
                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                     </Border>
                                     <TextBlock Text="Laptop-friendly" FontSize="10"
