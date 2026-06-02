@@ -15,3 +15,12 @@ public class ProfileServiceCollection { }
 /// </summary>
 [CollectionDefinition("SettingsServiceCollection", DisableParallelization = true)]
 public class SettingsServiceCollection { }
+
+/// <summary>
+/// Serialises registry-touching test classes that share the sacrificial key
+/// HKCU\Software\OptimizerPluginTest. Without this, parallel class execution races:
+/// one class's Dispose (DeleteSubKeyTree) wipes the key while another is mid-test,
+/// so the undo capture sees no prior value and undo deletes instead of restoring.
+/// </summary>
+[CollectionDefinition("RegistryTests", DisableParallelization = true)]
+public class RegistryTestsCollection { }

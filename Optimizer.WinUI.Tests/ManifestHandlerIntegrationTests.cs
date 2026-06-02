@@ -19,6 +19,7 @@ namespace Optimizer.WinUI.Tests;
 ///
 /// Registry tests use HKCU\Software\OptimizerPluginTest — deleted in Dispose.
 /// </summary>
+[Collection("RegistryTests")]
 public class ManifestHandlerIntegrationTests : IDisposable
 {
     private const string TestSubKey    = @"Software\OptimizerPluginTest";

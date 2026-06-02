@@ -16,6 +16,7 @@ namespace Optimizer.WinUI.Tests;
 /// Registry tests use a sacrificial key under HKCU\Software\OptimizerPluginTest
 /// which is deleted in Dispose.
 /// </summary>
+[Collection("RegistryTests")]
 public class DeclarativeChangeExecutorTests : IDisposable
 {
     // ── Test infrastructure ───────────────────────────────────────────────────
