@@ -139,6 +139,7 @@ public partial class App : Application
                 services.AddHostedService(sp => (SystemDataBus)sp.GetRequiredService<ISystemDataBus>());
                 services.AddSingleton<IManifestParser, ManifestParser>();
                 services.AddSingleton<IDeclarativeChangeExecutor, DeclarativeChangeExecutor>();
+                services.AddSingleton<IPluginLoader, PluginLoader>();
                 services.AddSingleton<IMarketplaceService, MarketplaceService>();
                 services.AddSingleton<IIntelligenceService, IntelligenceService>();
 
@@ -220,6 +221,11 @@ public partial class App : Application
             profileService.Load();
 
             GetService<IUndoService>().Load();
+
+            // Discover installed plugins and merge them into the optimizer service
+            var pluginLoader = GetService<IPluginLoader>();
+            pluginLoader.Reload();
+            ((WindowsOptimizerService)GetService<IWindowsOptimizerService>()).RefreshHandlers();
 
             _window = GetService<MainWindow>();
             _window.Activate();

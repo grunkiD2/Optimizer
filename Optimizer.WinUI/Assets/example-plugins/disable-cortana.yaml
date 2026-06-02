@@ -1,0 +1,21 @@
+manifest_version: 1
+id: community-disable-cortana
+name: Disable Cortana
+description: Stops Cortana from running in the background and removes it from the taskbar.
+author: Optimizer Community
+category: Privacy
+icon: "\U0001F507"
+requires_admin: true
+reversible: true
+pros:
+  - Frees background memory
+  - Reduces telemetry
+cons:
+  - Loses Cortana voice features
+changes:
+  - type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search
+    value: AllowCortana
+    value_type: dword
+    apply: "0"
+    revert: delete

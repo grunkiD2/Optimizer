@@ -35,4 +35,13 @@ public class OptimizationInfo
 
     /// <summary>True if a sign-out or restart is needed before the change fully takes effect.</summary>
     public bool RequiresRestart { get; set; }
+
+    /// <summary>The optimization's author. Empty for built-in optimizations.</summary>
+    public string Author { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True when this optimization was loaded from a community plugin manifest
+    /// rather than compiled into the built-in handler set. Used by the UI to show a badge.
+    /// </summary>
+    public bool IsPlugin { get; set; }
 }

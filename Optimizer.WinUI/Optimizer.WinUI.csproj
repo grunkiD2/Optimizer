@@ -18,6 +18,13 @@
     <WindowsPackageType>None</WindowsPackageType>
     <SelfContained>false</SelfContained>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Allow the test project to reach internal members (e.g. PluginLoader's test constructor) -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Optimizer.WinUI.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
   <!-- .resw resource files under Strings\ are auto-discovered by the Windows App SDK build targets -->
 
   <ItemGroup>

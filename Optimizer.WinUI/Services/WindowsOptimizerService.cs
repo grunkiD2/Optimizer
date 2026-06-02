@@ -3,16 +3,23 @@ using System.Management;
 
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services.Optimizations;
+using Optimizer.WinUI.Services.Plugins;
 
 namespace Optimizer.WinUI.Services;
 
 /// <summary>
 /// Thin coordinator: delegates preset data to <see cref="BuiltInPresetsProvider"/> and
 /// each optimization's logic to the registered <see cref="IOptimizationHandler"/> implementations.
+/// Plugin handlers discovered by <see cref="IPluginLoader"/> are merged in at construction
+/// and can be refreshed at runtime via <see cref="RefreshHandlers"/>.
 /// </summary>
 public class WindowsOptimizerService : IWindowsOptimizerService
 {
-    private readonly Dictionary<string, IOptimizationHandler> _handlers;
+    // Built-in handlers from DI (never change after construction)
+    private readonly IReadOnlyDictionary<string, IOptimizationHandler> _builtInHandlers;
+    // Merged view: built-ins + enabled plugins (rebuilt by RefreshHandlers)
+    private Dictionary<string, IOptimizationHandler> _handlers;
+    private readonly IPluginLoader _pluginLoader;
     private readonly IUndoService _undoService;
     private readonly IElevationService _elevationService;
     private readonly ISystemMonitorService _monitorService;
@@ -23,16 +30,50 @@ public class WindowsOptimizerService : IWindowsOptimizerService
 
     public WindowsOptimizerService(
         IEnumerable<IOptimizationHandler> handlers,
+        IPluginLoader pluginLoader,
         IUndoService undoService,
         IElevationService elevationService,
         ISystemMonitorService monitorService,
         IStartupService startupService)
     {
-        _handlers = handlers.ToDictionary(h => h.Id, StringComparer.OrdinalIgnoreCase);
+        _builtInHandlers = handlers.ToDictionary(h => h.Id, StringComparer.OrdinalIgnoreCase);
+        _pluginLoader = pluginLoader;
         _undoService = undoService;
         _elevationService = elevationService;
         _monitorService = monitorService;
         _startupService = startupService;
+
+        // Build initial merged dictionary
+        _handlers = BuildMergedHandlers();
+    }
+
+    /// <summary>
+    /// Rebuilds the handler dictionary from built-ins and the current plugin set.
+    /// Call after installing, enabling, disabling, or removing a plugin.
+    /// </summary>
+    public void RefreshHandlers()
+    {
+        _handlers = BuildMergedHandlers();
+        EngineLog.Write($"[WindowsOptimizerService] Handler set refreshed: {_handlers.Count} total ({_builtInHandlers.Count} built-in, {_handlers.Count - _builtInHandlers.Count} plugin).");
+    }
+
+    private Dictionary<string, IOptimizationHandler> BuildMergedHandlers()
+    {
+        // Start with built-ins
+        var merged = new Dictionary<string, IOptimizationHandler>(_builtInHandlers, StringComparer.OrdinalIgnoreCase);
+
+        // Merge plugin handlers; built-in wins on ID collision
+        foreach (var pluginHandler in _pluginLoader.CreateHandlers())
+        {
+            if (merged.ContainsKey(pluginHandler.Id))
+            {
+                EngineLog.Write($"[WindowsOptimizerService] Plugin ID '{pluginHandler.Id}' collides with a built-in handler — plugin skipped.");
+                continue;
+            }
+            merged[pluginHandler.Id] = pluginHandler;
+        }
+
+        return merged;
     }
 
     // ---------------------------------------------------------------- Presets
