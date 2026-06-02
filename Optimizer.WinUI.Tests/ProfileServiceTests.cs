@@ -11,6 +11,8 @@ using Xunit;
 
 namespace Optimizer.WinUI.Tests;
 
+// Serialise with ProfileServiceExtendedTests to avoid file-lock contention on snapshots.json
+[Collection("ProfileServiceCollection")]
 /// <summary>
 /// Tests for ProfileService snapshot management.
 /// NOTE: ProfileService writes to %LocalAppData%\Optimizer\snapshots.json.

@@ -15,6 +15,9 @@ public class IntelligenceService : IIntelligenceService
 
     private readonly string _modelPath = AppPaths.GetDataFile("ml-acceptance-model.zip");
 
+    private const int ModelVersion = 2;  // bump when upgrading ML.NET
+    private string _versionFile => Path.Combine(Path.GetDirectoryName(_modelPath)!, "ml-model.version");
+
     public bool IsTrained => _acceptanceModel != null;
     public DateTime? LastTrainedAt { get; private set; }
 
@@ -29,15 +32,26 @@ public class IntelligenceService : IIntelligenceService
     {
         try
         {
-            if (File.Exists(_modelPath))
+            if (!File.Exists(_modelPath)) return;
+
+            // Check version compatibility
+            if (File.Exists(_versionFile) && int.TryParse(File.ReadAllText(_versionFile), out var v) && v == ModelVersion)
             {
                 _acceptanceModel = _ml.Model.Load(_modelPath, out _modelSchema);
                 LastTrainedAt = File.GetLastWriteTime(_modelPath);
             }
+            else
+            {
+                // Stale model — delete and retrain on schedule
+                EngineLog.Write("ML model from previous version detected, deleting for retrain");
+                try { File.Delete(_modelPath); } catch { }
+                try { if (File.Exists(_versionFile)) File.Delete(_versionFile); } catch { }
+            }
         }
         catch (Exception ex)
         {
-            EngineLog.Error("Failed to load ML model", ex);
+            EngineLog.Error("Failed to load ML model — will retrain", ex);
+            try { File.Delete(_modelPath); } catch { }
         }
     }
 
@@ -70,6 +84,7 @@ public class IntelligenceService : IIntelligenceService
 
                 Directory.CreateDirectory(Path.GetDirectoryName(_modelPath)!);
                 _ml.Model.Save(_acceptanceModel, _modelSchema, _modelPath);
+                File.WriteAllText(_versionFile, ModelVersion.ToString());
                 LastTrainedAt = DateTime.Now;
 
                 EngineLog.Write($"ML model trained on {features.Count} samples");

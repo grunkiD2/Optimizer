@@ -10,7 +10,6 @@ public interface ITrayIconService
     void Initialize(Window window);
     void Show();
     void Hide();
-    void ShowBalloon(string title, string message);
 }
 
 public class TrayIconService : ITrayIconService
@@ -100,11 +99,6 @@ public class TrayIconService : ITrayIconService
     {
         _trayIcon?.Dispose();
         _trayIcon = null;
-    }
-
-    public void ShowBalloon(string title, string message)
-    {
-        _trayIcon?.ShowNotification(title: title, message: message);
     }
 
     private void RestoreWindow()

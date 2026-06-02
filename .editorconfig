@@ -23,3 +23,16 @@ csharp_style_namespace_declarations = file_scoped:suggestion
 csharp_new_line_before_open_brace = all
 csharp_indent_case_contents = true
 csharp_indent_switch_labels = true
+
+# StringComparison enforcement
+dotnet_diagnostic.CA1307.severity = warning
+dotnet_diagnostic.CA1309.severity = warning
+
+# Other useful rules
+dotnet_diagnostic.CA1822.severity = suggestion
+dotnet_diagnostic.CA2007.severity = suggestion
+dotnet_diagnostic.CA1816.severity = warning
+
+# Async issues
+dotnet_diagnostic.CA2008.severity = warning
+dotnet_diagnostic.CA2016.severity = warning

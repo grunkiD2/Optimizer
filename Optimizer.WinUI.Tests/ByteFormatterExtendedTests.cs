@@ -77,4 +77,51 @@ public class ByteFormatterExtendedTests
         var speedFormatted = ByteFormatter.FormatSpeed(1536.0);
         Assert.Equal("1.5 KB/s", speedFormatted);
     }
+
+    // ── TB range (falls into GB band) ─────────────────────────────────────────
+
+    [Fact]
+    public void Format_TbRange_StillDisplaysAsGb()
+    {
+        // 1 TB — formatter has no TB tier, uses GB band
+        long oneTb = 1_099_511_627_776L;
+        var result = ByteFormatter.Format(oneTb);
+        Assert.Contains("GB", result);
+        Assert.DoesNotContain("B/s", result);
+    }
+
+    [Fact]
+    public void Format_TwoTb_CorrectGbValue()
+    {
+        long twoTb = 2L * 1_099_511_627_776L;
+        var result = ByteFormatter.Format(twoTb);
+        Assert.Equal("2048.0 GB", result);
+    }
+
+    [Fact]
+    public void FormatSpeed_TbRange_DisplaysAsGb()
+    {
+        double oneTbPerSec = 1_099_511_627_776.0;
+        var result = ByteFormatter.FormatSpeed(oneTbPerSec);
+        Assert.Contains("GB/s", result);
+    }
+
+    // ── Negative bytes ────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Format_NegativeBytes_DoesNotThrow()
+    {
+        // Negative values are unusual but the formatter should handle them gracefully
+        var result = ByteFormatter.Format(-1024);
+        Assert.NotNull(result);
+        Assert.Contains("B", result);
+    }
+
+    [Fact]
+    public void Format_NegativeBytes_FallsToBytesBand()
+    {
+        // -1024 is below all positive thresholds — falls to the _ case: displays as bytes
+        var result = ByteFormatter.Format(-1024);
+        Assert.Equal("-1024 B", result);
+    }
 }
