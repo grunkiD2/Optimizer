@@ -63,6 +63,9 @@ public partial class App : Application
         var profileService = GetService<ProfileService>();
         profileService.Load();
 
+        var undoService = GetService<IUndoService>() as UndoService;
+        undoService?.Load();
+
         _window = GetService<MainWindow>();
         _window.Activate();
 

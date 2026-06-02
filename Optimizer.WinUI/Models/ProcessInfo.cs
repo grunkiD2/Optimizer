@@ -8,4 +8,5 @@ public class ProcessInfo
     public long WorkingSetBytes { get; set; }
 
     public string MemoryText => $"{WorkingSetBytes / 1024.0 / 1024.0:F0} MB";
+    public string PidText => Pid.ToString();
 }

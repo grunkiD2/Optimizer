@@ -3,6 +3,325 @@
     x:Class="Optimizer.WinUI.Views.DashboardPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="Transparent">
-    <TextBlock Text="Dashboard" Style="{StaticResource TitleTextBlockStyle}" Margin="24"/>
+    xmlns:converters="using:Optimizer.WinUI.Converters"
+    xmlns:models="using:Optimizer.WinUI.Models"
+    Background="Transparent"
+    Loaded="Page_Loaded"
+    Unloaded="Page_Unloaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:HealthScoreToColorConverter x:Key="HealthScoreToColor"/>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="24,16,24,24">
+
+            <!-- ── Header row ──────────────────────────────────────────────── -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="System Dashboard" Style="{StaticResource TitleTextBlockStyle}"/>
+                    <TextBlock VerticalAlignment="Bottom" Margin="0,0,0,4"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               FontSize="12"
+                               Text="{x:Bind ViewModel.LastUpdated, Mode=OneWay}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="Refresh" Command="{x:Bind ViewModel.RefreshNowCommand}"/>
+                    <Button Content="Apply Safe Tune"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.ApplySafeTuneCommand}"/>
+                    <Button Content="Undo All" Command="{x:Bind ViewModel.UndoAllCommand}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ── Status / busy bar ──────────────────────────────────────── -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- ── Health InfoBar ─────────────────────────────────────────── -->
+            <Border CornerRadius="8" Padding="16,12">
+                <Border.Background>
+                    <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                </Border.Background>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="{x:Bind ViewModel.HealthText, Mode=OneWay}"
+                                   FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                            <Run Text="{x:Bind ViewModel.UndoableChanges, Mode=OneWay}"/>
+                            <Run Text=" reversible changes on record"/>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.HealthScoreText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold"
+                                   Foreground="{x:Bind ViewModel.HealthScore, Mode=OneWay, Converter={StaticResource HealthScoreToColor}}"/>
+                        <TextBlock Text="Health" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ── 5 Metric cards ─────────────────────────────────────────── -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- CPU -->
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="CPU" FontSize="12" Foreground="#60A5FA"/>
+                        <TextBlock Text="{x:Bind ViewModel.CpuText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold"
+                                   FontFamily="Consolas"/>
+                        <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                            <Run Text="{x:Bind ViewModel.TotalCores, Mode=OneWay}"/>
+                            <Run Text=" cores"/>
+                        </TextBlock>
+                        <ProgressBar Value="{x:Bind ViewModel.CpuUsage, Mode=OneWay}"
+                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Foreground="#60A5FA"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Memory -->
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Memory" FontSize="12" Foreground="#34D399"/>
+                        <TextBlock Text="{x:Bind ViewModel.MemoryText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold"
+                                   FontFamily="Consolas"/>
+                        <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Text="{x:Bind ViewModel.UsedMemoryText, Mode=OneWay}"/>
+                        <ProgressBar Value="{x:Bind ViewModel.MemoryUsage, Mode=OneWay}"
+                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Foreground="#34D399"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- GPU -->
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="GPU" FontSize="12" Foreground="#F59E0B"/>
+                        <TextBlock Text="{x:Bind ViewModel.GpuText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold"
+                                   FontFamily="Consolas"/>
+                        <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Text="Utilization"/>
+                        <ProgressBar Value="{x:Bind ViewModel.GpuUsage, Mode=OneWay}"
+                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Foreground="#F59E0B"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Disk -->
+                <Border Grid.Column="3" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Disk" FontSize="12" Foreground="#A78BFA"/>
+                        <TextBlock Text="{x:Bind ViewModel.DiskText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold"
+                                   FontFamily="Consolas"/>
+                        <TextBlock Text="I/O activity" FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ProgressBar Value="{x:Bind ViewModel.DiskUsage, Mode=OneWay}"
+                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Foreground="#A78BFA"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Network -->
+                <Border Grid.Column="4" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Network" FontSize="12" Foreground="#F472B6"/>
+                        <TextBlock Text="{x:Bind ViewModel.NetworkText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold"
+                                   FontFamily="Consolas"/>
+                        <TextBlock Text="Bandwidth" FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ProgressBar Value="{x:Bind ViewModel.NetworkUsage, Mode=OneWay}"
+                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Foreground="#F472B6"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ── Bottom row: Top Processes | I/O Activity ───────────────── -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Top Processes -->
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Top Processes" FontSize="14" FontWeight="SemiBold"/>
+                        <ListView ItemsSource="{x:Bind ViewModel.TopProcesses, Mode=OneWay}"
+                                  SelectionMode="None"
+                                  MaxHeight="260">
+                            <ListView.Header>
+                                <Grid Padding="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="80"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Name" FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="PID" FontSize="11" TextAlignment="Right"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="2" Text="Memory" FontSize="11" TextAlignment="Right"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </Grid>
+                            </ListView.Header>
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="models:ProcessInfo">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="80"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{x:Bind Name}"
+                                                   TextTrimming="CharacterEllipsis" FontSize="12"/>
+                                        <TextBlock Grid.Column="1"
+                                                   TextAlignment="Right" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   Text="{x:Bind PidText}"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind MemoryText}"
+                                                   TextAlignment="Right" FontSize="12"
+                                                   FontFamily="Consolas"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+
+                <!-- I/O Activity -->
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="I/O Activity" FontSize="14" FontWeight="SemiBold"/>
+
+                        <!-- Disk -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Disk" FontSize="12"
+                                       Foreground="#A78BFA" FontWeight="SemiBold"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Read" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ProgressBar Grid.Column="1" VerticalAlignment="Center"
+                                             Value="{x:Bind ViewModel.DiskReadSpeed, Mode=OneWay}"
+                                             Maximum="104857600" Height="4" CornerRadius="2"
+                                             Foreground="#A78BFA"/>
+                                <TextBlock Grid.Column="2" TextAlignment="Right" FontFamily="Consolas" FontSize="12"
+                                           Text="{x:Bind ViewModel.DiskReadText, Mode=OneWay}"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Write" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ProgressBar Grid.Column="1" VerticalAlignment="Center"
+                                             Value="{x:Bind ViewModel.DiskWriteSpeed, Mode=OneWay}"
+                                             Maximum="104857600" Height="4" CornerRadius="2"
+                                             Foreground="#A78BFA"/>
+                                <TextBlock Grid.Column="2" TextAlignment="Right" FontFamily="Consolas" FontSize="12"
+                                           Text="{x:Bind ViewModel.DiskWriteText, Mode=OneWay}"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Network -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Network" FontSize="12"
+                                       Foreground="#F472B6" FontWeight="SemiBold"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="In" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ProgressBar Grid.Column="1" VerticalAlignment="Center"
+                                             Value="{x:Bind ViewModel.NetworkInSpeed, Mode=OneWay}"
+                                             Maximum="125000000" Height="4" CornerRadius="2"
+                                             Foreground="#F472B6"/>
+                                <TextBlock Grid.Column="2" TextAlignment="Right" FontFamily="Consolas" FontSize="12"
+                                           Text="{x:Bind ViewModel.NetworkInText, Mode=OneWay}"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Out" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ProgressBar Grid.Column="1" VerticalAlignment="Center"
+                                             Value="{x:Bind ViewModel.NetworkOutSpeed, Mode=OneWay}"
+                                             Maximum="125000000" Height="4" CornerRadius="2"
+                                             Foreground="#F472B6"/>
+                                <TextBlock Grid.Column="2" TextAlignment="Right" FontFamily="Consolas" FontSize="12"
+                                           Text="{x:Bind ViewModel.NetworkOutText, Mode=OneWay}"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
 </Page>
