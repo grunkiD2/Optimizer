@@ -88,6 +88,7 @@ public partial class App : Application
                 services.AddSingleton<IDriverDiagnosticsService, DriverDiagnosticsService>();
                 services.AddSingleton<IBottleneckDetectorService, BottleneckDetectorService>();
                 services.AddSingleton<ISmartInsightsService, SmartInsightsService>();
+                services.AddSingleton<IMarketplaceService, MarketplaceService>();
 
                 // ViewModels
                 services.AddTransient<OnboardingViewModel>();
@@ -109,6 +110,7 @@ public partial class App : Application
                 services.AddTransient<ReportsViewModel>();
                 services.AddTransient<TuningViewModel>();
                 services.AddSingleton<SettingsViewModel>();
+                services.AddTransient<MarketplaceViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)
                 services.AddSingleton<MainWindow>();
