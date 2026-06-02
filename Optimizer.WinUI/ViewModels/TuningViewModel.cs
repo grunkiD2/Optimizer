@@ -3,16 +3,21 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Models.Gpu;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Gpu;
 
 namespace Optimizer.WinUI.ViewModels;
 
 public partial class TuningViewModel : ObservableObject
 {
-    private readonly ITuningService    _tuning;
-    private readonly IStressTestService _stress;
+    private readonly ITuningService      _tuning;
+    private readonly IStressTestService  _stress;
+    private readonly IGpuControlService  _gpuControl;
     private DispatcherQueue? _dispatcherQueue;
     private CancellationTokenSource? _stressCts;
+    private CancellationTokenSource? _gpuWatchdogCts;
+    private System.Threading.Timer? _telemetryTimer;
 
     // ── Existing observable properties ────────────────────────────────────────
 
@@ -72,12 +77,42 @@ public partial class TuningViewModel : ObservableObject
     public bool IsPrime95Installed   => _stress.IsPrime95Installed;
     public bool IsCinebenchInstalled => _stress.IsCinebenchInstalled;
 
+    // ── GPU OC observable properties ──────────────────────────────────────────
+
+    [ObservableProperty] private bool   gpuOcWriteAvailable;
+    [ObservableProperty] private string gpuOcUnavailableReason = "";
+    [ObservableProperty] private bool   isGpuWatchdogRunning;
+    [ObservableProperty] private string gpuOcStatus = "";
+
+    // Live telemetry (bound in the GPU telemetry card)
+    [ObservableProperty] private string gpuName          = "—";
+    [ObservableProperty] private string gpuCoreClock     = "—";
+    [ObservableProperty] private string gpuMemClock      = "—";
+    [ObservableProperty] private string gpuTemp          = "—";
+    [ObservableProperty] private string gpuPower         = "—";
+    [ObservableProperty] private string gpuFan           = "—";
+    [ObservableProperty] private string gpuLoad          = "—";
+
+    // OC control values (from Capabilities ranges)
+    [ObservableProperty] private int    gpuCoreOffsetMhz;
+    [ObservableProperty] private int    gpuMemOffsetMhz;
+    [ObservableProperty] private int    gpuPowerLimitPct  = 100;
+    [ObservableProperty] private int    gpuTempLimitC     = 83;
+    [ObservableProperty] private int    gpuWatchdogTempC  = 88;
+    [ObservableProperty] private int    gpuWatchdogDurationSec = 30;
+    [ObservableProperty] private bool   gpuFanManual;
+    [ObservableProperty] private int    gpuFanPct         = 50;
+
+    // Capabilities (for slider min/max in code-behind)
+    public GpuControlCapabilities GpuCapabilities => _gpuControl.Capabilities;
+
     // ── Constructor ───────────────────────────────────────────────────────────
 
-    public TuningViewModel(ITuningService tuning, IStressTestService stress)
+    public TuningViewModel(ITuningService tuning, IStressTestService stress, IGpuControlService gpuControl)
     {
-        _tuning  = tuning;
-        _stress  = stress;
+        _tuning      = tuning;
+        _stress      = stress;
+        _gpuControl  = gpuControl;
 
         // Pre-populate with all presets; LoadAsync will re-filter by vendor
         foreach (var p in tuning.GetPresets()) Presets.Add(p);
@@ -89,12 +124,27 @@ public partial class TuningViewModel : ObservableObject
     public void InitDispatcher(DispatcherQueue queue)
     {
         _dispatcherQueue = queue;
+
+        // Start a 2-second telemetry refresh timer for the GPU section.
+        // The timer fires on a ThreadPool thread; property updates are
+        // marshalled to the UI thread via _dispatcherQueue.
+        _telemetryTimer?.Dispose();
+        _telemetryTimer = new System.Threading.Timer(
+            _ => RefreshGpuTelemetry(),
+            null,
+            dueTime: TimeSpan.FromSeconds(1),
+            period:  TimeSpan.FromSeconds(2));
     }
 
     // ── Load ──────────────────────────────────────────────────────────────────
 
     public async Task LoadAsync()
     {
+        // GPU OC availability
+        GpuOcWriteAvailable     = _gpuControl.OcWriteAvailable;
+        GpuOcUnavailableReason  = _gpuControl.OcUnavailableReason ?? "GPU OC write not available.";
+        OnPropertyChanged(nameof(GpuCapabilities));
+
         CurrentCpu = await _tuning.GetCurrentCpuTuningAsync();
         RamInfo    = await _tuning.GetRamInfoAsync();
 
@@ -298,4 +348,139 @@ public partial class TuningViewModel : ObservableObject
         else
             Update(); // No dispatcher set yet — call directly (should not happen in normal flow)
     }
+
+    // ── GPU OC commands ───────────────────────────────────────────────────────
+
+    [RelayCommand]
+    public void ApplyGpuOc()
+    {
+        if (!HasReadDisclaimer)
+        {
+            GpuOcStatus = "Please acknowledge the disclaimer before applying GPU overclocking.";
+            return;
+        }
+
+        var desired = BuildDesiredState();
+        var (ok, error, applied) = _gpuControl.Apply(desired);
+
+        GpuOcStatus = ok
+            ? $"GPU settings applied: core +{applied.CoreClockOffsetMhz} MHz, " +
+              $"mem +{applied.MemoryClockOffsetMhz} MHz, " +
+              $"power {applied.PowerLimitPercent}%, " +
+              $"temp limit {applied.TempLimitC}°C."
+            : $"GPU apply failed: {error}";
+    }
+
+    [RelayCommand]
+    public async Task ApplyGpuOcWithWatchdogAsync()
+    {
+        if (!HasReadDisclaimer)
+        {
+            GpuOcStatus = "Please acknowledge the disclaimer before applying GPU overclocking.";
+            return;
+        }
+
+        if (IsGpuWatchdogRunning) return;
+
+        IsGpuWatchdogRunning = true;
+        _gpuWatchdogCts      = new CancellationTokenSource();
+        GpuOcStatus          = "GPU watchdog test running...";
+
+        try
+        {
+            var desired = BuildDesiredState();
+            var result = await _gpuControl.ApplyWithWatchdogAsync(
+                desired,
+                GpuWatchdogTempC,
+                TimeSpan.FromSeconds(GpuWatchdogDurationSec),
+                _gpuWatchdogCts.Token);
+
+            GpuOcStatus = result;
+        }
+        catch (OperationCanceledException)
+        {
+            GpuOcStatus = "GPU watchdog test cancelled.";
+        }
+        finally
+        {
+            IsGpuWatchdogRunning = false;
+        }
+    }
+
+    [RelayCommand]
+    public void StopGpuWatchdog()
+    {
+        _gpuWatchdogCts?.Cancel();
+    }
+
+    [RelayCommand]
+    public void ResetGpuToDefault()
+    {
+        _gpuControl.ResetToDefault();
+        GpuCoreOffsetMhz  = 0;
+        GpuMemOffsetMhz   = 0;
+        GpuPowerLimitPct  = 100;
+        GpuTempLimitC     = 83;
+        GpuFanManual      = false;
+        GpuOcStatus       = "GPU settings reset to defaults.";
+    }
+
+    [RelayCommand]
+    public async Task OpenGpuVendorToolAsync()
+    {
+        var tools = await _tuning.DetectGpuToolsAsync();
+        var best  = tools.FirstOrDefault(t => t.IsInstalled) ?? tools.FirstOrDefault();
+        if (best != null)
+            await _tuning.LaunchToolAsync(best);
+    }
+
+    // ── GPU telemetry refresh (called by timer) ───────────────────────────────
+
+    private void RefreshGpuTelemetry()
+    {
+        try
+        {
+            var snapshots = _gpuControl.ReadTelemetry();
+            var snap      = snapshots.FirstOrDefault();
+
+            void Update()
+            {
+                if (snap == null)
+                {
+                    GpuName      = "No GPU data";
+                    GpuCoreClock = "—";
+                    GpuMemClock  = "—";
+                    GpuTemp      = "—";
+                    GpuPower     = "—";
+                    GpuFan       = "—";
+                    GpuLoad      = "—";
+                }
+                else
+                {
+                    GpuName      = snap.Name;
+                    GpuCoreClock = snap.CoreClockMhz.HasValue  ? $"{snap.CoreClockMhz:F0} MHz"  : "—";
+                    GpuMemClock  = snap.MemoryClockMhz.HasValue ? $"{snap.MemoryClockMhz:F0} MHz" : "—";
+                    GpuTemp      = snap.TemperatureC.HasValue   ? $"{snap.TemperatureC:F0}°C"     : "—";
+                    GpuPower     = snap.PowerWatts.HasValue     ? $"{snap.PowerWatts:F0} W"       : "—";
+                    GpuFan       = snap.FanRpm.HasValue         ? $"{snap.FanRpm:F0} RPM"         : "—";
+                    GpuLoad      = snap.LoadPercent.HasValue    ? $"{snap.LoadPercent:F0}%"        : "—";
+                }
+            }
+
+            if (_dispatcherQueue != null)
+                _dispatcherQueue.TryEnqueue(Update);
+        }
+        catch { /* non-fatal: telemetry refresh errors should not crash the VM */ }
+    }
+
+    // ── Helper: build GpuControlState from current slider values ─────────────
+
+    private GpuControlState BuildDesiredState() => new()
+    {
+        CoreClockOffsetMhz   = GpuCoreOffsetMhz,
+        MemoryClockOffsetMhz = GpuMemOffsetMhz,
+        PowerLimitPercent    = GpuPowerLimitPct,
+        TempLimitC           = GpuTempLimitC,
+        FanPercent           = GpuFanManual ? GpuFanPct : (int?)null,
+    };
 }

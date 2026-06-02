@@ -439,6 +439,250 @@
             </Border>
 
             <!-- ═══════════════════════════════════════════════════════════════
+                 GPU OVERCLOCKING (EXPERIMENTAL)
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="GPU OVERCLOCKING (EXPERIMENTAL)"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <!-- Live GPU Telemetry — always shown if LHM available -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE7F4;" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind ViewModel.GpuName, Mode=OneWay}"
+                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="(live telemetry via LibreHardwareMonitor)"
+                                   FontSize="10"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="CORE" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.GpuCoreClock, Mode=OneWay}"
+                                       FontSize="16" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="MEMORY" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.GpuMemClock, Mode=OneWay}"
+                                       FontSize="16" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="2">
+                            <TextBlock Text="TEMP" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.GpuTemp, Mode=OneWay}"
+                                       FontSize="16" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Spacing="2">
+                            <TextBlock Text="POWER" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.GpuPower, Mode=OneWay}"
+                                       FontSize="16" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4" Spacing="2">
+                            <TextBlock Text="FAN" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.GpuFan, Mode=OneWay}"
+                                       FontSize="16" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="5" Spacing="2">
+                            <TextBlock Text="LOAD" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.GpuLoad, Mode=OneWay}"
+                                       FontSize="16" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- OC Write Controls — only shown when a backend can write -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    Visibility="{x:Bind ViewModel.GpuOcWriteAvailable, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Spacing="12">
+
+                    <!-- Experimental warning -->
+                    <InfoBar Severity="Warning"
+                             IsOpen="True"
+                             IsClosable="False"
+                             Title="Experimental — applies real GPU settings"
+                             Message="These controls write to hardware registers via NVAPI or ADL. Incorrect values can cause instability, crashes, or hardware damage. Verify stability with a stress test. Use 'Reset to Default' to undo. This feature is UNSUPPORTED — verify on your hardware."/>
+
+                    <!-- Core clock offset -->
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Core Clock Offset (MHz)" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                <Run Text="{x:Bind ViewModel.GpuCoreOffsetMhz, Mode=OneWay}"/>
+                                <Run Text=" MHz"/>
+                            </TextBlock>
+                        </Grid>
+                        <Slider Value="{x:Bind ViewModel.GpuCoreOffsetMhz, Mode=TwoWay}"
+                                Minimum="-200" Maximum="300"
+                                StepFrequency="5" TickFrequency="100" TickPlacement="Outside"
+                                IsEnabled="{x:Bind ViewModel.HasReadDisclaimer, Mode=OneWay}"/>
+                    </StackPanel>
+
+                    <!-- Memory clock offset -->
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Memory Clock Offset (MHz)" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                <Run Text="{x:Bind ViewModel.GpuMemOffsetMhz, Mode=OneWay}"/>
+                                <Run Text=" MHz"/>
+                            </TextBlock>
+                        </Grid>
+                        <Slider Value="{x:Bind ViewModel.GpuMemOffsetMhz, Mode=TwoWay}"
+                                Minimum="-500" Maximum="1500"
+                                StepFrequency="10" TickFrequency="500" TickPlacement="Outside"
+                                IsEnabled="{x:Bind ViewModel.HasReadDisclaimer, Mode=OneWay}"/>
+                    </StackPanel>
+
+                    <!-- Power limit -->
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Power Limit (%)" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                <Run Text="{x:Bind ViewModel.GpuPowerLimitPct, Mode=OneWay}"/>
+                                <Run Text="%"/>
+                            </TextBlock>
+                        </Grid>
+                        <Slider Value="{x:Bind ViewModel.GpuPowerLimitPct, Mode=TwoWay}"
+                                Minimum="50" Maximum="120"
+                                StepFrequency="5" TickFrequency="10" TickPlacement="Outside"
+                                IsEnabled="{x:Bind ViewModel.HasReadDisclaimer, Mode=OneWay}"/>
+                    </StackPanel>
+
+                    <!-- Temp limit -->
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Temperature Limit (°C)" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                <Run Text="{x:Bind ViewModel.GpuTempLimitC, Mode=OneWay}"/>
+                                <Run Text="°C"/>
+                            </TextBlock>
+                        </Grid>
+                        <Slider Value="{x:Bind ViewModel.GpuTempLimitC, Mode=TwoWay}"
+                                Minimum="60" Maximum="95"
+                                StepFrequency="1" TickFrequency="10" TickPlacement="Outside"
+                                IsEnabled="{x:Bind ViewModel.HasReadDisclaimer, Mode=OneWay}"/>
+                    </StackPanel>
+
+                    <!-- Watchdog controls -->
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="WATCHDOG LIMIT (°C)" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <NumberBox Value="{x:Bind ViewModel.GpuWatchdogTempC, Mode=TwoWay}"
+                                       Minimum="60" Maximum="105" SpinButtonPlacementMode="Inline"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="TEST DURATION (s)" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <NumberBox Value="{x:Bind ViewModel.GpuWatchdogDurationSec, Mode=TwoWay}"
+                                       Minimum="10" Maximum="300" SpinButtonPlacementMode="Inline"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Action buttons -->
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Apply"
+                                Click="ApplyGpuOc_Click"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                IsEnabled="{x:Bind ViewModel.HasReadDisclaimer, Mode=OneWay}"/>
+                        <Button Grid.Column="1"
+                                Content="Apply + Watchdog Test"
+                                Click="ApplyGpuOcWatchdog_Click"
+                                HorizontalAlignment="Stretch"
+                                IsEnabled="{x:Bind ViewModel.HasReadDisclaimer, Mode=OneWay}"/>
+                        <Button Grid.Column="2"
+                                Content="Reset to Default"
+                                Click="ResetGpuOc_Click"
+                                HorizontalAlignment="Stretch"/>
+                        <Button Grid.Column="3"
+                                Content="Stop Watchdog"
+                                Click="StopGpuWatchdog_Click"
+                                Visibility="{x:Bind ViewModel.IsGpuWatchdogRunning, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+                    </Grid>
+
+                    <!-- Status -->
+                    <TextBlock Text="{x:Bind ViewModel.GpuOcStatus, Mode=OneWay}"
+                               FontSize="11" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                </StackPanel>
+            </Border>
+
+            <!-- Fallback: OC write not available — show reason + vendor tool button -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    Visibility="{x:Bind ViewModel.GpuOcWriteAvailable, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE783;" FontSize="16" VerticalAlignment="Center"
+                                  Foreground="{ThemeResource SystemFillColorCautionBrush}"/>
+                        <TextBlock Text="In-app GPU OC not available" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind ViewModel.GpuOcUnavailableReason, Mode=OneWay}"
+                               FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="Use a vendor GPU tool (MSI Afterburner, NVIDIA App, AMD Adrenalin) for overclocking. Telemetry above is still live when LibreHardwareMonitor is available."
+                               FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <Button Content="Open GPU Vendor Tool"
+                            Click="OpenGpuVendorTool_Click"
+                            Style="{ThemeResource AccentButtonStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════
                  GPU OVERCLOCKING TOOLS
             ════════════════════════════════════════════════════════════════ -->
             <TextBlock Text="GPU OVERCLOCKING TOOLS"

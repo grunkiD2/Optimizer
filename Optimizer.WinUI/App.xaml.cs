@@ -13,6 +13,7 @@ using Optimizer.WinUI.Services.Optimizations.Performance;
 using Optimizer.WinUI.Services.Optimizations.Storage;
 using Optimizer.WinUI.Services.Optimizations.System;
 using Optimizer.WinUI.Services.Events;
+using Optimizer.WinUI.Services.Gpu;
 using Optimizer.WinUI.ViewModels;
 using Serilog;
 
@@ -133,6 +134,11 @@ public partial class App : Application
                 services.AddSingleton<ISystemRepairService, SystemRepairService>();
                 services.AddSingleton<ISensorService, SensorService>();
                 services.AddSingleton<IStressTestService, StressTestService>();
+                // GPU control backends (registered in priority order: NVAPI, ADL, Null)
+                services.AddSingleton<IGpuControlBackend, NvApiGpuBackend>();
+                services.AddSingleton<IGpuControlBackend, AdlGpuBackend>();
+                services.AddSingleton<IGpuControlBackend, NullGpuBackend>();
+                services.AddSingleton<IGpuControlService, GpuControlService>();
                 services.AddSingleton<IDriverDiagnosticsService, DriverDiagnosticsService>();
                 services.AddSingleton<IBottleneckDetectorService, BottleneckDetectorService>();
                 services.AddSingleton<ISmartInsightsService, SmartInsightsService>();

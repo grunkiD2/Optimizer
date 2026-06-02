@@ -138,4 +138,25 @@ public sealed partial class TuningPage : Page
         => await PageExceptionHelper.SafeAsync(
             () => ViewModel.LaunchCinebenchCommand.ExecuteAsync(null),
             XamlRoot, "Launch Cinebench");
+
+    // ── GPU OC handlers ───────────────────────────────────────────────────────
+
+    private void ApplyGpuOc_Click(object sender, RoutedEventArgs e)
+        => ViewModel.ApplyGpuOcCommand.Execute(null);
+
+    private async void ApplyGpuOcWatchdog_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.ApplyGpuOcWithWatchdogCommand.ExecuteAsync(null),
+            XamlRoot, "GPU OC watchdog test");
+
+    private void ResetGpuOc_Click(object sender, RoutedEventArgs e)
+        => ViewModel.ResetGpuToDefaultCommand.Execute(null);
+
+    private void StopGpuWatchdog_Click(object sender, RoutedEventArgs e)
+        => ViewModel.StopGpuWatchdogCommand.Execute(null);
+
+    private async void OpenGpuVendorTool_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.OpenGpuVendorToolCommand.ExecuteAsync(null),
+            XamlRoot, "Open GPU vendor tool");
 }
