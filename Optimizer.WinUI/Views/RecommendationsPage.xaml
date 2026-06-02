@@ -22,6 +22,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Spacing="2">
@@ -38,16 +39,47 @@
                 </StackPanel>
 
                 <Button Grid.Column="1"
-                        Content="Refresh"
+                        Content="Retrain Intelligence"
                         VerticalAlignment="Bottom"
-                        Click="Refresh_Click"/>
+                        Click="TrainModel_Click"/>
 
                 <Button Grid.Column="2"
+                        Content="Refresh"
+                        VerticalAlignment="Bottom"
+                        Margin="8,0,0,0"
+                        Click="Refresh_Click"/>
+
+                <Button Grid.Column="3"
                         Content="Reset Dismissed"
                         VerticalAlignment="Bottom"
                         Margin="8,0,0,0"
                         Click="ResetDismissed_Click"/>
             </Grid>
+
+            <!-- ── ML Status banner ──────────────────────────────────────── -->
+            <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                    CornerRadius="6" Padding="12,8"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="&#x1F9E0;" FontSize="16"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{x:Bind ViewModel.MLStatusText, Mode=OneWay}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <ProgressRing Grid.Column="2"
+                                  IsActive="{x:Bind ViewModel.IsTrainingModel, Mode=OneWay}"
+                                  Width="20" Height="20"
+                                  Visibility="{x:Bind ViewModel.IsTrainingModel, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+                </Grid>
+            </Border>
 
             <!-- ── Progress ──────────────────────────────────────────────── -->
             <ProgressBar IsIndeterminate="True"
@@ -138,6 +170,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Grid.Column="0"
@@ -153,7 +186,19 @@
                                                    TextWrapping="Wrap"/>
                                     </StackPanel>
 
+                                    <!-- ML confidence badge (only when model has scored this rec) -->
                                     <Border Grid.Column="2"
+                                            CornerRadius="4" Padding="6,2"
+                                            VerticalAlignment="Top"
+                                            Margin="4,0,4,0"
+                                            Background="#1E3A8A"
+                                            Visibility="{x:Bind HasMLConfidence, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="{x:Bind MLConfidenceText, Mode=OneWay}"
+                                                   FontSize="10" FontWeight="Bold"
+                                                   Foreground="White"/>
+                                    </Border>
+
+                                    <Border Grid.Column="3"
                                             CornerRadius="4" Padding="8,3"
                                             VerticalAlignment="Top"
                                             Background="{x:Bind SeverityColor, Converter={StaticResource StringToSolidColorBrush}}">

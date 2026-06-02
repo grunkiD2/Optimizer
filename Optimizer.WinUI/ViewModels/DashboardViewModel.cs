@@ -16,9 +16,11 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private readonly IUndoService _undoService;
     private readonly SettingsService _settings;
     private readonly ISensorService _sensorService;
+    private readonly IIntelligenceService _intelligence;
 
     private DispatcherTimer? _timer;
     private bool _disposed;
+    private int _anomalyCheckCounter;
 
     // ── Metric properties ────────────────────────────────────────────────────
 
@@ -131,7 +133,8 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         IProcessService processService,
         IUndoService undoService,
         SettingsService settings,
-        ISensorService sensorService)
+        ISensorService sensorService,
+        IIntelligenceService intelligence)
     {
         _monitor = monitor;
         _optimizer = optimizer;
@@ -139,6 +142,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         _undoService = undoService;
         _settings = settings;
         _sensorService = sensorService;
+        _intelligence = intelligence;
 
         RefreshNowCommand = new RelayCommand(RefreshNow);
         ApplySafeTuneCommand = new AsyncRelayCommand(ApplySafeTuneAsync);
@@ -172,7 +176,18 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     // ── Internal helpers ─────────────────────────────────────────────────────
 
-    private void OnTimerTick(object? sender, object e) => RefreshNow();
+    private void OnTimerTick(object? sender, object e)
+    {
+        RefreshNow();
+
+        // Run anomaly check every 30 ticks to avoid per-second overhead
+        _anomalyCheckCounter++;
+        if (_anomalyCheckCounter >= 30)
+        {
+            _anomalyCheckCounter = 0;
+            _ = CheckAnomaliesAsync();
+        }
+    }
 
     private void RefreshNow()
     {
@@ -345,6 +360,31 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    // ── Anomaly detection ─────────────────────────────────────────────────────
+
+    private async Task CheckAnomaliesAsync()
+    {
+        try
+        {
+            var cpuAnomalies = await _intelligence.DetectAnomaliesAsync(
+                CpuHistory.ToList(), "CPU Usage");
+            var memAnomalies = await _intelligence.DetectAnomaliesAsync(
+                MemoryHistory.ToList(), "Memory Usage");
+
+            var alerts = cpuAnomalies.Concat(memAnomalies).ToList();
+            if (alerts.Count > 0)
+            {
+                // Show the highest-severity alert in the status message
+                var top = alerts.OrderByDescending(a => a.Severity).First();
+                StatusMessage = $"⚠️ {top.Description}";
+            }
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Anomaly check failed", ex);
         }
     }
 

@@ -89,6 +89,7 @@ public partial class App : Application
                 services.AddSingleton<IBottleneckDetectorService, BottleneckDetectorService>();
                 services.AddSingleton<ISmartInsightsService, SmartInsightsService>();
                 services.AddSingleton<IMarketplaceService, MarketplaceService>();
+                services.AddSingleton<IIntelligenceService, IntelligenceService>();
 
                 // ViewModels
                 services.AddTransient<OnboardingViewModel>();
@@ -172,6 +173,13 @@ public partial class App : Application
             // Register and start background monitor + toast notifications
             Microsoft.Windows.AppNotifications.AppNotificationManager.Default.Register();
             GetService<BackgroundMonitorService>().Start();
+
+            // Schedule ML model training in background after app settles
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromMinutes(2));
+                await GetService<IIntelligenceService>().TrainAsync();
+            });
 
             // Honor StartMinimized — hide window immediately after activation
             if (settings.Settings.StartMinimized)

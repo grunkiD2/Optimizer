@@ -27,6 +27,9 @@ public sealed partial class RecommendationsPage : Page
     private async void ResetDismissed_Click(object sender, RoutedEventArgs e)
         => await ViewModel.ResetDismissedCommand.ExecuteAsync(null);
 
+    private async void TrainModel_Click(object sender, RoutedEventArgs e)
+        => await ViewModel.TrainModelCommand.ExecuteAsync(null);
+
     private async void Action_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is Recommendation rec)

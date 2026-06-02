@@ -10,10 +10,12 @@ public partial class RecommendationsViewModel : ObservableObject
 {
     private readonly IRecommendationsService _recommendations;
     private readonly ISmartInsightsService _insights;
+    private readonly IIntelligenceService _intelligence;
 
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private string statusMessage = "";
     [ObservableProperty] private string filterCategory = "All";
+    [ObservableProperty] private bool isTrainingModel;
 
     public ObservableCollection<Recommendation> Recommendations { get; } = [];
     public ObservableCollection<SmartInsight> Insights { get; } = [];
@@ -23,10 +25,18 @@ public partial class RecommendationsViewModel : ObservableObject
     public string CategoryName => "Recommendations";
     public string CategoryIcon => "💡";
 
-    public RecommendationsViewModel(IRecommendationsService recommendations, ISmartInsightsService insights)
+    public string MLStatusText => _intelligence.IsTrained
+        ? $"ML model active — trained {_intelligence.LastTrainedAt:g}"
+        : "ML model not yet trained";
+
+    public RecommendationsViewModel(
+        IRecommendationsService recommendations,
+        ISmartInsightsService insights,
+        IIntelligenceService intelligence)
     {
         _recommendations = recommendations;
         _insights = insights;
+        _intelligence = intelligence;
     }
 
     public async Task LoadAsync()
@@ -37,10 +47,28 @@ public partial class RecommendationsViewModel : ObservableObject
         try
         {
             var recs = await _recommendations.GenerateAsync();
-            ApplyFilter(recs);
+
+            // Score each recommendation with the ML acceptance model
+            foreach (var rec in recs)
+            {
+                var prob = await _intelligence.PredictAcceptanceAsync(
+                    rec.Category.ToString(), rec.Severity.ToString());
+                if (prob.HasValue)
+                    rec.MlConfidence = prob.Value;
+            }
+
+            // Sort by ML confidence (high first); fall back to severity when untrained
+            var sorted = _intelligence.IsTrained
+                ? recs.OrderByDescending(r => r.MlConfidence ?? 0.5f).ToList()
+                : recs.OrderByDescending(r => (int)r.Severity).ToList();
+
+            ApplyFilter(sorted);
+
             StatusMessage = recs.Count == 0
                 ? "Your system looks healthy — no recommendations right now."
                 : $"{recs.Count} recommendation(s) found.";
+
+            OnPropertyChanged(nameof(MLStatusText));
         }
         catch
         {
@@ -132,6 +160,29 @@ public partial class RecommendationsViewModel : ObservableObject
         await LoadAsync();
     }
 
+    [RelayCommand]
+    public async Task TrainModelAsync()
+    {
+        IsTrainingModel = true;
+        StatusMessage = "Training ML intelligence model...";
+        try
+        {
+            await _intelligence.TrainAsync();
+            StatusMessage = _intelligence.IsTrained
+                ? $"ML model trained successfully at {_intelligence.LastTrainedAt:g}."
+                : "Not enough interaction data yet — continue using recommendations to build up training data.";
+            OnPropertyChanged(nameof(MLStatusText));
+        }
+        catch
+        {
+            StatusMessage = "ML training failed.";
+        }
+        finally
+        {
+            IsTrainingModel = false;
+        }
+    }
+
     partial void OnFilterCategoryChanged(string value) => ApplyFilter(null);
 
     private void ApplyFilter(IReadOnlyList<Recommendation>? source)
@@ -142,7 +193,7 @@ public partial class RecommendationsViewModel : ObservableObject
             items = items.Where(r => r.Category == cat);
 
         Recommendations.Clear();
-        foreach (var r in items.OrderByDescending(r => (int)r.Severity))
+        foreach (var r in items)
             Recommendations.Add(r);
     }
 }

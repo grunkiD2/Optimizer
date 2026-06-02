@@ -11,6 +11,7 @@ public partial class Recommendation : ObservableObject
     [ObservableProperty] private FindingSeverity severity;
     [ObservableProperty] private FindingCategory category;
     [ObservableProperty] private bool dismissed;
+    [ObservableProperty] private float? mlConfidence;
 
     public Func<Task<bool>>? QuickAction { get; set; }
 
@@ -36,4 +37,11 @@ public partial class Recommendation : ObservableObject
     };
 
     public string SeverityBadge => Severity.ToString().ToUpper();
+
+    /// <summary>Non-null when ML model has scored this recommendation (0–100 %).</summary>
+    public string? MLConfidenceText => MlConfidence.HasValue
+        ? $"ML: {MlConfidence.Value * 100:F0}%"
+        : null;
+
+    public bool HasMLConfidence => MlConfidence.HasValue;
 }
