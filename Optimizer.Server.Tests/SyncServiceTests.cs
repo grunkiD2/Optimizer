@@ -151,6 +151,31 @@ public class SyncServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PushTombstone_ThenPullDelta_ShowsDelete()
+    {
+        // Push initial snapshot
+        await _sync.PushAsync(_userId, new SyncPushRequest(new[]
+        {
+            new SyncPushItem("snapshot", "s1", "{}")
+        }));
+        var first = await _sync.PullAsync(_userId, 0);
+        Assert.Single(first.Items);
+        Assert.False(first.Items[0].IsDeleted);
+
+        // Push tombstone for the same item
+        await _sync.PushAsync(_userId, new SyncPushRequest(new[]
+        {
+            new SyncPushItem("snapshot", "s1", "{}", IsDeleted: true)
+        }));
+
+        // Delta pull from the cursor after the first pull should include only the tombstone
+        var second = await _sync.PullAsync(_userId, first.Cursor);
+        Assert.Single(second.Items);
+        Assert.True(second.Items[0].IsDeleted);
+        Assert.Equal("s1", second.Items[0].ItemId);
+    }
+
+    [Fact]
     public async Task AllowedTypes_AllAccepted()
     {
         var items = new[]

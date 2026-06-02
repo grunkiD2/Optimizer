@@ -9,19 +9,32 @@ public class CloudSyncOrchestrator : ICloudSyncOrchestrator
 {
     private readonly IOptimizerCloudClient _cloud;
     private readonly IProfileService _profiles;
+    private readonly IHistoryService _history;
     private readonly ISettingsService _settings;
+    private readonly ISyncTombstoneCollector _tombstones;
     private readonly string _cursorFile = Path.Combine(AppPaths.AppDataFolder, "cloud-cursor.json");
     private CursorState _state = new();
+
+    // Debounce guard for settings-triggered syncs
+    private DateTime _lastSettingsSync = DateTime.MinValue;
+    private static readonly TimeSpan SettingsSyncDebounce = TimeSpan.FromSeconds(30);
 
     public CloudSyncOrchestrator(
         IOptimizerCloudClient cloud,
         IProfileService profiles,
-        ISettingsService settings)
+        IHistoryService history,
+        ISettingsService settings,
+        ISyncTombstoneCollector tombstones)
     {
         _cloud = cloud;
         _profiles = profiles;
+        _history = history;
         _settings = settings;
+        _tombstones = tombstones;
         LoadState();
+
+        // Subscribe to settings changes for debounced auto-sync
+        _settings.SettingsChanged += OnSettingsChanged;
     }
 
     public bool IsEnabled => _settings.Settings.CloudSyncEnabled;
@@ -40,7 +53,7 @@ public class CloudSyncOrchestrator : ICloudSyncOrchestrator
 
         try
         {
-            // Pull items newer than our cursor
+            // ── Pull: items newer than our cursor ──────────────────────────
             var pull = await _cloud.PullAsync(_state.Cursor);
             if (pull != null)
             {
@@ -49,9 +62,10 @@ public class CloudSyncOrchestrator : ICloudSyncOrchestrator
                 _state.Cursor = pull.Cursor;
             }
 
-            // Push: gather all local snapshots + settings
+            // ── Push: snapshots + history + settings + pending tombstones ──
             var pushItems = new List<CloudSyncItem>();
 
+            // Snapshots
             foreach (var snap in _profiles.Snapshots)
             {
                 pushItems.Add(new CloudSyncItem(
@@ -60,16 +74,37 @@ public class CloudSyncOrchestrator : ICloudSyncOrchestrator
                     JsonSerializer.Serialize(snap)));
             }
 
+            // History entries
+            foreach (var entry in _history.Entries)
+            {
+                pushItems.Add(new CloudSyncItem(
+                    "history",
+                    entry.Id,
+                    JsonSerializer.Serialize(entry)));
+            }
+
+            // Settings (single "main" item)
             pushItems.Add(new CloudSyncItem(
                 "settings",
                 "main",
                 JsonSerializer.Serialize(_settings.Settings)));
+
+            // Tombstones — locally deleted items not yet pushed
+            var pendingTombstones = _tombstones.GetAndClear();
+            foreach (var t in pendingTombstones)
+            {
+                pushItems.Add(new CloudSyncItem(t.ItemType, t.ItemId, "{}", IsDeleted: true));
+            }
 
             if (pushItems.Count > 0)
             {
                 var push = await _cloud.PushAsync(pushItems);
                 if (push == null)
                 {
+                    // Push failed — re-queue the tombstones so they're not lost
+                    foreach (var t in pendingTombstones)
+                        _tombstones.Record(t.ItemType, t.ItemId);
+
                     _state.LastError = "Push failed";
                     SaveState();
                     return false;
@@ -104,25 +139,70 @@ public class CloudSyncOrchestrator : ICloudSyncOrchestrator
         return Task.CompletedTask;
     }
 
+    // ── Private helpers ────────────────────────────────────────────────────
+
     private void ApplyRemoteItem(CloudSyncItem item)
     {
         try
         {
-            if (item.IsDeleted) return;  // tombstones deferred to V8.A3
-
-            if (item.ItemType == "snapshot")
+            if (item.IsDeleted)
             {
-                var snap = JsonSerializer.Deserialize<SettingsProfile>(item.Payload,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (snap != null)
-                    _profiles.UpsertSnapshot(snap);
+                // Tombstone — delete the local copy
+                switch (item.ItemType.ToLowerInvariant())
+                {
+                    case "snapshot":
+                        _profiles.DeleteSnapshot(item.ItemId);
+                        break;
+                    case "history":
+                        _history.DeleteEntry(item.ItemId);
+                        break;
+                    case "settings":
+                        // Settings cannot be deleted, only merged — ignore
+                        break;
+                }
+                return;
             }
-            // settings and history apply deferred to V8.A3
+
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            switch (item.ItemType.ToLowerInvariant())
+            {
+                case "snapshot":
+                {
+                    var snap = JsonSerializer.Deserialize<SettingsProfile>(item.Payload, opts);
+                    if (snap != null) _profiles.UpsertSnapshot(snap);
+                    break;
+                }
+                case "history":
+                {
+                    var entry = JsonSerializer.Deserialize<HistoryEntry>(item.Payload, opts);
+                    if (entry != null) _history.UpsertEntry(entry);
+                    break;
+                }
+                case "settings":
+                {
+                    if (item.ItemId == "main")
+                    {
+                        var remote = JsonSerializer.Deserialize<AppSettings>(item.Payload, opts);
+                        if (remote != null) _settings.ApplyRemoteSettings(remote);
+                    }
+                    break;
+                }
+            }
         }
         catch (Exception ex)
         {
             EngineLog.Error($"Apply remote item failed: {item.ItemType}/{item.ItemId}", ex);
         }
+    }
+
+    private void OnSettingsChanged()
+    {
+        if (!IsEnabled) return;
+        if (DateTime.UtcNow - _lastSettingsSync < SettingsSyncDebounce) return;
+
+        _lastSettingsSync = DateTime.UtcNow;
+        _ = Task.Run(SyncNowAsync);
     }
 
     private void LoadState()

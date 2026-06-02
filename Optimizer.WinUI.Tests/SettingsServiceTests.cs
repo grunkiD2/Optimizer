@@ -9,6 +9,7 @@ namespace Optimizer.WinUI.Tests;
 /// so these tests operate against the real path. A future refactor to inject the path would
 /// allow full isolation. For now the tests verify the public API contract.
 /// </summary>
+[Collection("SettingsServiceCollection")]
 public class SettingsServiceTests
 {
     [Fact]

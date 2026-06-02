@@ -1,18 +1,24 @@
 using System.Text.Json;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.Services;
 
 public class ProfileService : IProfileService
 {
     private readonly IWindowsOptimizerService _optimizer;
+    private readonly ISyncTombstoneCollector? _tombstones;
     private readonly List<SettingsProfile> _snapshots = [];
     private static readonly string FilePath = AppPaths.GetDataFile("snapshots.json");
 
     public ProfileService(IWindowsOptimizerService optimizer)
+        : this(optimizer, null) { }
+
+    public ProfileService(IWindowsOptimizerService optimizer, ISyncTombstoneCollector? tombstones)
     {
         _optimizer = optimizer;
+        _tombstones = tombstones;
     }
 
     public IReadOnlyList<SettingsProfile> BuiltInPresets => _optimizer.GetBuiltInPresets();
@@ -88,8 +94,12 @@ public class ProfileService : IProfileService
 
     public void DeleteSnapshot(string snapshotId)
     {
-        _snapshots.RemoveAll(s => s.Id == snapshotId);
-        SaveSnapshots();
+        var removed = _snapshots.RemoveAll(s => s.Id == snapshotId) > 0;
+        if (removed)
+        {
+            SaveSnapshots();
+            _tombstones?.Record("snapshot", snapshotId);
+        }
     }
 
     public string ExportAll()

@@ -145,6 +145,7 @@ public partial class App : Application
                 services.AddSingleton<IComplianceService, ComplianceService>();
 
                 // Cloud sync
+                services.AddSingleton<ISyncTombstoneCollector, SyncTombstoneCollector>();
                 services.AddSingleton<IOptimizerCloudClient, OptimizerCloudClient>();
                 services.AddSingleton<ICloudSyncOrchestrator, CloudSyncOrchestrator>();
 

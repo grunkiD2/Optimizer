@@ -120,4 +120,67 @@ public class HistoryServiceTests
         var ids = svc.Entries.Select(e => e.Id).ToList();
         Assert.Distinct(ids);
     }
+
+    [Fact]
+    public void UpsertEntry_AddsNewEntry_WhenIdNotPresent()
+    {
+        var svc = new HistoryService();
+        var entry = new HistoryEntry
+        {
+            OptimizationId = "opt-remote",
+            OptimizationTitle = "Remote Opt",
+            Category = "Cloud",
+            Action = HistoryAction.Applied
+        };
+
+        svc.UpsertEntry(entry);
+
+        Assert.Single(svc.Entries);
+        Assert.Equal("opt-remote", svc.Entries[0].OptimizationId);
+    }
+
+    [Fact]
+    public void UpsertEntry_ReplacesExistingEntry_ById()
+    {
+        var svc = new HistoryService();
+        svc.RecordApplied("opt-x", "Original", "Cat", false);
+        var originalId = svc.Entries[0].Id;
+
+        var updated = new HistoryEntry
+        {
+            Id = originalId,  // same Id — should replace
+            OptimizationId = "opt-x",
+            OptimizationTitle = "Updated",
+            Category = "Cat",
+            Action = HistoryAction.Applied
+        };
+
+        svc.UpsertEntry(updated);
+
+        Assert.Single(svc.Entries);
+        Assert.Equal("Updated", svc.Entries[0].OptimizationTitle);
+    }
+
+    [Fact]
+    public void DeleteEntry_RemovesById_ReturnsTrue()
+    {
+        var svc = new HistoryService();
+        svc.RecordApplied("opt-del", "Delete Me", "Cat", false);
+        var id = svc.Entries[0].Id;
+
+        var result = svc.DeleteEntry(id);
+
+        Assert.True(result);
+        Assert.Empty(svc.Entries);
+    }
+
+    [Fact]
+    public void DeleteEntry_NonExistentId_ReturnsFalse()
+    {
+        var svc = new HistoryService();
+
+        var result = svc.DeleteEntry("does-not-exist");
+
+        Assert.False(result);
+    }
 }

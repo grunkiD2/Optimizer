@@ -10,4 +10,6 @@ public interface IHistoryService
     void RecordOneTime(string optimizationId, string title, string category, string resultText);
     void RecordUndone(string optimizationId, string title, string category);
     void Clear();
+    void UpsertEntry(HistoryEntry entry);
+    bool DeleteEntry(string id);
 }
