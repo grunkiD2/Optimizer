@@ -19,3 +19,11 @@ BundleArtifacts/
 ## User-specific
 *.rsuser
 .localhistory/
+
+## Tool / session artifacts
+.claude/
+.superpowers/
+*.binlog
+screenshot_*.png
+TestApp_backup.zip
+_WinUITest/
