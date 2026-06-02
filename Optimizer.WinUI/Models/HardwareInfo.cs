@@ -44,6 +44,38 @@ public class MemoryHardwareInfo
     public int SpeedMHz { get; set; }
     public string FormFactor { get; set; } = "";
     public List<string> ModuleParts { get; set; } = [];
+
+    // Per-DIMM detail (D4b)
+    public int ConfiguredClockSpeedMhz { get; set; }
+    public int ConfiguredVoltageMv { get; set; }
+    public List<MemoryModuleInfo> Modules { get; set; } = [];
+}
+
+/// <summary>
+/// Per-DIMM slot information read from Win32_PhysicalMemory.
+/// Full primary timings (CL-tRCD-tRP-tRAS) are NOT available via WMI
+/// and require raw SMBIOS SPD reads — see the Hardware page note.
+/// </summary>
+public class MemoryModuleInfo
+{
+    public string BankLabel { get; set; } = "";
+    public string DeviceLocator { get; set; } = "";
+    public long CapacityBytes { get; set; }
+    public int SpeedMhz { get; set; }
+    public int ConfiguredSpeedMhz { get; set; }
+    public int ConfiguredVoltageMv { get; set; }
+    public string Manufacturer { get; set; } = "";
+    public string PartNumber { get; set; } = "";
+
+    // Display helpers
+    public string CapacityText => CapacityBytes > 0 ? ByteFormatter.Format(CapacityBytes) : "—";
+    public string SlotText => string.IsNullOrEmpty(DeviceLocator) ? BankLabel : DeviceLocator;
+    public string SpeedText => ConfiguredSpeedMhz > 0
+        ? $"{ConfiguredSpeedMhz} MHz (rated {SpeedMhz} MHz)"
+        : SpeedMhz > 0 ? $"{SpeedMhz} MHz" : "—";
+    public string VoltageText => ConfiguredVoltageMv > 0
+        ? $"{(ConfiguredVoltageMv / 1000.0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)} V"
+        : "—";
 }
 
 public class MotherboardInfo

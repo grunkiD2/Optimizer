@@ -123,6 +123,32 @@
                 </Grid>
             </Border>
 
+            <!-- ── CPU Undervolt / PL1-PL2 guidance (D3b) ──────────────────── -->
+            <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                    CornerRadius="8" Padding="14"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Undervolting and Power-Limit (PL1/PL2) changes"
+                               FontWeight="SemiBold" FontSize="13"/>
+                    <TextBlock TextWrapping="Wrap" FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                        CPU undervolting and direct PL1/PL2 power-limit writes require a signed ring-0
+                        kernel driver (e.g. WinRing0) which Optimizer does not bundle for security and
+                        code-signing reasons. To undervolt or change power limits, use your system BIOS
+                        or a vendor tool such as Intel XTU (Intel CPUs) or AMD Ryzen Master (AMD CPUs).
+                        The values shown above are read-only display.
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Launch Intel XTU"
+                                Click="LaunchXtu_Click"
+                                Visibility="{x:Bind ViewModel.HasIntelXtu, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+                        <Button Content="Launch Ryzen Master"
+                                Click="LaunchRyzenMaster_Click"
+                                Visibility="{x:Bind ViewModel.HasRyzenMaster, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- ═══════════════════════════════════════════════════════════════
                  STRESS TEST
             ════════════════════════════════════════════════════════════════ -->

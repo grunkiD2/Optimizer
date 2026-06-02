@@ -77,6 +77,27 @@ public partial class TuningViewModel : ObservableObject
     public bool IsPrime95Installed   => _stress.IsPrime95Installed;
     public bool IsCinebenchInstalled => _stress.IsCinebenchInstalled;
 
+    // CPU vendor tool availability (D3b — honest guidance, display only)
+    public bool HasIntelXtu    => DetectXtuPath() != null;
+    public bool HasRyzenMaster => DetectRyzenMasterPath() != null;
+
+    private static string? DetectXtuPath() => DetectXtuPathPublic();
+    private static string? DetectRyzenMasterPath() => DetectRyzenMasterPathPublic();
+
+    public static string? DetectXtuPathPublic()
+    {
+        var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var path = Path.Combine(pf, "Intel", "Intel(R) Extreme Tuning Utility", "XTU.exe");
+        return File.Exists(path) ? path : null;
+    }
+
+    public static string? DetectRyzenMasterPathPublic()
+    {
+        var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var path = Path.Combine(pf, "AMD", "RyzenMaster", "RyzenMaster.exe");
+        return File.Exists(path) ? path : null;
+    }
+
     // ── GPU OC observable properties ──────────────────────────────────────────
 
     [ObservableProperty] private bool   gpuOcWriteAvailable;

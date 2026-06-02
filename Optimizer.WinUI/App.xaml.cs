@@ -139,6 +139,7 @@ public partial class App : Application
                 services.AddSingleton<IGpuControlBackend, AdlGpuBackend>();
                 services.AddSingleton<IGpuControlBackend, NullGpuBackend>();
                 services.AddSingleton<IGpuControlService, GpuControlService>();
+                services.AddSingleton<IDeviceControlService, DeviceControlService>();
                 services.AddSingleton<IDriverDiagnosticsService, DriverDiagnosticsService>();
                 services.AddSingleton<IBottleneckDetectorService, BottleneckDetectorService>();
                 services.AddSingleton<ISmartInsightsService, SmartInsightsService>();
@@ -190,6 +191,7 @@ public partial class App : Application
                 services.AddSingleton<SettingsViewModel>();
                 services.AddTransient<MarketplaceViewModel>();
                 services.AddTransient<PluginsViewModel>();
+                services.AddTransient<DevicesViewModel>();
                 services.AddTransient<FleetViewModel>();
                 services.AddTransient<TemplatesViewModel>();
                 services.AddTransient<ComplianceViewModel>();

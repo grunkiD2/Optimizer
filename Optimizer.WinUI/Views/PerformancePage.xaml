@@ -179,6 +179,7 @@
                                     <ColumnDefinition Width="80"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel>
@@ -208,6 +209,13 @@
                                     <ComboBoxItem Content="BelowNormal"/>
                                     <ComboBoxItem Content="Idle"/>
                                 </ComboBox>
+
+                                <!-- Affinity editor button -->
+                                <Button Grid.Column="4" Tag="{x:Bind Pid}"
+                                        Content="Affinity"
+                                        VerticalAlignment="Center"
+                                        Click="Affinity_Click"
+                                        ToolTipService.ToolTip="Set per-core CPU affinity"/>
                             </Grid>
                         </Border>
                     </DataTemplate>

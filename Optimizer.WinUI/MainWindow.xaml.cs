@@ -34,6 +34,7 @@ public sealed partial class MainWindow : Window
         ["Reports"]      = typeof(ReportsPage),
         ["Settings"]     = typeof(SettingsPage),
         ["DisplayTest"]  = typeof(DisplayTestPage),
+        ["Devices"]      = typeof(DevicesPage),
         ["Fleet"]        = typeof(FleetPage),
         ["Templates"]    = typeof(TemplatesPage),
         ["Compliance"]   = typeof(CompliancePage),

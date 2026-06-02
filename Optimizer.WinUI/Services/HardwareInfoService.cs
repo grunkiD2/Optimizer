@@ -89,32 +89,58 @@ public class HardwareInfoService : IHardwareInfoService
                 "SELECT * FROM Win32_PhysicalMemory",
                 obj => new
                 {
-                    Capacity     = Convert.ToInt64(obj["Capacity"] ?? 0L),
-                    Speed        = Convert.ToInt32(obj["Speed"] ?? 0),
-                    Manufacturer = obj["Manufacturer"]?.ToString()?.Trim() ?? "",
-                    PartNumber   = obj["PartNumber"]?.ToString()?.Trim() ?? "",
-                    FormFactor   = Convert.ToInt32(obj["FormFactor"] ?? 0),
+                    Capacity              = Convert.ToInt64(obj["Capacity"] ?? 0L),
+                    Speed                 = Convert.ToInt32(obj["Speed"] ?? 0),
+                    ConfiguredClockSpeed  = Convert.ToInt32(obj["ConfiguredClockSpeed"] ?? 0),
+                    ConfiguredVoltage     = Convert.ToInt32(obj["ConfiguredVoltage"] ?? 0),
+                    Manufacturer          = obj["Manufacturer"]?.ToString()?.Trim() ?? "",
+                    PartNumber            = obj["PartNumber"]?.ToString()?.Trim() ?? "",
+                    FormFactor            = Convert.ToInt32(obj["FormFactor"] ?? 0),
+                    BankLabel             = obj["BankLabel"]?.ToString()?.Trim() ?? "",
+                    DeviceLocator         = obj["DeviceLocator"]?.ToString()?.Trim() ?? "",
                 },
                 cacheTtl: Ttl);
 
             long total = 0;
             int maxSpeed = 0;
+            int maxConfiguredSpeed = 0;
+            int maxConfiguredVoltage = 0;
             string formFactor = "";
 
             foreach (var m in modules)
             {
                 total += m.Capacity;
                 if (m.Speed > maxSpeed) maxSpeed = m.Speed;
+                if (m.ConfiguredClockSpeed > maxConfiguredSpeed)
+                    maxConfiguredSpeed = m.ConfiguredClockSpeed;
+                if (m.ConfiguredVoltage > maxConfiguredVoltage)
+                    maxConfiguredVoltage = m.ConfiguredVoltage;
+
                 var part = $"{m.Manufacturer} {m.PartNumber}".Trim();
                 if (!string.IsNullOrWhiteSpace(part))
                     info.ModuleParts.Add(part);
+
                 formFactor = m.FormFactor switch { 8 => "DIMM", 12 => "SODIMM", _ => "Other" };
+
+                info.Modules.Add(new MemoryModuleInfo
+                {
+                    BankLabel            = m.BankLabel,
+                    DeviceLocator        = m.DeviceLocator,
+                    CapacityBytes        = m.Capacity,
+                    SpeedMhz             = m.Speed,
+                    ConfiguredSpeedMhz   = m.ConfiguredClockSpeed,
+                    ConfiguredVoltageMv  = m.ConfiguredVoltage,
+                    Manufacturer         = m.Manufacturer,
+                    PartNumber           = m.PartNumber,
+                });
             }
 
-            info.TotalBytes  = total;
-            info.ModuleCount = modules.Count;
-            info.SpeedMHz    = maxSpeed;
-            info.FormFactor  = formFactor;
+            info.TotalBytes               = total;
+            info.ModuleCount              = modules.Count;
+            info.SpeedMHz                 = maxSpeed;
+            info.FormFactor               = formFactor;
+            info.ConfiguredClockSpeedMhz  = maxConfiguredSpeed;
+            info.ConfiguredVoltageMv      = maxConfiguredVoltage;
         }
         catch { /* return partial */ }
         return info;

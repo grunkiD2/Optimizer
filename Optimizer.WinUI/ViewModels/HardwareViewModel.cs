@@ -26,6 +26,9 @@ public partial class HardwareViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(MemoryTotalText))]
     [NotifyPropertyChangedFor(nameof(MemoryModulesText))]
     [NotifyPropertyChangedFor(nameof(MemoryModulePartsText))]
+    [NotifyPropertyChangedFor(nameof(MemoryConfiguredSpeedText))]
+    [NotifyPropertyChangedFor(nameof(MemoryConfiguredVoltageText))]
+    [NotifyPropertyChangedFor(nameof(MemoryModuleList))]
     [NotifyPropertyChangedFor(nameof(BiosVersionText))]
     [NotifyPropertyChangedFor(nameof(BiosDateText))]
     [NotifyPropertyChangedFor(nameof(OsVersionText))]
@@ -167,6 +170,19 @@ public partial class HardwareViewModel : ObservableObject
         Hardware?.Memory?.ModuleParts is List<string> parts && parts.Count > 0
             ? string.Join("\n", parts)
             : "—";
+
+    public string MemoryConfiguredSpeedText =>
+        Hardware?.Memory?.ConfiguredClockSpeedMhz is int cs and > 0
+            ? $"{cs} MHz"
+            : "—";
+
+    public string MemoryConfiguredVoltageText =>
+        Hardware?.Memory?.ConfiguredVoltageMv is int mv and > 0
+            ? $"{(mv / 1000.0).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)} V"
+            : "—";
+
+    public IReadOnlyList<Models.MemoryModuleInfo> MemoryModuleList =>
+        Hardware?.Memory?.Modules ?? [];
 
     public string BiosVersionText =>
         Hardware?.Motherboard is MotherboardInfo mb

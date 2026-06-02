@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
@@ -67,5 +68,116 @@ public sealed partial class PerformancePage : Page
 
         if (priority.HasValue)
             ViewModel.SetProcessPriority(pid, priority.Value);
+    }
+
+    // ── Per-core affinity handler ────────────────────────────────────────────
+
+    private async void Affinity_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+        if (btn.Tag is not int pid) return;
+
+        var coreCount   = ViewModel.LogicalCoreCount;
+        var currentMask = ViewModel.GetAffinity(pid);
+        var currentCores = AffinityMask.ToCores(currentMask);
+
+        // Build the dialog content: one CheckBox per logical core
+        var panel = new StackPanel { Spacing = 4 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"Select which logical cores (CPU 0–{coreCount - 1}) this process may use.",
+            TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 8)
+        });
+
+        var checkBoxes = new CheckBox[coreCount];
+        // Lay them out in a wrap panel — 4 per row
+        var wrapGrid = new VariableSizedWrapGrid
+        {
+            Orientation = Orientation.Horizontal,
+            ItemWidth   = 90,
+            ItemHeight  = 32,
+        };
+
+        for (var i = 0; i < coreCount; i++)
+        {
+            var cb = new CheckBox
+            {
+                Content   = $"CPU {i}",
+                IsChecked = currentCores.Contains(i),
+                Tag       = i,
+            };
+            checkBoxes[i] = cb;
+            wrapGrid.Children.Add(cb);
+        }
+
+        panel.Children.Add(wrapGrid);
+
+        var applyButton = new Button
+        {
+            Content             = "Apply",
+            Style               = Application.Current.Resources["AccentButtonStyle"] as Style,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Margin              = new Thickness(0, 12, 0, 0),
+        };
+        panel.Children.Add(applyButton);
+
+        // Validation: disable Apply when no core is checked
+        void UpdateApply()
+        {
+            applyButton.IsEnabled = checkBoxes.Any(c => c.IsChecked == true);
+        }
+        foreach (var c in checkBoxes)
+            c.Checked += (_, _) => UpdateApply();
+        foreach (var c in checkBoxes)
+            c.Unchecked += (_, _) => UpdateApply();
+        UpdateApply();
+
+        var dialog = new ContentDialog
+        {
+            Title           = $"CPU Affinity — PID {pid}",
+            Content         = panel,
+            CloseButtonText = "Cancel",
+            DefaultButton   = ContentDialogButton.Close,
+            XamlRoot        = XamlRoot,
+        };
+
+        // Wire Apply inside the dialog (closes it on success)
+        applyButton.Click += async (_, _) =>
+        {
+            var selected = checkBoxes
+                .Where(c => c.IsChecked == true)
+                .Select(c => (int)c.Tag!)
+                .ToArray();
+
+            var mask = AffinityMask.FromCores(selected, coreCount);
+
+            if (!AffinityMask.IsValid(mask, coreCount))
+            {
+                // Should not reach here due to the Apply guard, but defend anyway
+                return;
+            }
+
+            var ok = ViewModel.SetAffinity(pid, mask);
+            if (!ok)
+            {
+                // Show brief error inside the same dialog
+                var errBar = new InfoBar
+                {
+                    Severity  = InfoBarSeverity.Error,
+                    Title     = "Failed to set affinity. The process may have exited or access was denied.",
+                    IsOpen    = true,
+                    IsClosable = false,
+                    Margin    = new Thickness(0, 8, 0, 0),
+                };
+                panel.Children.Add(errBar);
+                return;
+            }
+
+            dialog.Hide();
+            await Task.CompletedTask;
+        };
+
+        await dialog.ShowAsync();
     }
 }

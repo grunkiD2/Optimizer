@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Optimizer.WinUI.Views.DevicesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
+    xmlns:services="using:Optimizer.WinUI.Services"
+    Background="Transparent"
+    Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <!-- Reuse BoolToVisibilityConverter with Invert parameter to negate bool (for IsEnabled on critical) -->
+        <converters:BoolToVisibilityConverter x:Key="BoolNegation"/>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="24,16,24,24">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="20"/>
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
+
+            <!-- ── Header ──────────────────────────────────────────────────── -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Devices" Style="{StaticResource TitleTextBlockStyle}"/>
+                    <TextBlock Text="View and manage installed PnP hardware devices"
+                               FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="Refresh" VerticalAlignment="Bottom"
+                        Click="Refresh_Click"/>
+            </Grid>
+
+            <!-- ── Safety notice ──────────────────────────────────────────── -->
+            <InfoBar Severity="Warning"
+                     IsOpen="True"
+                     IsClosable="False"
+                     Title="Device safety notice"
+                     Message="Disabling devices may affect system functionality. Protected devices (CPU, storage, display, HID) cannot be disabled. A confirmation prompt appears before any disable action."/>
+
+            <!-- ── Loading / status ───────────────────────────────────────── -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <InfoBar x:Name="StatusInfoBar"
+                     Severity="Informational"
+                     IsClosable="True"
+                     IsOpen="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay}"
+                     Title="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"/>
+
+            <!-- ── Class filter ───────────────────────────────────────────── -->
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="Filter by class:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <ComboBox MinWidth="160"
+                          ItemsSource="{x:Bind ViewModel.ClassFilters}"
+                          SelectedItem="{x:Bind ViewModel.ClassFilter, Mode=TwoWay}"
+                          PlaceholderText="All"/>
+            </StackPanel>
+
+            <!-- ── Device list ────────────────────────────────────────────── -->
+            <TextBlock Text="INSTALLED DEVICES" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,4,0,2"/>
+
+            <ListView x:Name="DeviceListView"
+                      ItemsSource="{x:Bind ViewModel.Devices, Mode=OneWay}"
+                      SelectionMode="None">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="services:PnpDevice">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="6" Padding="12,8" Margin="0,0,0,2">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Name + instance id -->
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock FontSize="10"
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                               Text="{x:Bind InstanceId}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <!-- Class -->
+                                <TextBlock Grid.Column="1" Text="{x:Bind Class}"
+                                           FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                <!-- Status -->
+                                <TextBlock Grid.Column="2" Text="{x:Bind Status}"
+                                           FontSize="11" VerticalAlignment="Center"/>
+
+                                <!-- Protected badge (critical devices only) -->
+                                <Border Grid.Column="3" CornerRadius="4" Padding="6,2"
+                                        Background="#3DFBBF24" VerticalAlignment="Center"
+                                        Visibility="{x:Bind IsCritical, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="Protected" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="#FBBF24"/>
+                                </Border>
+
+                                <!-- Enable / Disable toggle (disabled for critical devices) -->
+                                <ToggleSwitch Grid.Column="4"
+                                             VerticalAlignment="Center"
+                                             IsOn="{x:Bind IsEnabled, Mode=OneWay}"
+                                             IsEnabled="{x:Bind IsCritical, Converter={StaticResource BoolNegation}, ConverterParameter=Invert}"
+                                             Toggled="DeviceToggle_Toggled"
+                                             Tag="{x:Bind InstanceId}"
+                                             MinWidth="0"
+                                             OnContent="" OffContent=""/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

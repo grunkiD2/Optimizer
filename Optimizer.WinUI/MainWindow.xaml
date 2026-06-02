@@ -109,6 +109,11 @@
                 </NavigationViewItem>
 
                 <NavigationViewItemHeader Content="MANAGE"/>
+                <NavigationViewItem Content="Devices" Tag="Devices">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE975;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Services" Tag="Services">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE9F5;"/>

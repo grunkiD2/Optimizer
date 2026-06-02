@@ -279,29 +279,103 @@
             <!-- ── Memory ─────────────────────────────────────────────────── -->
             <Expander Header="Memory (RAM)" IsExpanded="True"
                       HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="160"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                <StackPanel Spacing="8" Padding="8,4">
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Installed" Style="{StaticResource LabelStyle}"/>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueStyle}"
-                               Text="{x:Bind ViewModel.MemoryTotalText, Mode=OneWay}"/>
+                    <!-- Summary row -->
+                    <Grid ColumnSpacing="8" RowSpacing="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Modules" Style="{StaticResource LabelStyle}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueStyle}"
-                               Text="{x:Bind ViewModel.MemoryModulesText, Mode=OneWay}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Installed" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                   Text="{x:Bind ViewModel.MemoryTotalText, Mode=OneWay}"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Part Numbers" Style="{StaticResource LabelStyle}"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueStyle}"
-                               Text="{x:Bind ViewModel.MemoryModulePartsText, Mode=OneWay}"/>
-                </Grid>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Modules" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                   Text="{x:Bind ViewModel.MemoryModulesText, Mode=OneWay}"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Configured Speed" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                   Text="{x:Bind ViewModel.MemoryConfiguredSpeedText, Mode=OneWay}"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Configured Voltage" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                   Text="{x:Bind ViewModel.MemoryConfiguredVoltageText, Mode=OneWay}"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Part Numbers" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                   Text="{x:Bind ViewModel.MemoryModulePartsText, Mode=OneWay}"/>
+                    </Grid>
+
+                    <!-- Per-DIMM module detail -->
+                    <TextBlock Text="Per-Module Detail" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,2"/>
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.MemoryModuleList, Mode=OneWay}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="models:MemoryModuleInfo">
+                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                        CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
+                                    <Grid ColumnSpacing="8" RowSpacing="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Slot" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                                   Text="{x:Bind SlotText}"/>
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Capacity" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                                   Text="{x:Bind CapacityText}"/>
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Speed" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                                   Text="{x:Bind SpeedText}"/>
+
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Voltage" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                                                   Text="{x:Bind VoltageText}"/>
+
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Manufacturer / Part" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource ValueStyle}">
+                                            <Run Text="{x:Bind Manufacturer}"/>
+                                            <Run Text=" "/>
+                                            <Run Text="{x:Bind PartNumber}"/>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <!-- Honest note about detailed timings -->
+                    <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="6" Padding="10,8">
+                        <TextBlock TextWrapping="Wrap" FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                            Note: Detailed timings (CL-tRCD-tRP-tRAS) require raw SMBIOS SPD reads and
+                            are not available via Windows WMI. Use your BIOS or a tool like CPU-Z to
+                            view primary memory timings.
+                        </TextBlock>
+                    </Border>
+
+                </StackPanel>
             </Expander>
 
             <!-- ── Motherboard ────────────────────────────────────────────── -->

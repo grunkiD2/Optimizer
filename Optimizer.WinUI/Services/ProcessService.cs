@@ -1,11 +1,16 @@
 using System.Diagnostics;
 
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
 public class ProcessService : IProcessService
 {
+    // ── Logical core count ───────────────────────────────────────────────────
+
+    public int LogicalCoreCount => Environment.ProcessorCount;
+
     // ── Priority manager helpers ─────────────────────────────────────────────
 
     public IReadOnlyList<ProcessPriorityInfo> GetUserProcesses()
@@ -55,16 +60,34 @@ public class ProcessService : IProcessService
         }
     }
 
-    public bool SetProcessAffinity(int pid, bool allCores)
+    // ── Per-core affinity ────────────────────────────────────────────────────
+
+    public long? GetProcessAffinityMask(int pid)
     {
         try
         {
             using var p = Process.GetProcessById(pid);
-            if (allCores)
-                p.ProcessorAffinity = (IntPtr)((1L << Environment.ProcessorCount) - 1);
-            else
-                p.ProcessorAffinity = (IntPtr)((1L << (Environment.ProcessorCount / 2)) - 1);
-            EngineLog.Write($"Set affinity of {p.ProcessName} ({pid}) to {(allCores ? "all" : "half")} cores.");
+            return p.ProcessorAffinity.ToInt64();
+        }
+        catch
+        {
+            // process exited, access denied, or not supported
+            return null;
+        }
+    }
+
+    public bool SetProcessAffinityMask(int pid, long mask)
+    {
+        if (!AffinityMask.IsValid(mask, LogicalCoreCount))
+        {
+            EngineLog.Write($"SetProcessAffinityMask: invalid mask 0x{mask:X} for {LogicalCoreCount} cores.");
+            return false;
+        }
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            p.ProcessorAffinity = (IntPtr)mask;
+            EngineLog.Write($"Set affinity of {p.ProcessName} ({pid}) to mask 0x{mask:X}.");
             return true;
         }
         catch (Exception ex)
@@ -72,6 +95,15 @@ public class ProcessService : IProcessService
             EngineLog.Error($"Could not set affinity for process {pid}", ex);
             return false;
         }
+    }
+
+    /// <summary>Back-compat: all cores → full mask; half cores → lower-half mask.</summary>
+    public bool SetProcessAffinity(int pid, bool allCores)
+    {
+        var mask = allCores
+            ? AffinityMask.AllCores(LogicalCoreCount)
+            : (1L << (LogicalCoreCount / 2)) - 1;
+        return SetProcessAffinityMask(pid, mask);
     }
 
     // ── Existing members ────────────────────────────────────────────────────

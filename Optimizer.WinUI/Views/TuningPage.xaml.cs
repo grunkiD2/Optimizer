@@ -159,4 +159,22 @@ public sealed partial class TuningPage : Page
         => await PageExceptionHelper.SafeAsync(
             () => ViewModel.OpenGpuVendorToolCommand.ExecuteAsync(null),
             XamlRoot, "Open GPU vendor tool");
+
+    // ── CPU vendor tool launcher (D3b — honest guidance, display only) ────────
+
+    private void LaunchXtu_Click(object sender, RoutedEventArgs e)
+    {
+        var path = TuningViewModel.DetectXtuPathPublic();
+        if (!string.IsNullOrEmpty(path))
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                { FileName = path, UseShellExecute = true });
+    }
+
+    private void LaunchRyzenMaster_Click(object sender, RoutedEventArgs e)
+    {
+        var path = TuningViewModel.DetectRyzenMasterPathPublic();
+        if (!string.IsNullOrEmpty(path))
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                { FileName = path, UseShellExecute = true });
+    }
 }

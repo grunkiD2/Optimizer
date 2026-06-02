@@ -13,7 +13,7 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
 {
     private readonly ISystemMonitorService _monitor;
     private readonly IPowerService _powerService;
-    private readonly ProcessService _processService;
+    private readonly IProcessService _processService;
 
     // ── Live metrics ─────────────────────────────────────────────────────────
     [ObservableProperty] private double cpuUsage;
@@ -29,6 +29,10 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
 
     // ── Process manager ──────────────────────────────────────────────────────
     public ObservableCollection<ProcessPriorityInfo> Processes { get; } = [];
+
+    // ── Affinity editor ──────────────────────────────────────────────────────
+    /// <summary>Number of logical cores; drives the per-core checkbox list.</summary>
+    public int LogicalCoreCount => _processService.LogicalCoreCount;
 
     public override string CategoryName => "Performance";
     public override string CategoryIcon => "⚡";
@@ -49,7 +53,7 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
         IHistoryService history,
         ISystemMonitorService monitor,
         IPowerService powerService,
-        ProcessService processService)
+        IProcessService processService)
         : base(optimizer, elevation, undoSvc, history)
     {
         _monitor = monitor;
@@ -111,9 +115,22 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
         _ = _powerService.SetGameModeAsync(value);
     }
 
+    // ── Priority ─────────────────────────────────────────────────────────────
+
     public bool SetProcessPriority(int pid, ProcessPriorityClass priority)
         => _processService.SetProcessPriority(pid, priority);
 
-    public bool SetProcessAffinity(int pid, bool allCores)
-        => _processService.SetProcessAffinity(pid, allCores);
+    // ── Affinity (per-core) ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the current affinity bitmask for a process,
+    /// falling back to all-cores if the call fails.
+    /// </summary>
+    public long GetAffinity(int pid)
+        => _processService.GetProcessAffinityMask(pid)
+           ?? AffinityMask.AllCores(LogicalCoreCount);
+
+    /// <summary>Sets an explicit per-core affinity mask. Returns false on failure.</summary>
+    public bool SetAffinity(int pid, long mask)
+        => _processService.SetProcessAffinityMask(pid, mask);
 }
