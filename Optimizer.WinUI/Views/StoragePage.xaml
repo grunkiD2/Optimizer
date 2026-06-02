@@ -11,14 +11,14 @@
     Background="Transparent"
     Loaded="Page_Loaded">
 
+    <Page.Resources>
+        <converters:HealthScoreToColorConverter x:Key="HealthScoreToColor"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:BytesToStringConverter x:Key="BytesToString"/>
+    </Page.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
-
-            <StackPanel.Resources>
-                <converters:HealthScoreToColorConverter x:Key="HealthScoreToColor"/>
-                <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
-                <converters:BytesToStringConverter x:Key="BytesToString"/>
-            </StackPanel.Resources>
 
             <!-- ── Page header ──────────────────────────────────────────── -->
             <Grid>
