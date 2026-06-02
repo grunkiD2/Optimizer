@@ -8,13 +8,13 @@ public class SmartInsightsService : ISmartInsightsService
     private readonly ISensorService _sensors;
     private readonly IHardwareInfoService _hardware;
     private readonly IServiceManagerService _services;
-    private readonly SystemMonitorService _monitor;
+    private readonly ISystemMonitorService _monitor;
 
     public SmartInsightsService(
         ISensorService sensors,
         IHardwareInfoService hardware,
         IServiceManagerService services,
-        SystemMonitorService monitor)
+        ISystemMonitorService monitor)
     {
         _sensors = sensors;
         _hardware = hardware;

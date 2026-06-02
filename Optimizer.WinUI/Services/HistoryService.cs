@@ -4,7 +4,7 @@ using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
-public class HistoryService
+public class HistoryService : IHistoryService
 {
     private readonly List<HistoryEntry> _entries = [];
     private static readonly string FilePath = AppPaths.GetDataFile("change-history.json");

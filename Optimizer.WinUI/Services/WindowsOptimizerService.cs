@@ -14,7 +14,7 @@ public class WindowsOptimizerService : IWindowsOptimizerService
     // High Performance power scheme (built-in, stable GUID across Windows versions).
     private const string HighPerformanceSchemeGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
 
-    private readonly SystemMonitorService _monitorService;
+    private readonly ISystemMonitorService _monitorService;
     private readonly IUndoService _undoService;
     private readonly IElevationService _elevationService;
     private readonly IStartupService _startupService;
@@ -22,7 +22,7 @@ public class WindowsOptimizerService : IWindowsOptimizerService
     private readonly ConcurrentDictionary<string, SettingsProfile> _appliedProfiles = new();
 
     public WindowsOptimizerService(
-        SystemMonitorService monitorService,
+        ISystemMonitorService monitorService,
         IUndoService undoService,
         IElevationService elevationService,
         IStartupService startupService)

@@ -10,7 +10,7 @@ public abstract partial class CategoryViewModelBase : ObservableObject, ICategor
     protected readonly IWindowsOptimizerService Optimizer;
     protected readonly IElevationService Elevation;
     protected readonly IUndoService UndoSvc;
-    protected readonly HistoryService History;
+    protected readonly IHistoryService History;
 
     [ObservableProperty] private int activeCount;
     [ObservableProperty] private int totalCount;
@@ -25,7 +25,7 @@ public abstract partial class CategoryViewModelBase : ObservableObject, ICategor
         IWindowsOptimizerService optimizer,
         IElevationService elevation,
         IUndoService undoSvc,
-        HistoryService history)
+        IHistoryService history)
     {
         Optimizer = optimizer;
         Elevation = elevation;

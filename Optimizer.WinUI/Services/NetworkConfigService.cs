@@ -1,9 +1,14 @@
-using System.Diagnostics;
-
 namespace Optimizer.WinUI.Services;
 
 public class NetworkConfigService : INetworkConfigService
 {
+    private readonly IPowerShellRunner _psRunner;
+
+    public NetworkConfigService(IPowerShellRunner psRunner)
+    {
+        _psRunner = psRunner;
+    }
+
     public IReadOnlyList<DnsServerPreset> DnsPresets { get; } = new[]
     {
         new DnsServerPreset { Id = "cloudflare",        Name = "Cloudflare",        Description = "Fast, privacy-focused",                          Primary = "1.1.1.1",         Secondary = "1.0.0.1" },
@@ -16,7 +21,7 @@ public class NetworkConfigService : INetworkConfigService
 
     public async Task<string> GetCurrentPrimaryDnsAsync()
     {
-        var output = await RunPowerShellAsync(
+        var output = await _psRunner.RunAsync(
             "(Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object {$_.ServerAddresses.Count -gt 0} | Select-Object -First 1).ServerAddresses[0]");
         return output?.Trim() ?? "";
     }
@@ -24,39 +29,17 @@ public class NetworkConfigService : INetworkConfigService
     public async Task<bool> SetDnsAsync(string primary, string secondary)
     {
         var script = $@"Get-NetAdapter | Where-Object {{$_.Status -eq 'Up'}} | ForEach-Object {{ Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ServerAddresses ('{primary}','{secondary}') }}";
-        return await RunPowerShellAsync(script) != null;
+        return await _psRunner.RunAsync(script) != null;
     }
 
     public async Task<bool> ResetDnsToAutomaticAsync()
     {
         var script = @"Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ResetServerAddresses }";
-        return await RunPowerShellAsync(script) != null;
+        return await _psRunner.RunAsync(script) != null;
     }
 
     public async Task<bool> FlushDnsAsync()
     {
-        return await RunPowerShellAsync("Clear-DnsClientCache") != null;
-    }
-
-    private static async Task<string?> RunPowerShellAsync(string script)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var proc = Process.Start(psi);
-            if (proc == null) return null;
-            var stdout = await proc.StandardOutput.ReadToEndAsync();
-            await proc.WaitForExitAsync();
-            return proc.ExitCode == 0 ? stdout : null;
-        }
-        catch { return null; }
+        return await _psRunner.RunAsync("Clear-DnsClientCache") != null;
     }
 }

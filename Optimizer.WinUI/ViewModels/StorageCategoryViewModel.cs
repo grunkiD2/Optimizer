@@ -65,7 +65,7 @@ public partial class StorageCategoryViewModel : CategoryViewModelBase
         IWindowsOptimizerService optimizer,
         IElevationService elevation,
         IUndoService undoSvc,
-        HistoryService history,
+        IHistoryService history,
         IDiskHealthService diskHealthService,
         ICleanupService cleanupService)
         : base(optimizer, elevation, undoSvc, history)

@@ -8,8 +8,8 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
-    private readonly SettingsService _settingsService;
-    private readonly HistoryService _historyService;
+    private readonly ISettingsService _settingsService;
+    private readonly IHistoryService _historyService;
     private readonly IThemeService _themeService;
     private readonly IApiHostService _apiHost;
 
@@ -50,7 +50,7 @@ public partial class SettingsViewModel : ObservableObject
     public List<string> BackdropOptions { get; } = ["None", "Acrylic", "MicaAlt", "Mica"];
     public List<string> LanguageOptions { get; } = ["en-US", "es-ES", "de-DE"];
 
-    public SettingsViewModel(SettingsService settingsService, HistoryService historyService, IThemeService themeService, IApiHostService apiHost)
+    public SettingsViewModel(ISettingsService settingsService, IHistoryService historyService, IThemeService themeService, IApiHostService apiHost)
     {
         _settingsService = settingsService;
         _historyService = historyService;

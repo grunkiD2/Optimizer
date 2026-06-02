@@ -9,7 +9,7 @@ using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
-public class SystemMonitorService : IDisposable
+public class SystemMonitorService : ISystemMonitorService, IDisposable
 {
     private static readonly string HistoryPath = AppPaths.GetDataFile("history.json");
 

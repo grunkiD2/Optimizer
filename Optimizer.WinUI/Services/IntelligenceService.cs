@@ -9,7 +9,7 @@ public class IntelligenceService : IIntelligenceService
 {
     private readonly MLContext _ml = new(seed: 42);
     private readonly IRecommendationsService _recommendations;
-    private readonly HistoryService _history;
+    private readonly IHistoryService _history;
     private ITransformer? _acceptanceModel;
     private DataViewSchema? _modelSchema;
 
@@ -18,7 +18,7 @@ public class IntelligenceService : IIntelligenceService
     public bool IsTrained => _acceptanceModel != null;
     public DateTime? LastTrainedAt { get; private set; }
 
-    public IntelligenceService(IRecommendationsService recommendations, HistoryService history)
+    public IntelligenceService(IRecommendationsService recommendations, IHistoryService history)
     {
         _recommendations = recommendations;
         _history = history;

@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
@@ -15,19 +16,29 @@ public sealed partial class DiagnosticsPage : Page
     }
 
     private async void QuickScan_Click(object sender, RoutedEventArgs e)
-        => await ViewModel.QuickScanCommand.ExecuteAsync(null);
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.QuickScanCommand.ExecuteAsync(null),
+            XamlRoot, "Quick diagnostics scan");
 
     private async void FullScan_Click(object sender, RoutedEventArgs e)
-        => await ViewModel.FullScanCommand.ExecuteAsync(null);
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.FullScanCommand.ExecuteAsync(null),
+            XamlRoot, "Full diagnostics scan");
 
     private async void ScanDrivers_Click(object sender, RoutedEventArgs e)
-        => await ViewModel.ScanDriversCommand.ExecuteAsync(null);
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.ScanDriversCommand.ExecuteAsync(null),
+            XamlRoot, "Driver scan");
 
     private async void DetectBottlenecks_Click(object sender, RoutedEventArgs e)
-        => await ViewModel.DetectBottlenecksCommand.ExecuteAsync(null);
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.DetectBottlenecksCommand.ExecuteAsync(null),
+            XamlRoot, "Bottleneck detection");
 
     private async void RunNetworkDeep_Click(object sender, RoutedEventArgs e)
-        => await ViewModel.RunNetworkDeepCommand.ExecuteAsync(null);
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.RunNetworkDeepCommand.ExecuteAsync(null),
+            XamlRoot, "Network deep scan");
 
     private void OpenDisplayTest_Click(object sender, RoutedEventArgs e)
         => ViewModel.OpenDisplayTestCommand.Execute(null);

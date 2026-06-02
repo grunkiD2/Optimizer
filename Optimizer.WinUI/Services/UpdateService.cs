@@ -7,53 +7,57 @@ namespace Optimizer.WinUI.Services;
 
 public class UpdateService : IUpdateService
 {
+    private readonly IPowerShellRunner _psRunner;
+
+    public UpdateService(IPowerShellRunner psRunner)
+    {
+        _psRunner = psRunner;
+    }
+
     // ── Windows Update history ────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<WindowsUpdateInfo>> GetRecentWindowsUpdatesAsync(int days = 60)
     {
-        return await Task.Run(() =>
+        var list = new List<WindowsUpdateInfo>();
+        try
         {
-            var list = new List<WindowsUpdateInfo>();
-            try
-            {
-                var script = $@"
+            var script = $@"
 Get-HotFix |
   Where-Object {{ $_.InstalledOn -gt (Get-Date).AddDays(-{days}) }} |
   Select-Object Description, HotFixID, InstalledOn |
   ConvertTo-Json -Compress";
 
-                var json = RunPowerShell(script);
-                if (string.IsNullOrWhiteSpace(json)) return list;
+            var json = await _psRunner.RunAsync(script);
+            if (string.IsNullOrWhiteSpace(json)) return list;
 
-                // ConvertTo-Json returns an object when there is a single result
-                using var doc = JsonDocument.Parse(NormalizeJsonArray(json));
-                var root = doc.RootElement;
+            // ConvertTo-Json returns an object when there is a single result
+            using var doc = JsonDocument.Parse(NormalizeJsonArray(json));
+            var root = doc.RootElement;
 
-                foreach (var el in root.EnumerateArray())
-                {
-                    var title = el.TryGetProperty("Description", out var d) ? d.GetString() ?? "" : "";
-                    var kb    = el.TryGetProperty("HotFixID", out var k)    ? k.GetString() ?? "" : "";
-
-                    DateTime installed = DateTime.MinValue;
-                    if (el.TryGetProperty("InstalledOn", out var ins) && ins.ValueKind == JsonValueKind.String)
-                        DateTime.TryParse(ins.GetString(), out installed);
-
-                    list.Add(new WindowsUpdateInfo
-                    {
-                        Title       = string.IsNullOrWhiteSpace(title) ? kb : title,
-                        KbNumber    = kb,
-                        InstalledOn = installed,
-                        Status      = "Installed"
-                    });
-                }
-            }
-            catch (Exception ex)
+            foreach (var el in root.EnumerateArray())
             {
-                EngineLog.Error("GetRecentWindowsUpdatesAsync failed", ex);
-            }
+                var title = el.TryGetProperty("Description", out var d) ? d.GetString() ?? "" : "";
+                var kb    = el.TryGetProperty("HotFixID", out var k)    ? k.GetString() ?? "" : "";
 
-            return list.OrderByDescending(u => u.InstalledOn).ToList();
-        });
+                DateTime installed = DateTime.MinValue;
+                if (el.TryGetProperty("InstalledOn", out var ins) && ins.ValueKind == JsonValueKind.String)
+                    DateTime.TryParse(ins.GetString(), out installed);
+
+                list.Add(new WindowsUpdateInfo
+                {
+                    Title       = string.IsNullOrWhiteSpace(title) ? kb : title,
+                    KbNumber    = kb,
+                    InstalledOn = installed,
+                    Status      = "Installed"
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("GetRecentWindowsUpdatesAsync failed", ex);
+        }
+
+        return list.OrderByDescending(u => u.InstalledOn).ToList();
     }
 
     // ── winget app updates ────────────────────────────────────────────────────
@@ -200,11 +204,9 @@ Get-HotFix |
 
     public async Task<string> GetBiosInfoAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
-                var script = @"
+            var script = @"
 $b = Get-WmiObject Win32_BIOS
 $c = Get-WmiObject Win32_BaseBoard
 [PSCustomObject]@{
@@ -217,29 +219,28 @@ $c = Get-WmiObject Win32_BaseBoard
     BoardMfr      = $c.Manufacturer
 } | ConvertTo-Json -Compress";
 
-                var json = RunPowerShell(script);
-                if (string.IsNullOrWhiteSpace(json)) return "BIOS information unavailable.";
+            var json = await _psRunner.RunAsync(script);
+            if (string.IsNullOrWhiteSpace(json)) return "BIOS information unavailable.";
 
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
 
-                var sb = new StringBuilder();
-                AppendProp(sb, root, "Manufacturer", "BIOS Manufacturer");
-                AppendProp(sb, root, "Name",         "BIOS Name");
-                AppendProp(sb, root, "Version",      "BIOS Version");
-                AppendProp(sb, root, "ReleaseDate",  "Release Date");
-                AppendProp(sb, root, "SerialNumber", "Serial Number");
-                AppendProp(sb, root, "BoardMfr",     "Board Manufacturer");
-                AppendProp(sb, root, "BoardProduct", "Board Product");
+            var sb = new StringBuilder();
+            AppendProp(sb, root, "Manufacturer", "BIOS Manufacturer");
+            AppendProp(sb, root, "Name",         "BIOS Name");
+            AppendProp(sb, root, "Version",      "BIOS Version");
+            AppendProp(sb, root, "ReleaseDate",  "Release Date");
+            AppendProp(sb, root, "SerialNumber", "Serial Number");
+            AppendProp(sb, root, "BoardMfr",     "Board Manufacturer");
+            AppendProp(sb, root, "BoardProduct", "Board Product");
 
-                return sb.ToString().TrimEnd();
-            }
-            catch (Exception ex)
-            {
-                EngineLog.Error("GetBiosInfoAsync failed", ex);
-                return "BIOS information unavailable.";
-            }
-        });
+            return sb.ToString().TrimEnd();
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("GetBiosInfoAsync failed", ex);
+            return "BIOS information unavailable.";
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -252,13 +253,6 @@ $c = Get-WmiObject Win32_BaseBoard
             if (!string.IsNullOrWhiteSpace(val))
                 sb.AppendLine($"{label}: {val}");
         }
-    }
-
-    private static string RunPowerShell(string script, int timeoutMs = 30_000)
-    {
-        return RunProcess("powershell.exe",
-            $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{EscapeForArg(script)}\"",
-            timeoutMs);
     }
 
     private static string RunProcess(string exe, string args, int timeoutMs = 30_000)
@@ -284,9 +278,6 @@ $c = Get-WmiObject Win32_BaseBoard
         }
         catch { return ""; }
     }
-
-    private static string EscapeForArg(string script)
-        => script.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
 
     private static string NormalizeJsonArray(string json)
     {

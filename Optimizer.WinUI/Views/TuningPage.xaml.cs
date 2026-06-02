@@ -1,6 +1,7 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
@@ -65,59 +66,63 @@ public sealed partial class TuningPage : Page
     // ── Preset card "Apply" button ────────────────────────────────────────────
 
     private async void ApplyPreset_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string id)
+        => await PageExceptionHelper.SafeAsync(async () =>
         {
-            var preset = ViewModel.Presets.FirstOrDefault(p => p.Id == id);
-            if (preset != null)
+            if (sender is Button btn && btn.Tag is string id)
             {
-                await ViewModel.ApplyPresetCommand.ExecuteAsync(preset);
-                SyncBoostModeCombo();
+                var preset = ViewModel.Presets.FirstOrDefault(p => p.Id == id);
+                if (preset != null)
+                {
+                    await ViewModel.ApplyPresetCommand.ExecuteAsync(preset);
+                    SyncBoostModeCombo();
+                }
             }
-        }
-    }
+        }, XamlRoot, "Apply preset");
 
     // ── Apply manual CPU sliders ──────────────────────────────────────────────
 
     private async void ApplyCpu_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.ApplyCurrentCpuCommand.ExecuteAsync(null);
-        SyncBoostModeCombo();
-    }
+        => await PageExceptionHelper.SafeAsync(async () =>
+        {
+            await ViewModel.ApplyCurrentCpuCommand.ExecuteAsync(null);
+            SyncBoostModeCombo();
+        }, XamlRoot, "Apply CPU settings");
 
     // ── Revert to Stock defaults ──────────────────────────────────────────────
 
     private async void Revert_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.RevertCommand.ExecuteAsync(null);
-        SyncBoostModeCombo();
-    }
+        => await PageExceptionHelper.SafeAsync(async () =>
+        {
+            await ViewModel.RevertCommand.ExecuteAsync(null);
+            SyncBoostModeCombo();
+        }, XamlRoot, "Revert CPU settings");
 
     // ── GPU vendor tool card button ───────────────────────────────────────────
 
     private async void LaunchTool_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string name)
+        => await PageExceptionHelper.SafeAsync(async () =>
         {
-            var tool = ViewModel.GpuTools.FirstOrDefault(t => t.Name == name);
-            if (tool != null)
-                await ViewModel.LaunchToolCommand.ExecuteAsync(tool);
-        }
-    }
+            if (sender is Button btn && btn.Tag is string name)
+            {
+                var tool = ViewModel.GpuTools.FirstOrDefault(t => t.Name == name);
+                if (tool != null)
+                    await ViewModel.LaunchToolCommand.ExecuteAsync(tool);
+            }
+        }, XamlRoot, "Launch GPU tool");
 
     // ── Memory test launcher ──────────────────────────────────────────────────
 
     private async void MemoryTest_Click(object sender, RoutedEventArgs e)
-    {
-        await _repair.LaunchMemoryTestAsync();
-    }
+        => await PageExceptionHelper.SafeAsync(
+            () => _repair.LaunchMemoryTestAsync(),
+            XamlRoot, "Memory test");
 
     // ── Batch 35: Stress test handlers ───────────────────────────────────────
 
     private async void RunBuiltIn_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.RunBuiltInStressCommand.ExecuteAsync(null);
-    }
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.RunBuiltInStressCommand.ExecuteAsync(null),
+            XamlRoot, "Stress test");
 
     private void StopStress_Click(object sender, RoutedEventArgs e)
     {
@@ -125,12 +130,12 @@ public sealed partial class TuningPage : Page
     }
 
     private async void LaunchPrime95_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.LaunchPrime95Command.ExecuteAsync(null);
-    }
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.LaunchPrime95Command.ExecuteAsync(null),
+            XamlRoot, "Launch Prime95");
 
     private async void LaunchCinebench_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.LaunchCinebenchCommand.ExecuteAsync(null);
-    }
+        => await PageExceptionHelper.SafeAsync(
+            () => ViewModel.LaunchCinebenchCommand.ExecuteAsync(null),
+            XamlRoot, "Launch Cinebench");
 }

@@ -29,7 +29,7 @@ public partial class SystemCategoryViewModel : CategoryViewModelBase
         IWindowsOptimizerService optimizer,
         IElevationService elevation,
         IUndoService undoSvc,
-        HistoryService history,
+        IHistoryService history,
         IPrivacyService privacyService)
         : base(optimizer, elevation, undoSvc, history)
     {

@@ -11,11 +11,11 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class DashboardViewModel : ObservableObject, IDisposable
 {
-    private readonly SystemMonitorService _monitor;
+    private readonly ISystemMonitorService _monitor;
     private readonly IWindowsOptimizerService _optimizer;
     private readonly IProcessService _processService;
     private readonly IUndoService _undoService;
-    private readonly SettingsService _settings;
+    private readonly ISettingsService _settings;
     private readonly ISensorService _sensorService;
     private readonly IIntelligenceService _intelligence;
 
@@ -132,11 +132,11 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand UndoAllCommand { get; }
 
     public DashboardViewModel(
-        SystemMonitorService monitor,
+        ISystemMonitorService monitor,
         IWindowsOptimizerService optimizer,
         IProcessService processService,
         IUndoService undoService,
-        SettingsService settings,
+        ISettingsService settings,
         ISensorService sensorService,
         IIntelligenceService intelligence)
     {

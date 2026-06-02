@@ -81,7 +81,7 @@ public class HistoryEntryGroup
 // ── Main ViewModel ────────────────────────────────────────────────────────────
 public partial class HistoryViewModel : ObservableObject
 {
-    private readonly HistoryService           _historyService;
+    private readonly IHistoryService           _historyService;
     private readonly IWindowsOptimizerService _optimizer;
 
     // Full unfiltered copy — kept in sync on each Load.
@@ -128,7 +128,7 @@ public partial class HistoryViewModel : ObservableObject
     public int  TotalCount => GroupedEntries.Sum(g => g.Count);
     public bool IsEmpty    => GroupedEntries.Count == 0;
 
-    public HistoryViewModel(HistoryService historyService, IWindowsOptimizerService optimizer)
+    public HistoryViewModel(IHistoryService historyService, IWindowsOptimizerService optimizer)
     {
         _historyService = historyService;
         _optimizer      = optimizer;

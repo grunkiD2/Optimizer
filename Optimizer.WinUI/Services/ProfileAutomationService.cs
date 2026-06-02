@@ -1,12 +1,13 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
-public class ProfileAutomationService : IProfileAutomationService
+public class ProfileAutomationService : IProfileAutomationService, IHostedService, IDisposable
 {
     private readonly IWindowsOptimizerService _optimizer;
     private readonly List<ProfileRule> _rules = [];
@@ -48,6 +49,20 @@ public class ProfileAutomationService : IProfileAutomationService
         Save();
         return Task.CompletedTask;
     }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        Start();
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        Stop();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _timer?.Stop();
 
     public void Start()
     {

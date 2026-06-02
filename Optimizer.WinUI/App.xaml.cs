@@ -13,6 +13,7 @@ public partial class App : Application
 {
     public static IHost AppHost { get; private set; } = null!;
     public static T GetService<T>() where T : class => AppHost.Services.GetRequiredService<T>();
+    internal static IHost GetHost() => AppHost;
 
     private Window? _window;
 
@@ -46,6 +47,9 @@ public partial class App : Application
         AppHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .ConfigureServices((_, services) =>
             {
+                // Infrastructure
+                services.AddSingleton<IPowerShellRunner, PowerShellRunner>();
+
                 // Core services (from WPF port)
                 services.AddSingleton<IElevationService, ElevationService>();
                 services.AddSingleton<IUndoService, UndoService>();
@@ -53,6 +57,7 @@ public partial class App : Application
                 services.AddSingleton<ProcessService>();
                 services.AddSingleton<IProcessService>(sp => sp.GetRequiredService<ProcessService>());
                 services.AddSingleton<SystemMonitorService>();
+                services.AddSingleton<ISystemMonitorService>(sp => sp.GetRequiredService<SystemMonitorService>());
                 services.AddSingleton<IWindowsOptimizerService, WindowsOptimizerService>();
 
                 // New services
@@ -60,9 +65,12 @@ public partial class App : Application
                 services.AddSingleton<IPrivacyService, PrivacyService>();
                 services.AddSingleton<IThemeService, ThemeService>();
                 services.AddSingleton<NavigationService>();
-                services.AddSingleton<SettingsService>();
-                services.AddSingleton<ProfileService>();
-                services.AddSingleton<HistoryService>();
+                services.AddSingleton<ISettingsService, SettingsService>();
+                services.AddSingleton<SettingsService>(sp => (SettingsService)sp.GetRequiredService<ISettingsService>());
+                services.AddSingleton<IProfileService, ProfileService>();
+                services.AddSingleton<ProfileService>(sp => (ProfileService)sp.GetRequiredService<IProfileService>());
+                services.AddSingleton<IHistoryService, HistoryService>();
+                services.AddSingleton<HistoryService>(sp => (HistoryService)sp.GetRequiredService<IHistoryService>());
                 services.AddSingleton<ITrayIconService, TrayIconService>();
                 services.AddSingleton<IHardwareInfoService, HardwareInfoService>();
                 services.AddSingleton<IDiskHealthService, DiskHealthService>();
@@ -77,8 +85,10 @@ public partial class App : Application
                 services.AddSingleton<IEventLogService, EventLogService>();
                 services.AddSingleton<ICleanupService, CleanupService>();
                 services.AddSingleton<IProfileAutomationService, ProfileAutomationService>();
+                services.AddHostedService(sp => (ProfileAutomationService)sp.GetRequiredService<IProfileAutomationService>());
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<BackgroundMonitorService>();
+                services.AddHostedService(sp => sp.GetRequiredService<BackgroundMonitorService>());
                 services.AddSingleton<IReportService, ReportService>();
                 services.AddSingleton<ITuningService, TuningService>();
                 services.AddSingleton<ISystemRepairService, SystemRepairService>();
@@ -103,13 +113,13 @@ public partial class App : Application
                 services.AddTransient<OnboardingViewModel>();
                 services.AddSingleton<DashboardViewModel>();
                 services.AddTransient<PerformanceCategoryViewModel>();
-                services.AddTransient<NetworkCategoryViewModel>();
+                services.AddSingleton<NetworkCategoryViewModel>();
                 services.AddTransient<StorageCategoryViewModel>();
                 services.AddTransient<SystemCategoryViewModel>();
                 services.AddTransient<StartupCategoryViewModel>();
                 services.AddTransient<ProfilesViewModel>();
                 services.AddTransient<HistoryViewModel>();
-                services.AddTransient<HardwareViewModel>();
+                services.AddSingleton<HardwareViewModel>();
                 services.AddTransient<ServicesViewModel>();
                 services.AddTransient<DiagnosticsViewModel>();
                 services.AddTransient<RecommendationsViewModel>();
@@ -153,13 +163,13 @@ public partial class App : Application
                 else logger.Information(message);
             });
 
-            var settings = GetService<SettingsService>();
+            var settings = GetService<ISettingsService>();
             settings.Load();
 
-            var historyService = GetService<HistoryService>();
+            var historyService = GetService<IHistoryService>();
             historyService.Load();
 
-            var profileService = GetService<ProfileService>();
+            var profileService = GetService<IProfileService>();
             profileService.Load();
 
             GetService<IUndoService>().Load();
@@ -176,12 +186,11 @@ public partial class App : Application
             var trayService = GetService<ITrayIconService>();
             trayService.Initialize(_window);
 
-            // Start smart profile automation
-            GetService<IProfileAutomationService>().Start();
-
-            // Register and start background monitor + toast notifications
+            // Register toast notifications
             Microsoft.Windows.AppNotifications.AppNotificationManager.Default.Register();
-            GetService<BackgroundMonitorService>().Start();
+
+            // Start all IHostedService registrations (ProfileAutomationService, BackgroundMonitorService)
+            _ = AppHost.StartAsync();
 
             // Ensure API token is populated (guards against empty value from old settings files)
             if (string.IsNullOrWhiteSpace(settings.Settings.ApiToken))

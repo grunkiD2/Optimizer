@@ -11,7 +11,7 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class NetworkCategoryViewModel : CategoryViewModelBase
 {
-    private readonly SystemMonitorService _monitor;
+    private readonly ISystemMonitorService _monitor;
     private readonly INetworkConfigService _netConfig;
     private readonly INetworkSpeedTestService _speedTest;
 
@@ -58,8 +58,8 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
         IWindowsOptimizerService optimizer,
         IElevationService elevation,
         IUndoService undoSvc,
-        HistoryService history,
-        SystemMonitorService monitor,
+        IHistoryService history,
+        ISystemMonitorService monitor,
         INetworkConfigService netConfig,
         INetworkSpeedTestService speedTest)
         : base(optimizer, elevation, undoSvc, history)

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Optimizer.WinUI.Models;
 
@@ -6,6 +5,13 @@ namespace Optimizer.WinUI.Services;
 
 public class DiskHealthService : IDiskHealthService
 {
+    private readonly IPowerShellRunner _psRunner;
+
+    public DiskHealthService(IPowerShellRunner psRunner)
+    {
+        _psRunner = psRunner;
+    }
+
     public async Task<IReadOnlyList<DiskHealthInfo>> GetDiskHealthAsync()
     {
         var script = @"
@@ -31,7 +37,7 @@ public class DiskHealthService : IDiskHealthService
             } | ConvertTo-Json -Compress -Depth 3
         ";
 
-        var output = await RunPowerShellAsync(script);
+        var output = await _psRunner.RunAsync(script);
         if (string.IsNullOrWhiteSpace(output)) return [];
 
         try
@@ -112,36 +118,4 @@ public class DiskHealthService : IDiskHealthService
         JsonValueKind.String => el.GetString() ?? "Unknown",
         _ => "Unknown"
     };
-
-    private static async Task<string?> RunPowerShellAsync(string script)
-    {
-        try
-        {
-            // Write script to a temp file to avoid command-line escaping issues
-            var tempFile = Path.GetTempFileName() + ".ps1";
-            await File.WriteAllTextAsync(tempFile, script);
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{tempFile}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                using var proc = Process.Start(psi);
-                if (proc == null) return null;
-                var stdout = await proc.StandardOutput.ReadToEndAsync();
-                await proc.WaitForExitAsync();
-                return proc.ExitCode == 0 ? stdout : null;
-            }
-            finally
-            {
-                try { File.Delete(tempFile); } catch { /* best-effort cleanup */ }
-            }
-        }
-        catch { return null; }
-    }
 }

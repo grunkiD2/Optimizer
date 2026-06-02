@@ -17,8 +17,8 @@ public class TrayIconService : ITrayIconService
 {
     private TaskbarIcon? _trayIcon;
     private Window? _window;
-    private readonly SettingsService _settingsService;
-    private readonly ProfileService _profileService;
+    private readonly ISettingsService _settingsService;
+    private readonly IProfileService _profileService;
 
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -28,7 +28,7 @@ public class TrayIconService : ITrayIconService
 
     private const int SW_RESTORE = 9;
 
-    public TrayIconService(SettingsService settingsService, ProfileService profileService)
+    public TrayIconService(ISettingsService settingsService, IProfileService profileService)
     {
         _settingsService = settingsService;
         _profileService = profileService;
@@ -176,10 +176,15 @@ public class TrayIconService : ITrayIconService
         catch { }
         finally
         {
-            // Fallback: exit cleanly after a short delay
+            // Stop hosted services then exit
             Task.Run(async () =>
             {
-                await Task.Delay(500);
+                try
+                {
+                    using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await App.GetHost().StopAsync(cts.Token);
+                }
+                catch { }
                 Environment.Exit(0);
             });
         }

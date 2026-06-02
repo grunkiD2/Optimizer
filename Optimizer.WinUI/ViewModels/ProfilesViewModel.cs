@@ -8,7 +8,7 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class ProfilesViewModel : ObservableObject
 {
-    private readonly ProfileService _profileService;
+    private readonly IProfileService _profileService;
     private readonly IProfileAutomationService _automationService;
 
     [ObservableProperty] private bool isBusy;
@@ -31,7 +31,7 @@ public partial class ProfilesViewModel : ObservableObject
     public bool NoPresets => Presets.Count == 0;
     public int RuleCount => AutomationRules.Count;
 
-    public ProfilesViewModel(ProfileService profileService, IProfileAutomationService automationService)
+    public ProfilesViewModel(IProfileService profileService, IProfileAutomationService automationService)
     {
         _profileService = profileService;
         _automationService = automationService;

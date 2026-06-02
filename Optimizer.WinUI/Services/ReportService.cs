@@ -10,14 +10,14 @@ public class ReportService : IReportService
     private readonly IHardwareInfoService    _hardware;
     private readonly IDiskHealthService      _diskHealth;
     private readonly IDiagnosticsService     _diagnostics;
-    private readonly HistoryService          _history;
+    private readonly IHistoryService          _history;
     private readonly ISecurityService        _security;
 
     public ReportService(
         IHardwareInfoService hardware,
         IDiskHealthService   diskHealth,
         IDiagnosticsService  diagnostics,
-        HistoryService       history,
+        IHistoryService       history,
         ISecurityService     security)
     {
         _hardware    = hardware;

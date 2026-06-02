@@ -4,11 +4,11 @@ namespace Optimizer.WinUI.Services;
 
 public class NotificationService : INotificationService
 {
-    private readonly SettingsService _settings;
+    private readonly ISettingsService _settings;
     private readonly Dictionary<NotificationCategory, DateTime> _lastShown = [];
     private readonly TimeSpan _cooldown = TimeSpan.FromMinutes(15);
 
-    public NotificationService(SettingsService settings) => _settings = settings;
+    public NotificationService(ISettingsService settings) => _settings = settings;
 
     public bool IsCategoryEnabled(NotificationCategory category) => category switch
     {

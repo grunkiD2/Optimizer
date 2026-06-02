@@ -4,7 +4,7 @@ using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
-public class SettingsService
+public class SettingsService : ISettingsService
 {
     private static readonly string FilePath = AppPaths.GetDataFile("app-settings.json");
 

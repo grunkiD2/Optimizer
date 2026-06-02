@@ -92,7 +92,7 @@ public class ApiHostService : IApiHostService
 
         app.MapGet("/api/metrics", () =>
         {
-            var monitor = _appServices.GetService<SystemMonitorService>();
+            var monitor = _appServices.GetService<ISystemMonitorService>();
             if (monitor == null) return Results.StatusCode(503);
             var snap = monitor.CollectSnapshot();
             return Results.Ok(new

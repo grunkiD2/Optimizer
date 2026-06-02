@@ -9,7 +9,7 @@ namespace Optimizer.WinUI;
 public sealed partial class MainWindow : Window
 {
     private readonly NavigationService _navigationService;
-    private readonly SettingsService _settingsService;
+    private readonly ISettingsService _settingsService;
 
     private static readonly Dictionary<string, Type> PageMap = new()
     {
@@ -44,7 +44,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public bool IsExiting { get; set; }
 
-    public MainWindow(NavigationService navigationService, SettingsService settingsService)
+    public MainWindow(NavigationService navigationService, ISettingsService settingsService)
     {
         InitializeComponent();
 

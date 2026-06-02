@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Optimizer.WinUI.Models;
 
@@ -6,16 +5,21 @@ namespace Optimizer.WinUI.Services;
 
 public class SecurityService : ISecurityService
 {
+    private readonly IPowerShellRunner _psRunner;
+
+    public SecurityService(IPowerShellRunner psRunner)
+    {
+        _psRunner = psRunner;
+    }
+
     // ── Windows Defender ──────────────────────────────────────────────────────
 
     public async Task<DefenderStatus> GetDefenderStatusAsync()
     {
-        return await Task.Run(() =>
+        var status = new DefenderStatus();
+        try
         {
-            var status = new DefenderStatus();
-            try
-            {
-                var script = @"
+            var script = @"
 $s = Get-MpComputerStatus
 [PSCustomObject]@{
     RealTimeProtectionEnabled = $s.RealTimeProtectionEnabled
@@ -26,110 +30,103 @@ $s = Get-MpComputerStatus
     DefinitionVersion         = $s.AntivirusSignatureVersion
 } | ConvertTo-Json -Compress";
 
-                var json = RunPowerShell(script);
-                if (string.IsNullOrWhiteSpace(json)) return status;
+            var json = await _psRunner.RunAsync(script);
+            if (string.IsNullOrWhiteSpace(json)) return status;
 
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
 
-                status.RealTimeProtectionEnabled = GetBool(root, "RealTimeProtectionEnabled");
-                status.CloudProtectionEnabled    = GetBool(root, "CloudProtectionEnabled");
-                status.TamperProtectionEnabled   = GetBool(root, "TamperProtectionEnabled");
-                status.DefinitionVersion         = GetString(root, "DefinitionVersion");
+            status.RealTimeProtectionEnabled = GetBool(root, "RealTimeProtectionEnabled");
+            status.CloudProtectionEnabled    = GetBool(root, "CloudProtectionEnabled");
+            status.TamperProtectionEnabled   = GetBool(root, "TamperProtectionEnabled");
+            status.DefinitionVersion         = GetString(root, "DefinitionVersion");
 
-                if (root.TryGetProperty("LastQuickScan", out var qs) && qs.ValueKind == JsonValueKind.String
-                    && DateTime.TryParse(qs.GetString(), out var qsDt))
-                    status.LastQuickScan = qsDt;
+            if (root.TryGetProperty("LastQuickScan", out var qs) && qs.ValueKind == JsonValueKind.String
+                && DateTime.TryParse(qs.GetString(), out var qsDt))
+                status.LastQuickScan = qsDt;
 
-                if (root.TryGetProperty("LastFullScan", out var fs) && fs.ValueKind == JsonValueKind.String
-                    && DateTime.TryParse(fs.GetString(), out var fsDt))
-                    status.LastFullScan = fsDt;
-            }
-            catch (Exception ex)
-            {
-                EngineLog.Error("GetDefenderStatusAsync failed", ex);
-            }
-            return status;
-        });
+            if (root.TryGetProperty("LastFullScan", out var fs) && fs.ValueKind == JsonValueKind.String
+                && DateTime.TryParse(fs.GetString(), out var fsDt))
+                status.LastFullScan = fsDt;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("GetDefenderStatusAsync failed", ex);
+        }
+        return status;
     }
 
     // ── Firewall ──────────────────────────────────────────────────────────────
 
     public async Task<FirewallStatus> GetFirewallStatusAsync()
     {
-        return await Task.Run(() =>
+        var status = new FirewallStatus();
+        try
         {
-            var status = new FirewallStatus();
-            try
-            {
-                var script = @"
+            var script = @"
 Get-NetFirewallProfile |
   Select-Object Name, Enabled |
   ConvertTo-Json -Compress";
 
-                var json = RunPowerShell(script);
-                if (string.IsNullOrWhiteSpace(json)) return status;
+            var json = await _psRunner.RunAsync(script);
+            if (string.IsNullOrWhiteSpace(json)) return status;
 
-                var normalized = json.Trim().StartsWith('[') ? json : $"[{json}]";
-                using var doc = JsonDocument.Parse(normalized);
+            var normalized = json.Trim().StartsWith('[') ? json : $"[{json}]";
+            using var doc = JsonDocument.Parse(normalized);
 
-                foreach (var el in doc.RootElement.EnumerateArray())
+            foreach (var el in doc.RootElement.EnumerateArray())
+            {
+                var name    = GetString(el, "Name");
+                var enabled = GetBool(el, "Enabled");
+                switch (name)
                 {
-                    var name    = GetString(el, "Name");
-                    var enabled = GetBool(el, "Enabled");
-                    switch (name)
-                    {
-                        case "Domain":  status.DomainEnabled  = enabled; break;
-                        case "Private": status.PrivateEnabled = enabled; break;
-                        case "Public":  status.PublicEnabled  = enabled; break;
-                    }
+                    case "Domain":  status.DomainEnabled  = enabled; break;
+                    case "Private": status.PrivateEnabled = enabled; break;
+                    case "Public":  status.PublicEnabled  = enabled; break;
                 }
             }
-            catch (Exception ex)
-            {
-                EngineLog.Error("GetFirewallStatusAsync failed", ex);
-            }
-            return status;
-        });
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("GetFirewallStatusAsync failed", ex);
+        }
+        return status;
     }
 
     // ── BitLocker ─────────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<BitLockerVolume>> GetBitLockerStatusAsync()
     {
-        return await Task.Run(() =>
+        var list = new List<BitLockerVolume>();
+        try
         {
-            var list = new List<BitLockerVolume>();
-            try
-            {
-                var script = @"
+            var script = @"
 Get-BitLockerVolume |
   Select-Object MountPoint, ProtectionStatus, EncryptionMethod, LockStatus |
   ConvertTo-Json -Compress";
 
-                var json = RunPowerShell(script);
-                if (string.IsNullOrWhiteSpace(json)) return (IReadOnlyList<BitLockerVolume>)list;
+            var json = await _psRunner.RunAsync(script);
+            if (string.IsNullOrWhiteSpace(json)) return list;
 
-                var normalized = json.Trim().StartsWith('[') ? json : $"[{json}]";
-                using var doc = JsonDocument.Parse(normalized);
+            var normalized = json.Trim().StartsWith('[') ? json : $"[{json}]";
+            using var doc = JsonDocument.Parse(normalized);
 
-                foreach (var el in doc.RootElement.EnumerateArray())
-                {
-                    list.Add(new BitLockerVolume
-                    {
-                        DriveLetter      = GetString(el, "MountPoint"),
-                        ProtectionStatus = GetString(el, "ProtectionStatus"),
-                        EncryptionMethod = GetString(el, "EncryptionMethod"),
-                        LockStatus       = GetString(el, "LockStatus")
-                    });
-                }
-            }
-            catch (Exception ex)
+            foreach (var el in doc.RootElement.EnumerateArray())
             {
-                EngineLog.Error("GetBitLockerStatusAsync failed", ex);
+                list.Add(new BitLockerVolume
+                {
+                    DriveLetter      = GetString(el, "MountPoint"),
+                    ProtectionStatus = GetString(el, "ProtectionStatus"),
+                    EncryptionMethod = GetString(el, "EncryptionMethod"),
+                    LockStatus       = GetString(el, "LockStatus")
+                });
             }
-            return list;
-        });
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("GetBitLockerStatusAsync failed", ex);
+        }
+        return list;
     }
 
     // ── Composite score ───────────────────────────────────────────────────────
@@ -181,45 +178,19 @@ Get-BitLockerVolume |
 
     public async Task<bool> RunQuickScanAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
-                var output = RunPowerShell("Start-MpScan -ScanType QuickScan");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                EngineLog.Error("RunQuickScanAsync failed", ex);
-                return false;
-            }
-        });
+            await _psRunner.RunAsync("Start-MpScan -ScanType QuickScan");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("RunQuickScanAsync failed", ex);
+            return false;
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private static string RunPowerShell(string script, int timeoutMs = 30_000)
-    {
-        try
-        {
-            var escaped = script.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-            var psi = new ProcessStartInfo
-            {
-                FileName               = "powershell.exe",
-                Arguments              = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{escaped}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError  = true,
-                UseShellExecute        = false,
-                CreateNoWindow         = true
-            };
-
-            using var proc = Process.Start(psi)!;
-            var output = proc.StandardOutput.ReadToEnd();
-            proc.WaitForExit(timeoutMs);
-            return output;
-        }
-        catch { return ""; }
-    }
 
     private static bool   GetBool(JsonElement el, string prop)
         => el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.True;
@@ -228,4 +199,3 @@ Get-BitLockerVolume |
         => el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String
             ? (v.GetString() ?? "") : "";
 }
-

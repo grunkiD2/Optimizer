@@ -4,7 +4,7 @@ using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
-public class ProfileService
+public class ProfileService : IProfileService
 {
     private readonly IWindowsOptimizerService _optimizer;
     private readonly List<SettingsProfile> _snapshots = [];

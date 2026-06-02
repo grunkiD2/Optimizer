@@ -11,7 +11,7 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class PerformanceCategoryViewModel : CategoryViewModelBase
 {
-    private readonly SystemMonitorService _monitor;
+    private readonly ISystemMonitorService _monitor;
     private readonly IPowerService _powerService;
     private readonly ProcessService _processService;
 
@@ -46,8 +46,8 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
         IWindowsOptimizerService optimizer,
         IElevationService elevation,
         IUndoService undoSvc,
-        HistoryService history,
-        SystemMonitorService monitor,
+        IHistoryService history,
+        ISystemMonitorService monitor,
         IPowerService powerService,
         ProcessService processService)
         : base(optimizer, elevation, undoSvc, history)

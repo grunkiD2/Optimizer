@@ -7,7 +7,7 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class OnboardingViewModel : ObservableObject
 {
-    private readonly SettingsService _settings;
+    private readonly ISettingsService _settings;
     private readonly IWindowsOptimizerService _optimizer;
 
     [ObservableProperty] private int currentStep = 0;
@@ -17,7 +17,7 @@ public partial class OnboardingViewModel : ObservableObject
     public List<string> UsageOptions   { get; } = ["Gaming", "Work / Productivity", "Mixed", "Content Creation"];
     public List<string> PrivacyOptions { get; } = ["Maximum Privacy", "Balanced", "Default"];
 
-    public OnboardingViewModel(SettingsService settings, IWindowsOptimizerService optimizer)
+    public OnboardingViewModel(ISettingsService settings, IWindowsOptimizerService optimizer)
     {
         _settings  = settings;
         _optimizer = optimizer;

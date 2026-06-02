@@ -6,7 +6,7 @@ namespace Optimizer.WinUI.Services;
 
 public class DiagnosticsService : IDiagnosticsService
 {
-    private readonly SystemMonitorService _monitor;
+    private readonly ISystemMonitorService _monitor;
     private readonly IDiskHealthService _diskHealth;
     private readonly IPrivacyService _privacy;
     private readonly IHardwareInfoService _hardware;
@@ -14,7 +14,7 @@ public class DiagnosticsService : IDiagnosticsService
     private readonly IServiceManagerService _services;
 
     public DiagnosticsService(
-        SystemMonitorService monitor,
+        ISystemMonitorService monitor,
         IDiskHealthService diskHealth,
         IPrivacyService privacy,
         IHardwareInfoService hardware,

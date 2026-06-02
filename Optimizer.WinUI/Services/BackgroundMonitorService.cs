@@ -1,17 +1,18 @@
+using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 
 namespace Optimizer.WinUI.Services;
 
-public class BackgroundMonitorService
+public class BackgroundMonitorService : IHostedService, IDisposable
 {
-    private readonly SystemMonitorService _monitor;
+    private readonly ISystemMonitorService _monitor;
     private readonly IDiskHealthService _diskHealth;
     private readonly INotificationService _notifications;
     private DispatcherTimer? _timer;
     private readonly Queue<double> _cpuHistory = new();
 
     public BackgroundMonitorService(
-        SystemMonitorService monitor,
+        ISystemMonitorService monitor,
         IDiskHealthService diskHealth,
         INotificationService notifications)
     {
@@ -19,6 +20,20 @@ public class BackgroundMonitorService
         _diskHealth = diskHealth;
         _notifications = notifications;
     }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        Start();
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        Stop();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _timer?.Stop();
 
     public void Start()
     {
