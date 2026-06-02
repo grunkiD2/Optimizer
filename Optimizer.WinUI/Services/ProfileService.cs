@@ -130,6 +130,17 @@ public class ProfileService : IProfileService
         SaveSnapshots();
     }
 
+    /// <summary>Insert or replace a snapshot by its Id (used by cloud sync to apply remote items).</summary>
+    public void UpsertSnapshot(SettingsProfile snapshot)
+    {
+        var idx = _snapshots.FindIndex(s => s.Id == snapshot.Id);
+        if (idx >= 0)
+            _snapshots[idx] = snapshot;
+        else
+            _snapshots.Add(snapshot);
+        SaveSnapshots();
+    }
+
     private void SaveSnapshots()
     {
         var dir = Path.GetDirectoryName(FilePath)!;

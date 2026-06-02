@@ -14,4 +14,5 @@ public interface IProfileService
     void DeleteSnapshot(string snapshotId);
     string ExportAll();
     void ImportFromJson(string json);
+    void UpsertSnapshot(SettingsProfile snapshot);
 }

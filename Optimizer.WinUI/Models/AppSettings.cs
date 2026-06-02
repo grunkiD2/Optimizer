@@ -36,4 +36,8 @@ public class AppSettings
     public bool ApiEnabled { get; set; } = false;
     public int ApiPort { get; set; } = 8765;
     public string ApiToken { get; set; } = Guid.NewGuid().ToString();
+
+    // Cloud Sync
+    public bool CloudSyncEnabled { get; set; } = false;
+    public string CloudServerUrl { get; set; } = "http://localhost:5000";
 }

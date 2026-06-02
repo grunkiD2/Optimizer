@@ -15,6 +15,7 @@ builder.Services.AddDbContext<OptimizerDbContext>(opt => opt.UseSqlite(connectio
 // Services
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISyncService, SyncService>();
 
 // Email: console for dev, smtp if Smtp:Host configured
 if (!string.IsNullOrEmpty(builder.Configuration["Smtp:Host"]))
@@ -67,6 +68,7 @@ app.UseAuthorization();
 app.MapOpenApi();
 app.MapHealth();
 app.MapAuth();
+app.MapSync();
 
 // Protected example endpoint to verify JWT works
 app.MapGet("/api/me", (HttpContext ctx) =>

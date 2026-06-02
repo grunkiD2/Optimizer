@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Cloud;
 using Optimizer.WinUI.Services.Diagnostics;
 using Optimizer.WinUI.Services.Optimizations;
 using Optimizer.WinUI.Services.Optimizations.Network;
@@ -142,6 +143,10 @@ public partial class App : Application
                 services.AddSingleton<IFleetService, FleetService>();
                 services.AddSingleton<ITemplatesService, TemplatesService>();
                 services.AddSingleton<IComplianceService, ComplianceService>();
+
+                // Cloud sync
+                services.AddSingleton<IOptimizerCloudClient, OptimizerCloudClient>();
+                services.AddSingleton<ICloudSyncOrchestrator, CloudSyncOrchestrator>();
 
                 // REST API host
                 services.AddSingleton<IApiHostService>(sp =>

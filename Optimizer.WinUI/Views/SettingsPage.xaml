@@ -4,8 +4,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:settingsControls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent"
     Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="20" Padding="24,16,24,24">
@@ -189,6 +194,70 @@
                 <Button Content="Clear History"
                         Click="ClearHistory_Click"
                         VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <!-- ── CLOUD SYNC ─────────────────────────────────────────────── -->
+            <TextBlock Text="CLOUD SYNC"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <!-- Server URL (always shown) -->
+            <settingsControls:SettingsCard Header="Server URL"
+                                           Description="URL of your Optimizer.Server instance">
+                <TextBox Text="{x:Bind ViewModel.CloudServerUrl, Mode=TwoWay}"
+                         MinWidth="280" PlaceholderText="http://localhost:5000"
+                         VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <!-- Sign-in panel (shown when NOT authenticated) -->
+            <settingsControls:SettingsCard Header="Sign In"
+                                           Description="Enter your email to receive a magic link"
+                                           Visibility="{x:Bind ViewModel.CloudIsAuthenticated, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                <StackPanel Orientation="Vertical" Spacing="8" MinWidth="280">
+                    <TextBox x:Name="CloudEmailBox"
+                             Text="{x:Bind ViewModel.CloudEmail, Mode=TwoWay}"
+                             PlaceholderText="you@example.com"
+                             InputScope="EmailSmtpAddress"/>
+                    <Button Content="Send Magic Link"
+                            Click="SendMagicLink_Click"
+                            HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </settingsControls:SettingsCard>
+
+            <!-- Token verify panel (shown after link sent, before verified) -->
+            <settingsControls:SettingsCard Header="Paste Verification Token"
+                                           Description="Paste the ?token= value from the magic link URL"
+                                           Visibility="{x:Bind ViewModel.CloudMagicLinkSent, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Vertical" Spacing="8" MinWidth="280">
+                    <TextBox Text="{x:Bind ViewModel.CloudVerifyToken, Mode=TwoWay}"
+                             PlaceholderText="Paste token here"/>
+                    <Button Content="Verify"
+                            Click="VerifyCloudToken_Click"
+                            HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </settingsControls:SettingsCard>
+
+            <!-- Signed-in panel -->
+            <settingsControls:SettingsCard Header="Cloud Sync Enabled"
+                                           Description="{x:Bind ViewModel.CloudSyncStatus, Mode=OneWay}"
+                                           Visibility="{x:Bind ViewModel.CloudIsAuthenticated, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.CloudSyncEnabled, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Last Sync"
+                                           Description="{x:Bind ViewModel.CloudLastSync, Mode=OneWay}"
+                                           Visibility="{x:Bind ViewModel.CloudIsAuthenticated, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Sync Now"
+                            Click="SyncNow_Click"
+                            VerticalAlignment="Center"/>
+                    <Button Content="Sign Out"
+                            Click="CloudSignOut_Click"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
             </settingsControls:SettingsCard>
 
             <!-- ── REMOTE API ──────────────────────────────────────────────── -->
