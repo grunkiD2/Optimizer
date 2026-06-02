@@ -118,7 +118,7 @@
                             <TextBlock Text="{x:Bind ViewModel.SpeedTestPhase, Mode=OneWay}"
                                        FontSize="11"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       TextTrimming="CharacterEllipsis"/>
+                                       TextWrapping="Wrap"/>
                         </StackPanel>
                         <Button Grid.Column="1" Content="Run Test"
                                 Style="{ThemeResource AccentButtonStyle}"
@@ -230,29 +230,40 @@
 
                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.DnsPresets}">
                         <ItemsRepeater.Layout>
-                            <UniformGridLayout MinItemWidth="280" MinItemHeight="80"
-                                               MinColumnSpacing="8" MinRowSpacing="8"/>
+                            <UniformGridLayout MinItemWidth="280" MinItemHeight="110"
+                                               MinColumnSpacing="8" MinRowSpacing="8"
+                                               ItemsStretch="Fill"/>
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="services:DnsServerPreset">
                                 <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                                         CornerRadius="6" Padding="12,10"
                                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{x:Bind Description}" FontSize="11"
+                                    <Grid RowSpacing="4">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>  <!-- name -->
+                                            <RowDefinition Height="*"/>     <!-- description (grows) -->
+                                            <RowDefinition Height="Auto"/>  <!-- IP + button -->
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0"
+                                                   Text="{x:Bind Name}"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{x:Bind Description}" FontSize="11"
                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                    TextWrapping="Wrap"/>
-                                        <Grid ColumnSpacing="8" Margin="0,4,0,0">
+                                        <Grid Grid.Row="2" ColumnSpacing="8" Margin="0,4,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{x:Bind Primary}" FontFamily="Consolas" FontSize="11"/>
+                                            <TextBlock Text="{x:Bind Primary}" FontFamily="Consolas" FontSize="11"
+                                                       VerticalAlignment="Center"/>
                                             <Button Grid.Column="1" Content="APPLY" Style="{ThemeResource AccentButtonStyle}"
                                                     Click="ApplyDns_Click" Tag="{x:Bind Id}" MinWidth="60"/>
                                         </Grid>
-                                    </StackPanel>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>

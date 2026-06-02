@@ -80,29 +80,40 @@
                                     CornerRadius="8" Padding="16,12"
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
-                                    Width="220">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{x:Bind Name}"
+                                    Width="220" MinHeight="160">
+                                <Grid RowSpacing="4">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>  <!-- name -->
+                                        <RowDefinition Height="Auto"/>  <!-- type badge -->
+                                        <RowDefinition Height="*"/>     <!-- description (grows) -->
+                                        <RowDefinition Height="Auto"/>  <!-- button always at bottom -->
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0"
+                                               Text="{x:Bind Name}"
                                                FontWeight="SemiBold"
                                                FontSize="14"
-                                               TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{x:Bind ProfileType}"
+                                               TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="1"
+                                               Text="{x:Bind ProfileType}"
                                                FontSize="10"
                                                Foreground="#60A5FA"
                                                FontWeight="SemiBold"/>
-                                    <TextBlock Text="{x:Bind Description}"
+                                    <TextBlock Grid.Row="2"
+                                               Text="{x:Bind Description}"
                                                FontSize="11"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                TextWrapping="Wrap"
-                                               MaxLines="3"
-                                               MinHeight="44"/>
-                                    <Button Content="APPLY"
+                                               MaxLines="4"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTipService.ToolTip="{x:Bind Description}"/>
+                                    <Button Grid.Row="3"
+                                            Content="APPLY"
                                             Style="{StaticResource AccentButtonStyle}"
                                             HorizontalAlignment="Left"
-                                            Margin="0,4,0,0"
+                                            Margin="0,6,0,0"
                                             Click="PresetApply_Click"
                                             Tag="{x:Bind Id}"/>
-                                </StackPanel>
+                                </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>

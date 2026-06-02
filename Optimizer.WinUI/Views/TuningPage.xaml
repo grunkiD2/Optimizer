@@ -239,7 +239,9 @@
 
             <ItemsRepeater ItemsSource="{x:Bind ViewModel.Presets}">
                 <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="270" MinColumnSpacing="8" MinRowSpacing="8"/>
+                    <UniformGridLayout MinItemWidth="270" MinItemHeight="180"
+                                       MinColumnSpacing="8" MinRowSpacing="8"
+                                       ItemsStretch="Fill"/>
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="models:TuningPreset">
@@ -248,10 +250,16 @@
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 Padding="14">
-                            <StackPanel Spacing="6">
+                            <Grid RowSpacing="6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>  <!-- header: name + risk badge -->
+                                    <RowDefinition Height="*"/>     <!-- description (grows) -->
+                                    <RowDefinition Height="Auto"/>  <!-- metadata row -->
+                                    <RowDefinition Height="Auto"/>  <!-- apply button -->
+                                </Grid.RowDefinitions>
 
                                 <!-- Name + risk badge -->
-                                <Grid>
+                                <Grid Grid.Row="0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -259,6 +267,7 @@
                                     <TextBlock Grid.Column="0"
                                                Text="{x:Bind Name}"
                                                FontWeight="SemiBold" FontSize="14"
+                                               TextWrapping="Wrap"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="1"
                                             CornerRadius="4" Padding="6,2"
@@ -269,12 +278,13 @@
                                 </Grid>
 
                                 <!-- Description -->
-                                <TextBlock Text="{x:Bind Description}"
+                                <TextBlock Grid.Row="1"
+                                           Text="{x:Bind Description}"
                                            FontSize="12" TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
 
                                 <!-- Optional metadata row -->
-                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6">
                                     <Border CornerRadius="4" Padding="5,2"
                                             Background="{ThemeResource SubtleFillColorTransparentBrush}"
                                             BorderBrush="{ThemeResource SubtleFillColorSecondaryBrush}"
@@ -287,13 +297,14 @@
                                                VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <!-- Apply button — passes the preset Id via Tag -->
-                                <Button Content="Apply"
+                                <!-- Apply button — always at bottom -->
+                                <Button Grid.Row="3"
+                                        Content="Apply"
                                         Tag="{x:Bind Id}"
                                         Click="ApplyPreset_Click"
                                         Style="{ThemeResource AccentButtonStyle}"
                                         HorizontalAlignment="Stretch"/>
-                            </StackPanel>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
@@ -440,7 +451,9 @@
 
             <ItemsRepeater ItemsSource="{x:Bind ViewModel.GpuTools, Mode=OneWay}">
                 <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="320" MinColumnSpacing="8" MinRowSpacing="8"/>
+                    <UniformGridLayout MinItemWidth="320" MinItemHeight="80"
+                                       MinColumnSpacing="8" MinRowSpacing="8"
+                                       ItemsStretch="Fill"/>
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="services:VendorTool">

@@ -178,7 +178,9 @@
                                 <TextBlock Text="{x:Bind ViewModel.DefinitionVersion, Mode=OneWay}"
                                            FontSize="11"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextWrapping="Wrap"
+                                           MaxLines="2" TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{x:Bind ViewModel.DefinitionVersion, Mode=OneWay}"/>
                             </StackPanel>
                         </Border>
 

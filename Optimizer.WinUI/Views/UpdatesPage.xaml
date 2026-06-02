@@ -96,7 +96,9 @@
                                     <StackPanel Grid.Column="0" Spacing="1">
                                         <TextBlock Text="{x:Bind Title}"
                                                    FontSize="13" FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis"/>
+                                                   TextWrapping="Wrap"
+                                                   MaxLines="2" TextTrimming="CharacterEllipsis"
+                                                   ToolTipService.ToolTip="{x:Bind Title}"/>
                                         <TextBlock Text="{x:Bind KbNumber}"
                                                    FontSize="11"
                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
@@ -198,11 +200,14 @@
                                         <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
                                             <TextBlock Text="{x:Bind Name}"
                                                        FontSize="13" FontWeight="SemiBold"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       TextWrapping="Wrap"
+                                                       MaxLines="2" TextTrimming="CharacterEllipsis"
+                                                       ToolTipService.ToolTip="{x:Bind Name}"/>
                                             <TextBlock Text="{x:Bind Id}"
                                                        FontSize="11"
                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTipService.ToolTip="{x:Bind Id}"/>
                                         </StackPanel>
 
                                         <!-- Current version -->

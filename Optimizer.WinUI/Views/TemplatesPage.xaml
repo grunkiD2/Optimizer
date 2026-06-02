@@ -77,11 +77,15 @@
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Bind Name, Mode=OneWay}"
                                            FontWeight="SemiBold" FontSize="14"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextWrapping="Wrap"
+                                           MaxLines="1" TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{x:Bind Name}"/>
                                 <TextBlock Text="{x:Bind Description, Mode=OneWay}"
                                            FontSize="12"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextWrapping="Wrap"
+                                           MaxLines="2" TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{x:Bind Description}"/>
                                 <TextBlock FontSize="11"
                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}">
                                     <Run Text="Created: "/>

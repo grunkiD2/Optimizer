@@ -216,10 +216,12 @@
 
                                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                     <TextBlock Text="{x:Bind FileName}" FontWeight="SemiBold" FontSize="13"
-                                               TextTrimming="CharacterEllipsis"/>
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTipService.ToolTip="{x:Bind FileName}"/>
                                     <TextBlock Text="{x:Bind FullPath}" FontSize="11"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               TextTrimming="CharacterEllipsis"/>
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTipService.ToolTip="{x:Bind FullPath}"/>
                                 </StackPanel>
 
                                 <Border Grid.Column="1" CornerRadius="4" Padding="10,4" VerticalAlignment="Center"

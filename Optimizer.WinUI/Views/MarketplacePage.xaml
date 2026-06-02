@@ -64,9 +64,9 @@
             <ItemsRepeater x:Name="EntriesRepeater"
                            ItemsSource="{x:Bind ViewModel.Entries, Mode=OneWay}">
                 <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="320"
-                                       MinColumnSpacing="12"
-                                       MinRowSpacing="12"/>
+                    <UniformGridLayout MinItemWidth="340" MinItemHeight="240"
+                                       MinColumnSpacing="12" MinRowSpacing="12"
+                                       ItemsStretch="Fill"/>
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="models:MarketplaceEntry">
@@ -74,10 +74,17 @@
                                 CornerRadius="8" Padding="16"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                 BorderThickness="1">
-                            <StackPanel Spacing="10">
+                            <Grid RowSpacing="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>  <!-- header -->
+                                    <RowDefinition Height="*"/>     <!-- description (grows) -->
+                                    <RowDefinition Height="Auto"/>  <!-- tags -->
+                                    <RowDefinition Height="Auto"/>  <!-- footer: stats + button -->
+                                    <RowDefinition Height="Auto"/>  <!-- installed badge -->
+                                </Grid.RowDefinitions>
 
                                 <!-- name + verified badge + category pill -->
-                                <Grid>
+                                <Grid Grid.Row="0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -87,7 +94,7 @@
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBlock Text="{x:Bind Name}"
                                                        FontWeight="SemiBold" FontSize="14"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       TextWrapping="Wrap"/>
                                             <TextBlock Text="✓" FontSize="13"
                                                        Foreground="#1E90FF"
                                                        VerticalAlignment="Center"
@@ -108,17 +115,22 @@
                                 </Grid>
 
                                 <!-- description -->
-                                <TextBlock Text="{x:Bind Description}"
-                                           TextWrapping="Wrap" FontSize="12" MaxLines="3"
+                                <TextBlock Grid.Row="1"
+                                           Text="{x:Bind Description}"
+                                           TextWrapping="Wrap" FontSize="12"
+                                           MaxLines="4" TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{x:Bind Description}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
 
                                 <!-- tags -->
-                                <TextBlock Text="{x:Bind TagsText}"
+                                <TextBlock Grid.Row="2"
+                                           Text="{x:Bind TagsText}"
                                            FontSize="10"
+                                           TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
 
                                 <!-- stats + install button -->
-                                <Grid ColumnSpacing="8">
+                                <Grid Grid.Row="3" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -145,11 +157,12 @@
                                 </Grid>
 
                                 <!-- installed badge (shown after install) -->
-                                <TextBlock Text="✓ Installed"
+                                <TextBlock Grid.Row="4"
+                                           Text="✓ Installed"
                                            FontSize="11" Foreground="Green"
                                            Visibility="{x:Bind IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
-                            </StackPanel>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>

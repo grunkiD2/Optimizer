@@ -95,12 +95,16 @@
                         <Border.Background>
                             <SolidColorBrush Color="{ThemeResource SolidBackgroundFillColorBaseBrush}"/>
                         </Border.Background>
-                        <TextBlock x:Name="ChangesTextBlock"
-                                   Text="{x:Bind ChangesText, Mode=OneWay}"
-                                   FontFamily="Consolas"
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   Foreground="#9CA3AF"/>
+                        <ScrollViewer MaxHeight="240"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <TextBlock x:Name="ChangesTextBlock"
+                                       Text="{x:Bind ChangesText, Mode=OneWay}"
+                                       FontFamily="Consolas"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Foreground="#9CA3AF"/>
+                        </ScrollViewer>
                     </Border>
 
                     <!-- Requirement badges -->
