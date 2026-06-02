@@ -1,0 +1,19 @@
+{
+  "name": "@optimizer/sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for the Optimizer cloud server API",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "type": "module",
+  "keywords": ["optimizer", "system-optimization", "api", "sdk"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

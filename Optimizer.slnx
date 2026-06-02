@@ -15,4 +15,5 @@
   <Project Path="Optimizer.Cli/Optimizer.Cli.csproj" />
   <Project Path="Optimizer.Server/Optimizer.Server.csproj" />
   <Project Path="Optimizer.Server.Tests/Optimizer.Server.Tests.csproj" />
+  <Project Path="Optimizer.Cli.Tests/Optimizer.Cli.Tests.csproj" />
 </Solution>
