@@ -31,4 +31,9 @@ public class AppSettings
 
     // Localization
     public string Language { get; set; } = "en-US";
+
+    // Remote API
+    public bool ApiEnabled { get; set; } = false;
+    public int ApiPort { get; set; } = 8765;
+    public string ApiToken { get; set; } = Guid.NewGuid().ToString();
 }

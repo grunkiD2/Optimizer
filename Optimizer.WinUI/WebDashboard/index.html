@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimizer Dashboard</title>
+    <style>
+        :root {
+            --bg: #0F172A;
+            --card: #1E293B;
+            --card-hover: #263348;
+            --border: #334155;
+            --text: #E2E8F0;
+            --muted: #94A3B8;
+            --accent: #3B82F6;
+            --green: #10B981;
+            --yellow: #F59E0B;
+            --red: #EF4444;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+        }
+        header { margin-bottom: 24px; }
+        header h1 { margin: 0 0 4px 0; font-size: 24px; }
+        header p { margin: 0; color: var(--muted); font-size: 14px; }
+        .auth-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .auth-box label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
+        .auth-row { display: flex; gap: 8px; }
+        .auth-row input {
+            flex: 1;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn.secondary { background: var(--card-hover); border: 1px solid var(--border); }
+        .btn.danger { background: var(--red); }
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 12px 0;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .metric-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .metric-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .metric-card .value { font-size: 30px; font-weight: 700; line-height: 1; }
+        .metric-card .unit { font-size: 13px; color: var(--muted); }
+        .metric-card .bar-wrap { background: var(--border); border-radius: 4px; height: 4px; margin-top: 10px; overflow: hidden; }
+        .metric-card .bar { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s ease; width: 0%; }
+        .profiles-list { margin-bottom: 24px; }
+        .profile-row {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .profile-row:hover { border-color: var(--accent); }
+        .profile-row .name { font-weight: 600; }
+        .profile-row .desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .actions-row { display: flex; gap: 8px; margin-bottom: 24px; }
+        #status-bar {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+            height: 16px;
+        }
+        #status-bar.ok { color: var(--green); }
+        #status-bar.err { color: var(--red); }
+        .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Optimizer Web Dashboard</h1>
+        <p>Real-time system metrics and remote profile control</p>
+    </header>
+
+    <div class="auth-box">
+        <label>API Bearer Token</label>
+        <div class="auth-row">
+            <input type="password" id="token" placeholder="Paste your API token from Settings > Remote API ...">
+            <button class="btn" onclick="saveToken()">Connect</button>
+        </div>
+        <div id="status-bar"></div>
+    </div>
+
+    <p class="section-title">Live Metrics</p>
+    <div class="grid">
+        <div class="metric-card">
+            <div class="label">CPU</div>
+            <div><span class="value" id="cpu">—</span><span class="unit"> %</span></div>
+            <div class="bar-wrap"><div class="bar" id="cpu-bar"></div></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">Memory</div>
+            <div><span class="value" id="mem">—</span><span class="unit"> %</span></div>
+            <div class="bar-wrap"><div class="bar" id="mem-bar"></div></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">GPU</div>
+            <div><span class="value" id="gpu">—</span><span class="unit"> %</span></div>
+            <div class="bar-wrap"><div class="bar" id="gpu-bar"></div></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">CPU Temp</div>
+            <div><span class="value" id="cputemp">—</span><span class="unit"> °C</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">GPU Temp</div>
+            <div><span class="value" id="gputemp">—</span><span class="unit"> °C</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">Net In</div>
+            <div><span class="value" id="netin">—</span><span class="unit" id="netin-unit"> KB/s</span></div>
+        </div>
+    </div>
+
+    <div class="actions-row">
+        <button class="btn secondary" onclick="cleanup()">Run Cleanup</button>
+        <button class="btn secondary" onclick="refresh()">Refresh Now</button>
+    </div>
+
+    <p class="section-title">Profiles</p>
+    <div class="profiles-list" id="profiles"><em style="color:var(--muted);font-size:13px;">Connect to load profiles...</em></div>
+
+    <script>
+        let token = localStorage.getItem('optimizer-token') || '';
+        let refreshTimer = null;
+
+        if (token) {
+            document.getElementById('token').value = token;
+        }
+
+        function setStatus(msg, kind) {
+            const el = document.getElementById('status-bar');
+            el.textContent = msg;
+            el.className = kind || '';
+        }
+
+        function saveToken() {
+            token = document.getElementById('token').value.trim();
+            localStorage.setItem('optimizer-token', token);
+            if (token) {
+                refresh();
+            }
+        }
+
+        async function api(path, opts = {}) {
+            const res = await fetch(path, {
+                ...opts,
+                headers: { 'Authorization': 'Bearer ' + token, ...(opts.headers || {}) }
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(res.status + ': ' + text);
+            }
+            return res.json();
+        }
+
+        function setBar(id, pct) {
+            const el = document.getElementById(id);
+            if (el) {
+                const clamped = Math.min(100, Math.max(0, pct));
+                el.style.width = clamped + '%';
+                el.style.background = clamped > 90 ? 'var(--red)' : clamped > 70 ? 'var(--yellow)' : 'var(--accent)';
+            }
+        }
+
+        function fmtSpeed(bps) {
+            if (bps >= 1024 * 1024) return { val: (bps / 1024 / 1024).toFixed(1), unit: ' MB/s' };
+            return { val: (bps / 1024).toFixed(0), unit: ' KB/s' };
+        }
+
+        async function refresh() {
+            if (!token) return;
+
+            setStatus('Refreshing... ');
+            try {
+                const m = await api('/api/metrics');
+                document.getElementById('cpu').textContent = m.cpu.toFixed(0);
+                setBar('cpu-bar', m.cpu);
+
+                if (m.memory && m.memory.total > 0) {
+                    const pct = ((m.memory.total - m.memory.available) / m.memory.total * 100);
+                    document.getElementById('mem').textContent = pct.toFixed(0);
+                    setBar('mem-bar', pct);
+                }
+
+                document.getElementById('gpu').textContent = m.gpu.toFixed(0);
+                setBar('gpu-bar', m.gpu);
+
+                if (m.network) {
+                    const s = fmtSpeed(m.network.inSpeed || 0);
+                    document.getElementById('netin').textContent = s.val;
+                    document.getElementById('netin-unit').textContent = s.unit;
+                }
+
+                setStatus('Last updated: ' + new Date().toLocaleTimeString(), 'ok');
+            } catch (e) {
+                setStatus('Error: ' + e.message, 'err');
+                return;
+            }
+
+            try {
+                const s = await api('/api/sensors');
+                if (s.cpuTemp != null) document.getElementById('cputemp').textContent = s.cpuTemp.toFixed(0);
+                if (s.gpuTemp != null) document.getElementById('gputemp').textContent = s.gpuTemp.toFixed(0);
+            } catch { /* sensors optional */ }
+
+            try {
+                const profiles = await api('/api/profiles');
+                const html = profiles.map(p => `
+                    <div class="profile-row">
+                        <div>
+                            <div class="name">${escHtml(p.name)}</div>
+                            <div class="desc">${escHtml(p.description || '')}</div>
+                        </div>
+                        <button class="btn" onclick="applyProfile('${escHtml(p.id)}')">Apply</button>
+                    </div>
+                `).join('');
+                document.getElementById('profiles').innerHTML = html || '<em style="color:var(--muted);font-size:13px;">No profiles found.</em>';
+            } catch { /* non-fatal */ }
+        }
+
+        async function applyProfile(id) {
+            try {
+                setStatus('Applying profile...');
+                const r = await api('/api/apply/' + encodeURIComponent(id), { method: 'POST' });
+                setStatus(r.success ? 'Profile applied successfully.' : 'Failed: ' + r.profileId, r.success ? 'ok' : 'err');
+            } catch (e) {
+                setStatus('Failed: ' + e.message, 'err');
+            }
+        }
+
+        async function cleanup() {
+            try {
+                setStatus('Running cleanup...');
+                const r = await api('/api/cleanup', { method: 'POST' });
+                setStatus(r.success ? 'Cleanup complete: ' + (r.message || '') : 'Cleanup failed: ' + r.message, r.success ? 'ok' : 'err');
+            } catch (e) {
+                setStatus('Failed: ' + e.message, 'err');
+            }
+        }
+
+        function escHtml(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // Auto-refresh every 5 seconds
+        setInterval(() => { if (token) refresh(); }, 5000);
+
+        // Initial load if token already saved
+        if (token) refresh();
+    </script>
+</body>
+</html>

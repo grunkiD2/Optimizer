@@ -96,6 +96,10 @@ public partial class App : Application
                 services.AddSingleton<ITemplatesService, TemplatesService>();
                 services.AddSingleton<IComplianceService, ComplianceService>();
 
+                // REST API host
+                services.AddSingleton<IApiHostService>(sp =>
+                    new ApiHostService(sp));
+
                 // ViewModels
                 services.AddTransient<OnboardingViewModel>();
                 services.AddSingleton<DashboardViewModel>();
@@ -181,6 +185,21 @@ public partial class App : Application
             // Register and start background monitor + toast notifications
             Microsoft.Windows.AppNotifications.AppNotificationManager.Default.Register();
             GetService<BackgroundMonitorService>().Start();
+
+            // Ensure API token is populated (guards against empty value from old settings files)
+            if (string.IsNullOrWhiteSpace(settings.Settings.ApiToken))
+            {
+                settings.Settings.ApiToken = Guid.NewGuid().ToString();
+                settings.Save();
+            }
+
+            // Start embedded REST API if the user has opted in
+            if (settings.Settings.ApiEnabled)
+            {
+                _ = GetService<IApiHostService>().StartAsync(
+                    settings.Settings.ApiPort,
+                    settings.Settings.ApiToken);
+            }
 
             // Schedule ML model training in background after app settles
             _ = Task.Run(async () =>

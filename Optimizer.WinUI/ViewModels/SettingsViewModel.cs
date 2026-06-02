@@ -11,6 +11,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly SettingsService _settingsService;
     private readonly HistoryService _historyService;
     private readonly IThemeService _themeService;
+    private readonly IApiHostService _apiHost;
 
     // Flag to suppress partial-method saves while bulk-loading
     private bool _isLoading;
@@ -33,6 +34,12 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool notifyRecommendations;
     [ObservableProperty] private bool notifyOptimizations;
 
+    // Remote API
+    [ObservableProperty] private bool apiEnabled;
+    [ObservableProperty] private int apiPort = 8765;
+    [ObservableProperty] private string apiToken = "";
+    [ObservableProperty] private string apiStatus = "Stopped";
+
     public string CategoryName => "Settings";
     public string CategoryIcon => ""; // Settings gear icon
 
@@ -43,11 +50,12 @@ public partial class SettingsViewModel : ObservableObject
     public List<string> BackdropOptions { get; } = ["None", "Acrylic", "MicaAlt", "Mica"];
     public List<string> LanguageOptions { get; } = ["en-US", "es-ES", "de-DE"];
 
-    public SettingsViewModel(SettingsService settingsService, HistoryService historyService, IThemeService themeService)
+    public SettingsViewModel(SettingsService settingsService, HistoryService historyService, IThemeService themeService, IApiHostService apiHost)
     {
         _settingsService = settingsService;
         _historyService = historyService;
         _themeService = themeService;
+        _apiHost = apiHost;
     }
 
     public void Load()
@@ -74,6 +82,12 @@ public partial class SettingsViewModel : ObservableObject
             NotifyOptimizations   = s.NotifyOptimizations;
 
             SelectedLanguage = s.Language ?? "en-US";
+
+            // Remote API
+            ApiEnabled = s.ApiEnabled;
+            ApiPort    = s.ApiPort;
+            ApiToken   = s.ApiToken;
+            ApiStatus  = _apiHost.IsRunning ? $"Running at {_apiHost.ListeningUrl}" : "Stopped";
 
             // Reflect actual registry state rather than just saved preference
             StartWithWindows = IsAppRegisteredInStartup();
@@ -198,6 +212,60 @@ public partial class SettingsViewModel : ObservableObject
         if (_isLoading) return;
         _settingsService.Settings.NotifyOptimizations = value;
         _settingsService.Save();
+    }
+
+    partial void OnApiEnabledChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.ApiEnabled = value;
+        _settingsService.Save();
+        _ = ToggleApiAsync(value);
+    }
+
+    partial void OnApiPortChanged(int value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.ApiPort = value;
+        _settingsService.Save();
+    }
+
+    [RelayCommand]
+    public async Task RegenerateTokenAsync()
+    {
+        var newToken = Guid.NewGuid().ToString();
+        ApiToken = newToken;
+        _settingsService.Settings.ApiToken = newToken;
+        _settingsService.Save();
+
+        // Restart running server with new token
+        if (_apiHost.IsRunning)
+        {
+            await _apiHost.StopAsync();
+            await _apiHost.StartAsync(ApiPort, newToken);
+            ApiStatus = $"Running at {_apiHost.ListeningUrl}";
+        }
+    }
+
+    [RelayCommand]
+    public void CopyApiToken()
+    {
+        var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        dp.SetText(ApiToken);
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+    }
+
+    private async Task ToggleApiAsync(bool enabled)
+    {
+        if (enabled)
+        {
+            await _apiHost.StartAsync(ApiPort, ApiToken);
+            ApiStatus = $"Running at {_apiHost.ListeningUrl}";
+        }
+        else
+        {
+            await _apiHost.StopAsync();
+            ApiStatus = "Stopped";
+        }
     }
 
     [RelayCommand]

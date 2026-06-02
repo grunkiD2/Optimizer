@@ -69,6 +69,27 @@ public sealed partial class SettingsPage : Page
         ViewModel.AccentColorHex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
     }
 
+    private void CopyToken_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.CopyApiTokenCommand.Execute(null);
+    }
+
+    private async void RegenerateToken_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ContentDialog
+        {
+            Title = "Regenerate API Token",
+            Content = "This will invalidate the current token. Any connected clients will need to update their token. Continue?",
+            PrimaryButtonText = "Regenerate",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = XamlRoot
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            await ViewModel.RegenerateTokenCommand.ExecuteAsync(null);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static bool TryParseHexColor(string? hex, out Color color)
