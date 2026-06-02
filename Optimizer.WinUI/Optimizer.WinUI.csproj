@@ -25,8 +25,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250401001" />
     <PackageReference Include="Serilog" Version="4.2.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageReference Include="Syncfusion.Chart.WinUI" Version="28.2.3" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.5" />
+<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.5" />
     <PackageReference Include="System.Management" Version="9.0.5" />
     <PackageReference Include="TaskScheduler" Version="2.11.0" />
   </ItemGroup>

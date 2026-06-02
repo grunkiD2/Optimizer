@@ -6,22 +6,23 @@ namespace Optimizer.WinUI.Services;
 
 public class ElevationService : IElevationService
 {
-    public bool IsElevated
+    private readonly bool _isElevated;
+
+    public ElevationService()
     {
-        get
+        try
         {
-            try
-            {
-                using var identity = WindowsIdentity.GetCurrent();
-                var principal = new WindowsPrincipal(identity);
-                return principal.IsInRole(WindowsBuiltInRole.Administrator);
-            }
-            catch
-            {
-                return false;
-            }
+            using var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            _isElevated = principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            _isElevated = false;
         }
     }
+
+    public bool IsElevated => _isElevated;
 
     public bool TryRelaunchElevated()
     {

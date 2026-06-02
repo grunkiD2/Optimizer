@@ -236,18 +236,8 @@ public sealed partial class OptimizationCard : UserControl
         "OptimizePowerSettings" => "⚡",
         "AdjustPageFileSize" => "📄",
         "DisableTelemetry" => "📡",
-        "DisableWindowsSearch" => "🔍",
-        "DisableSuperFetch" => "💾",
-        "DisableWindowsUpdate" => "🔄",
         "OptimizeNetworkSettings" => "🌐",
-        "DisableIPv6" => "🔒",
-        "OptimizeDNS" => "📶",
-        "DisableNetworkThrottling" => "🚀",
-        "CleanTempFiles" => "🧹",
         "DisableHibernation" => "💤",
-        "EnableNTFSCompression" => "📦",
-        "DisableStartupItems" => "🚫",
-        "DisableTaskSchedulerItems" => "📅",
         _ => "⚙️"
     };
 }

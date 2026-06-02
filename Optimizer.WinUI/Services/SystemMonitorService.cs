@@ -22,6 +22,7 @@ public class SystemMonitorService : IDisposable
 
     // Persistent rate counters (disk/network need to live across samples to report a rate).
     private readonly object _counterGate = new();
+    private PerformanceCounter? _cpuCounter;
     private PerformanceCounter? _diskReadCounter;
     private PerformanceCounter? _diskWriteCounter;
     private List<PerformanceCounter>? _netRecvCounters;
@@ -198,6 +199,12 @@ public class SystemMonitorService : IDisposable
         {
             try
             {
+                if (_cpuCounter == null)
+                {
+                    _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total", true);
+                    _cpuCounter.NextValue(); // prime — first call always returns 0
+                }
+
                 _diskReadCounter ??= new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", "_Total", true);
                 _diskWriteCounter ??= new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", "_Total", true);
 
@@ -286,12 +293,7 @@ public class SystemMonitorService : IDisposable
     {
         try
         {
-            using (var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total", true))
-            {
-                cpuCounter.NextValue();
-                System.Threading.Thread.Sleep(100);
-                return Math.Round(cpuCounter.NextValue(), 2);
-            }
+            return Math.Round(_cpuCounter?.NextValue() ?? 0, 2);
         }
         catch (Exception ex)
         {
@@ -392,9 +394,10 @@ public class SystemMonitorService : IDisposable
     {
         try
         {
-            using (var virtualMemCounter = new PerformanceCounter("Memory", "Available MBytes"))
+            // "Available Bytes" reports uncommitted virtual address space (distinct from physical).
+            using (var virtualMemCounter = new PerformanceCounter("Memory", "Available Bytes"))
             {
-                return (long)virtualMemCounter.NextValue() * 1024 * 1024;
+                return (long)virtualMemCounter.NextValue();
             }
         }
         catch (Exception ex)
@@ -494,6 +497,7 @@ public class SystemMonitorService : IDisposable
             SaveHistory();
             lock (_counterGate)
             {
+                _cpuCounter?.Dispose();
                 _diskReadCounter?.Dispose();
                 _diskWriteCounter?.Dispose();
                 _netRecvCounters?.ForEach(c => c.Dispose());

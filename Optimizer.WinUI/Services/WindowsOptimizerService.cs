@@ -38,7 +38,6 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         _elevationService = elevationService;
         _startupService = startupService;
 
-        _undoService.Load();
         LoadProfiles();
     }
 

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
+using Serilog;
 
 namespace Optimizer.WinUI;
 
@@ -78,6 +79,27 @@ public partial class App : Application
     {
         try
         {
+            // Wire Serilog before any service usage so all engine messages are captured.
+            var logPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Optimizer", "app.log");
+            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+
+            var logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.File(logPath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    fileSizeLimitBytes: 10 * 1024 * 1024,
+                    rollOnFileSizeLimit: true)
+                .CreateLogger();
+
+            EngineLog.Configure((message, ex) =>
+            {
+                if (ex != null) logger.Error(ex, message);
+                else logger.Information(message);
+            });
+
             var settings = GetService<SettingsService>();
             settings.Load();
 
