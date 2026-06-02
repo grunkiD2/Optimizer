@@ -33,6 +33,9 @@ public sealed partial class MainWindow : Window
         ["Reports"]      = typeof(ReportsPage),
         ["Settings"]     = typeof(SettingsPage),
         ["DisplayTest"]  = typeof(DisplayTestPage),
+        ["Fleet"]        = typeof(FleetPage),
+        ["Templates"]    = typeof(TemplatesPage),
+        ["Compliance"]   = typeof(CompliancePage),
     };
 
     public MainWindow(NavigationService navigationService, SettingsService settingsService)

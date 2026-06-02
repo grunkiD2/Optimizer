@@ -91,6 +91,11 @@ public partial class App : Application
                 services.AddSingleton<IMarketplaceService, MarketplaceService>();
                 services.AddSingleton<IIntelligenceService, IntelligenceService>();
 
+                // Enterprise services
+                services.AddSingleton<IFleetService, FleetService>();
+                services.AddSingleton<ITemplatesService, TemplatesService>();
+                services.AddSingleton<IComplianceService, ComplianceService>();
+
                 // ViewModels
                 services.AddTransient<OnboardingViewModel>();
                 services.AddSingleton<DashboardViewModel>();
@@ -112,6 +117,9 @@ public partial class App : Application
                 services.AddTransient<TuningViewModel>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddTransient<MarketplaceViewModel>();
+                services.AddTransient<FleetViewModel>();
+                services.AddTransient<TemplatesViewModel>();
+                services.AddTransient<ComplianceViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)
                 services.AddSingleton<MainWindow>();
