@@ -120,8 +120,7 @@ public sealed partial class ProfilesPage : Page
                     {
                         Text = "Captures all currently active optimizations as a named snapshot.",
                         FontSize = 12,
-                        TextWrapping = TextWrapping.Wrap,
-                        Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                        TextWrapping = TextWrapping.Wrap
                     },
                     nameBox
                 }

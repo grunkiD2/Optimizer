@@ -101,7 +101,8 @@ public class ProfileService
         var imported = JsonSerializer.Deserialize<List<SettingsProfile>>(json);
         if (imported != null)
         {
-            _snapshots.AddRange(imported);
+            var newSnapshots = imported.Where(i => !_snapshots.Any(s => s.Id == i.Id)).ToList();
+            _snapshots.AddRange(newSnapshots);
             SaveSnapshots();
         }
     }

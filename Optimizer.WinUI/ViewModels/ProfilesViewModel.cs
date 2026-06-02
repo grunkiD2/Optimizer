@@ -42,6 +42,7 @@ public partial class ProfilesViewModel : ObservableObject
 
         OnPropertyChanged(nameof(PresetCount));
         OnPropertyChanged(nameof(SnapshotCount));
+        OnPropertyChanged(nameof(NoPresets));
     }
 
     // ── Presets ────────────────────────────────────────────────────────────
