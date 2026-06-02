@@ -6,6 +6,11 @@ obj/
 .vs/
 *.cache
 
+## SQLite dev databases
+*.db
+*.db-shm
+*.db-wal
+
 ## WinUI 3 / MSIX
 AppPackages/
 BundleArtifacts/
