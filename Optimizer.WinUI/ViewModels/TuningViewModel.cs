@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Dispatching;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
 
@@ -8,11 +9,16 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class TuningViewModel : ObservableObject
 {
-    private readonly ITuningService _tuning;
+    private readonly ITuningService    _tuning;
+    private readonly IStressTestService _stress;
+    private DispatcherQueue? _dispatcherQueue;
+    private CancellationTokenSource? _stressCts;
+
+    // ── Existing observable properties ────────────────────────────────────────
 
     [ObservableProperty] private CpuTuning currentCpu = new();
-    [ObservableProperty] private RamInfo ramInfo = new();
-    [ObservableProperty] private bool isApplying;
+    [ObservableProperty] private RamInfo   ramInfo    = new();
+    [ObservableProperty] private bool      isApplying;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
@@ -27,26 +33,65 @@ public partial class TuningViewModel : ObservableObject
     public ObservableCollection<VendorTool>   GpuTools  { get; } = [];
 
     public string CategoryName => "Tuning";
-    public string CategoryIcon => "⚡";  // ⚡
+    public string CategoryIcon => "⚡";
 
-    // Convenience: display-friendly boost mode name for the current setting.
     public string BoostModeDisplay => CurrentCpu.BoostMode switch
     {
-        BoostMode.Disabled                       => "Disabled",
-        BoostMode.Enabled                        => "Enabled",
-        BoostMode.Aggressive                     => "Aggressive",
-        BoostMode.EfficientEnabled               => "Efficient Enabled",
-        BoostMode.EfficientAggressive            => "Efficient Aggressive",
-        BoostMode.AggressiveAtGuaranteed         => "Aggressive at Guaranteed",
+        BoostMode.Disabled                        => "Disabled",
+        BoostMode.Enabled                         => "Enabled",
+        BoostMode.Aggressive                      => "Aggressive",
+        BoostMode.EfficientEnabled                => "Efficient Enabled",
+        BoostMode.EfficientAggressive             => "Efficient Aggressive",
+        BoostMode.AggressiveAtGuaranteed          => "Aggressive at Guaranteed",
         BoostMode.EfficientAggressiveAtGuaranteed => "Efficient Aggressive at Guaranteed",
         _ => CurrentCpu.BoostMode.ToString()
     };
 
-    public TuningViewModel(ITuningService tuning)
+    // ── Batch 35: Vendor + stress test properties ─────────────────────────────
+
+    [ObservableProperty] private string cpuVendor       = "";
+    [ObservableProperty] private bool   isStressTesting;
+    [ObservableProperty] private string stressStatus    = "Idle";
+    [ObservableProperty] private double stressElapsedSec;
+    [ObservableProperty] private double currentTempC;
+    [ObservableProperty] private double maxTempC;
+    [ObservableProperty] private double currentCpuLoad;
+    [ObservableProperty] private int    watchdogTempLimit    = 90;
+    [ObservableProperty] private int    stressDurationSeconds = 60;
+
+    // Power limits (read-only display)
+    [ObservableProperty] private string pl1Display = "N/A";
+    [ObservableProperty] private string pl2Display = "N/A";
+
+    // Formatted display helpers for temp/load (avoid converters in Run elements)
+    public string CurrentTempDisplay  => CurrentTempC  > 0 ? $"{CurrentTempC:F0}°C"  : "—";
+    public string MaxTempDisplay      => MaxTempC      > 0 ? $"{MaxTempC:F0}°C"      : "—";
+    public string CurrentLoadDisplay  => CurrentCpuLoad > 0 ? $"{CurrentCpuLoad:F0}%" : "—";
+
+    // External-tool availability
+    public bool IsPrime95Installed   => _stress.IsPrime95Installed;
+    public bool IsCinebenchInstalled => _stress.IsCinebenchInstalled;
+
+    // ── Constructor ───────────────────────────────────────────────────────────
+
+    public TuningViewModel(ITuningService tuning, IStressTestService stress)
     {
-        _tuning = tuning;
+        _tuning  = tuning;
+        _stress  = stress;
+
+        // Pre-populate with all presets; LoadAsync will re-filter by vendor
         foreach (var p in tuning.GetPresets()) Presets.Add(p);
+
+        _stress.StatusChanged += OnStressStatusChanged;
     }
+
+    // Called from code-behind to supply the UI thread dispatcher
+    public void InitDispatcher(DispatcherQueue queue)
+    {
+        _dispatcherQueue = queue;
+    }
+
+    // ── Load ──────────────────────────────────────────────────────────────────
 
     public async Task LoadAsync()
     {
@@ -62,6 +107,32 @@ public partial class TuningViewModel : ObservableObject
         foreach (var t in tools) GpuTools.Add(t);
 
         OnPropertyChanged(nameof(BoostModeDisplay));
+
+        // Detect vendor and filter presets
+        var vendor = await _tuning.GetCpuVendorAsync();
+        CpuVendor = vendor.Contains("Intel", StringComparison.OrdinalIgnoreCase) ? "Intel"
+                  : vendor.Contains("AMD",   StringComparison.OrdinalIgnoreCase) ? "AMD"
+                  : "Unknown";
+
+        FilterPresetsByVendor(CpuVendor);
+
+        // Power limits
+        var (pl1, pl2) = await _tuning.GetPowerLimitsAsync();
+        Pl1Display = pl1.HasValue ? $"{pl1} W" : "N/A";
+        Pl2Display = pl2.HasValue ? $"{pl2} W" : "N/A";
+
+        OnPropertyChanged(nameof(IsPrime95Installed));
+        OnPropertyChanged(nameof(IsCinebenchInstalled));
+    }
+
+    private void FilterPresetsByVendor(string vendor)
+    {
+        var all = _tuning.GetPresets()
+            .Where(p => p.CpuVendor == "Any" || p.CpuVendor.Equals(vendor, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        Presets.Clear();
+        foreach (var p in all) Presets.Add(p);
     }
 
     // ── Apply a preset card ───────────────────────────────────────────────────
@@ -128,11 +199,103 @@ public partial class TuningViewModel : ObservableObject
         finally { IsApplying = false; }
     }
 
-    // ── Launch a vendor GPU tool (or open its download page) ─────────────────
+    // ── Launch a vendor GPU tool ──────────────────────────────────────────────
 
     [RelayCommand]
     public async Task LaunchToolAsync(VendorTool tool)
     {
         await _tuning.LaunchToolAsync(tool);
+    }
+
+    // ── Batch 35: Stress test commands ───────────────────────────────────────
+
+    [RelayCommand]
+    public async Task RunBuiltInStressAsync()
+    {
+        if (!HasReadDisclaimer)
+        {
+            StatusMessage = "Please acknowledge the disclaimer before running a stress test.";
+            return;
+        }
+
+        if (IsStressTesting) return;
+
+        IsStressTesting = true;
+        _stressCts      = new CancellationTokenSource();
+        try
+        {
+            await _stress.RunCpuStressAsync(
+                TimeSpan.FromSeconds(StressDurationSeconds),
+                WatchdogTempLimit,
+                _stressCts.Token);
+        }
+        catch (OperationCanceledException) { /* user stopped */ }
+        finally
+        {
+            IsStressTesting = false;
+        }
+    }
+
+    [RelayCommand]
+    public void StopStress()
+    {
+        _stress.Stop();
+        _stressCts?.Cancel();
+    }
+
+    [RelayCommand]
+    public async Task LaunchPrime95Async()
+    {
+        var ok = await _stress.LaunchPrime95Async();
+        if (!ok)
+            StatusMessage = "Prime95 not found. Install it manually then retry.";
+    }
+
+    [RelayCommand]
+    public async Task LaunchCinebenchAsync()
+    {
+        var ok = await _stress.LaunchCinebenchAsync();
+        if (!ok)
+            StatusMessage = "Cinebench not found. Install Cinebench R23 or 2024 then retry.";
+    }
+
+    // ── Stress status callback (background thread → UI thread) ───────────────
+
+    private void OnStressStatusChanged()
+    {
+        void Update()
+        {
+            var s = _stress.Status;
+            StressStatus     = s.Message;
+            StressElapsedSec = s.Elapsed.TotalSeconds;
+            CurrentTempC     = s.CurrentTempC;
+            MaxTempC         = s.MaxTempC;
+            CurrentCpuLoad   = s.CurrentCpuLoad;
+            OnPropertyChanged(nameof(CurrentTempDisplay));
+            OnPropertyChanged(nameof(MaxTempDisplay));
+            OnPropertyChanged(nameof(CurrentLoadDisplay));
+
+            if (s.State != StressTestState.Running)
+            {
+                IsStressTesting = false;
+
+                // Thermal watchdog triggered — auto-revert to Stock preset
+                if (s.AbortedByWatchdog)
+                {
+                    StatusMessage = $"Thermal watchdog fired at {s.MaxTempC:F0}°C — auto-reverting to Stock preset.";
+                    // Fire-and-forget revert; ignore result (best effort)
+                    _ = _tuning.RevertToDefaultsAsync().ContinueWith(t =>
+                    {
+                        if (t.IsCompletedSuccessfully && t.Result)
+                            EngineLog.Write("Thermal watchdog: reverted to Stock preset.");
+                    });
+                }
+            }
+        }
+
+        if (_dispatcherQueue != null)
+            _dispatcherQueue.TryEnqueue(Update);
+        else
+            Update(); // No dispatcher set yet — call directly (should not happen in normal flow)
     }
 }

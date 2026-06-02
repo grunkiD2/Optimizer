@@ -39,4 +39,8 @@ public interface ITuningService
     Task<bool> RevertToDefaultsAsync();
     Task<IReadOnlyList<VendorTool>> DetectGpuToolsAsync();
     Task<bool> LaunchToolAsync(VendorTool tool);
+
+    // Batch 35 additions
+    Task<string> GetCpuVendorAsync();
+    Task<(int? Pl1Watts, int? Pl2Watts)> GetPowerLimitsAsync();
 }

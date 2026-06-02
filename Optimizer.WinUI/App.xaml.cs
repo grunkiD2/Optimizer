@@ -84,6 +84,7 @@ public partial class App : Application
                 services.AddSingleton<ITuningService, TuningService>();
                 services.AddSingleton<ISystemRepairService, SystemRepairService>();
                 services.AddSingleton<ISensorService, SensorService>();
+                services.AddSingleton<IStressTestService, StressTestService>();
 
                 // ViewModels
                 services.AddTransient<OnboardingViewModel>();

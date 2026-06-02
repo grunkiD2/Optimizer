@@ -26,4 +26,9 @@ public class TuningPreset
     public string Description { get; set; } = "";
     public string Risk { get; set; } = "Low";  // Low / Medium / High
     public CpuTuning Cpu { get; set; } = new();
+
+    // Vendor-specific metadata (Batch 35)
+    public string CpuVendor { get; set; } = "Any";          // "Intel", "AMD", "Any"
+    public int? PowerLimitWatts { get; set; }                // PL1 target hint
+    public bool? RecommendedForLaptop { get; set; }
 }

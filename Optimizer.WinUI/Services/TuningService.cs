@@ -121,13 +121,25 @@ public class TuningService : ITuningService
 
     public IReadOnlyList<TuningPreset> GetPresets() =>
     [
+        // ── Universal presets (Any vendor) ──────────────────────────────────
         new TuningPreset
         {
             Id          = "stock",
             Name        = "Stock",
             Description = "Windows default — balanced performance and power.",
             Risk        = "Low",
+            CpuVendor   = "Any",
             Cpu         = new CpuTuning { MinProcessorState = 5, MaxProcessorState = 100, BoostMode = BoostMode.Enabled, BoostPolicy = 60 }
+        },
+        new TuningPreset
+        {
+            Id                   = "quiet",
+            Name                 = "Quiet / Cool",
+            Description          = "Lower max state, boost disabled — reduces heat and fan noise at the cost of performance.",
+            Risk                 = "Low",
+            CpuVendor            = "Any",
+            RecommendedForLaptop = true,
+            Cpu                  = new CpuTuning { MinProcessorState = 5, MaxProcessorState = 80, BoostMode = BoostMode.Disabled, BoostPolicy = 40 }
         },
         new TuningPreset
         {
@@ -135,6 +147,7 @@ public class TuningService : ITuningService
             Name        = "Mild Tune",
             Description = "Slightly more aggressive boost — better responsiveness with minimal heat increase.",
             Risk        = "Low",
+            CpuVendor   = "Any",
             Cpu         = new CpuTuning { MinProcessorState = 10, MaxProcessorState = 100, BoostMode = BoostMode.Aggressive, BoostPolicy = 80 }
         },
         new TuningPreset
@@ -143,23 +156,50 @@ public class TuningService : ITuningService
             Name        = "Moderate Tune",
             Description = "Higher minimum state + aggressive boost — more sustained performance, more heat.",
             Risk        = "Medium",
+            CpuVendor   = "Any",
             Cpu         = new CpuTuning { MinProcessorState = 25, MaxProcessorState = 100, BoostMode = BoostMode.Aggressive, BoostPolicy = 100 }
         },
+
+        // ── Intel-specific presets ───────────────────────────────────────────
         new TuningPreset
         {
-            Id          = "max-perf",
-            Name        = "Maximum Performance",
-            Description = "100% min state — no power saving, maximum heat and power draw.",
-            Risk        = "High",
-            Cpu         = new CpuTuning { MinProcessorState = 100, MaxProcessorState = 100, BoostMode = BoostMode.AggressiveAtGuaranteed, BoostPolicy = 100 }
+            Id             = "intel-max-perf",
+            Name           = "Intel: Maximum Performance",
+            Description    = "100% min state, all-core max boost, unlimited PL1/PL2 hint — maximum heat and power draw.",
+            Risk           = "High",
+            CpuVendor      = "Intel",
+            PowerLimitWatts = null,   // uncapped
+            Cpu            = new CpuTuning { MinProcessorState = 100, MaxProcessorState = 100, BoostMode = BoostMode.AggressiveAtGuaranteed, BoostPolicy = 100 }
         },
         new TuningPreset
         {
-            Id          = "quiet",
-            Name        = "Quiet / Cool",
-            Description = "Lower max state, boost disabled — reduces heat and fan noise at the cost of performance.",
-            Risk        = "Low",
-            Cpu         = new CpuTuning { MinProcessorState = 5, MaxProcessorState = 80, BoostMode = BoostMode.Disabled, BoostPolicy = 40 }
+            Id          = "intel-avx",
+            Name        = "Intel: AVX-Heavy Workload",
+            Description = "Aggressive boost kept during AVX vector math — optimal for ML/rendering loads.",
+            Risk        = "Medium",
+            CpuVendor   = "Intel",
+            Cpu         = new CpuTuning { MinProcessorState = 50, MaxProcessorState = 100, BoostMode = BoostMode.EfficientAggressive, BoostPolicy = 100 }
+        },
+
+        // ── AMD-specific presets ─────────────────────────────────────────────
+        new TuningPreset
+        {
+            Id          = "amd-pbo",
+            Name        = "AMD: PBO Aggressive",
+            Description = "Maximum boost frequency + Aggressive boost mode — unlocks peak single-core performance.",
+            Risk        = "High",
+            CpuVendor   = "AMD",
+            Cpu         = new CpuTuning { MinProcessorState = 10, MaxProcessorState = 100, BoostMode = BoostMode.Aggressive, BoostPolicy = 100 }
+        },
+        new TuningPreset
+        {
+            Id                   = "amd-eco",
+            Name                 = "AMD: ECO Mode",
+            Description          = "Lower max state with boost disabled — reduces TDP for quieter, cooler operation (laptop-friendly).",
+            Risk                 = "Low",
+            CpuVendor            = "AMD",
+            RecommendedForLaptop = true,
+            Cpu                  = new CpuTuning { MinProcessorState = 5, MaxProcessorState = 75, BoostMode = BoostMode.Disabled, BoostPolicy = 30 }
         },
     ];
 
@@ -269,6 +309,37 @@ public class TuningService : ITuningService
             EngineLog.Error("LaunchToolAsync failed", ex);
             return Task.FromResult(false);
         }
+    }
+
+    // ── Batch 35: CPU vendor detection ───────────────────────────────────────
+
+    public async Task<string> GetCpuVendorAsync()
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                using var s = new ManagementObjectSearcher("SELECT Manufacturer FROM Win32_Processor");
+                return s.Get().Cast<ManagementObject>()
+                    .FirstOrDefault()?["Manufacturer"]?.ToString() ?? "";
+            }
+            catch (Exception ex)
+            {
+                EngineLog.Error("GetCpuVendorAsync failed", ex);
+                return "";
+            }
+        });
+    }
+
+    // ── Batch 35: Power limits (WMI best-effort) ──────────────────────────────
+
+    public async Task<(int? Pl1Watts, int? Pl2Watts)> GetPowerLimitsAsync()
+    {
+        // Win32_Processor does not expose PL1/PL2 directly; the values live in
+        // MSR 0x610 (RAPL) which requires a kernel driver or BIOS WMI OEM namespace.
+        // We return null/null to indicate "not available via standard WMI" so the
+        // UI can show an appropriate placeholder.
+        return await Task.FromResult<(int?, int?)>((null, null));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

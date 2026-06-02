@@ -1,3 +1,4 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Models;
@@ -23,6 +24,9 @@ public sealed partial class TuningPage : Page
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
     {
+        // Supply the UI-thread dispatcher to the ViewModel for cross-thread updates
+        ViewModel.InitDispatcher(DispatcherQueue.GetForCurrentThread());
+
         await ViewModel.LoadAsync();
         SyncBoostModeCombo();
     }
@@ -106,5 +110,27 @@ public sealed partial class TuningPage : Page
     private async void MemoryTest_Click(object sender, RoutedEventArgs e)
     {
         await _repair.LaunchMemoryTestAsync();
+    }
+
+    // ── Batch 35: Stress test handlers ───────────────────────────────────────
+
+    private async void RunBuiltIn_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.RunBuiltInStressCommand.ExecuteAsync(null);
+    }
+
+    private void StopStress_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.StopStressCommand.Execute(null);
+    }
+
+    private async void LaunchPrime95_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.LaunchPrime95Command.ExecuteAsync(null);
+    }
+
+    private async void LaunchCinebench_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.LaunchCinebenchCommand.ExecuteAsync(null);
     }
 }

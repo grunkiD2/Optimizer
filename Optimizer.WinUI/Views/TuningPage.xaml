@@ -30,9 +30,19 @@
                     <TextBlock Text="{x:Bind ViewModel.CategoryIcon}"
                                FontSize="28" VerticalAlignment="Center"/>
                     <StackPanel Spacing="2" VerticalAlignment="Center">
-                        <TextBlock Text="{x:Bind ViewModel.CategoryName}"
-                                   Style="{StaticResource TitleTextBlockStyle}"/>
-                        <TextBlock Text="CPU power management tuning, GPU info, RAM info"
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind ViewModel.CategoryName}"
+                                       Style="{StaticResource TitleTextBlockStyle}"/>
+                            <Border CornerRadius="4" Padding="6,2"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock FontSize="10" FontWeight="SemiBold">
+                                    <Run Text="CPU: "/>
+                                    <Run Text="{x:Bind ViewModel.CpuVendor, Mode=OneWay}"/>
+                                </TextBlock>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="CPU power management tuning, GPU info, RAM info, stress test"
                                    FontSize="12"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                     </StackPanel>
@@ -77,6 +87,149 @@
             </InfoBar>
 
             <!-- ═══════════════════════════════════════════════════════════════
+                 POWER BUDGET (READ-ONLY)
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="POWER BUDGET (READ-ONLY)"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <Grid ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="PL1 (Sustained TDP)" FontSize="10"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{x:Bind ViewModel.Pl1Display, Mode=OneWay}"
+                                   FontSize="18" FontWeight="Bold"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="PL2 (Burst TDP)" FontSize="10"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{x:Bind ViewModel.Pl2Display, Mode=OneWay}"
+                                   FontSize="18" FontWeight="Bold"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="PL1/PL2 values require RAPL kernel access (N/A via standard WMI)."
+                                   FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 STRESS TEST
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="STRESS TEST"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+
+                    <!-- Controls row -->
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="DURATION (s)" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <NumberBox Value="{x:Bind ViewModel.StressDurationSeconds, Mode=TwoWay}"
+                                       Minimum="10" Maximum="600" SpinButtonPlacementMode="Inline"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="WATCHDOG (°C)" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <NumberBox Value="{x:Bind ViewModel.WatchdogTempLimit, Mode=TwoWay}"
+                                       Minimum="60" Maximum="105" SpinButtonPlacementMode="Inline"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Spacing="4">
+                            <Button x:Name="RunBuiltInBtn"
+                                    Content="Run Built-in Test"
+                                    Click="RunBuiltIn_Click"
+                                    Style="{ThemeResource AccentButtonStyle}"
+                                    HorizontalAlignment="Stretch"
+                                    IsEnabled="{x:Bind ViewModel.HasReadDisclaimer, Mode=OneWay}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Progress bar (visible while running) -->
+                    <Grid ColumnSpacing="8"
+                          Visibility="{x:Bind ViewModel.IsStressTesting, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar Maximum="{x:Bind ViewModel.StressDurationSeconds, Mode=OneWay}"
+                                     Value="{x:Bind ViewModel.StressElapsedSec, Mode=OneWay}"
+                                     VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="Stop" Click="StopStress_Click"/>
+                    </Grid>
+
+                    <!-- Live stats row -->
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="CURRENT TEMP" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.CurrentTempDisplay, Mode=OneWay}"
+                                       FontSize="18" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="MAX TEMP" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.MaxTempDisplay, Mode=OneWay}"
+                                       FontSize="18" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="2">
+                            <TextBlock Text="CPU LOAD" FontSize="10"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.CurrentLoadDisplay, Mode=OneWay}"
+                                       FontSize="18" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Status message -->
+                    <TextBlock Text="{x:Bind ViewModel.StressStatus, Mode=OneWay}"
+                               FontSize="11"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+
+                    <!-- External tool launchers -->
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Launch Prime95"
+                                Click="LaunchPrime95_Click"
+                                HorizontalAlignment="Stretch"/>
+                        <Button Grid.Column="1"
+                                Content="Launch Cinebench"
+                                Click="LaunchCinebench_Click"
+                                HorizontalAlignment="Stretch"/>
+                    </Grid>
+
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════
                  TUNING PRESETS
             ════════════════════════════════════════════════════════════════ -->
             <TextBlock Text="TUNING PRESETS"
@@ -119,6 +272,20 @@
                                 <TextBlock Text="{x:Bind Description}"
                                            FontSize="12" TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                <!-- Optional metadata row -->
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Border CornerRadius="4" Padding="5,2"
+                                            Background="{ThemeResource SubtleFillColorTransparentBrush}"
+                                            BorderBrush="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            BorderThickness="1">
+                                        <TextBlock Text="{x:Bind CpuVendor}" FontSize="9"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </Border>
+                                    <TextBlock Text="Laptop-friendly" FontSize="10"
+                                               Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
 
                                 <!-- Apply button — passes the preset Id via Tag -->
                                 <Button Content="Apply"
