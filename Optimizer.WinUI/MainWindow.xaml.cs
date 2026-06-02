@@ -79,6 +79,7 @@ public sealed partial class MainWindow : Window
         {
             _navigationService.NavigateTo(typeof(SettingsPage));
             _settingsService.Settings.LastNavigationItem = "Settings";
+            _settingsService.Save();
             return;
         }
 
@@ -88,6 +89,7 @@ public sealed partial class MainWindow : Window
             {
                 _navigationService.NavigateTo(pageType);
                 _settingsService.Settings.LastNavigationItem = tag;
+                _settingsService.Save();
             }
         }
     }
