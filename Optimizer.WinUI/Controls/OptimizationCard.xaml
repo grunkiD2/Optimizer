@@ -28,7 +28,7 @@
                     <Border Grid.Column="0"
                             Width="36" Height="36"
                             CornerRadius="6"
-                            Background="{x:Bind IconBackground, Mode=OneWay}"
+                            Background="{x:Bind IconBackground}"
                             VerticalAlignment="Center">
                         <TextBlock Text="{x:Bind Icon, Mode=OneWay}"
                                    FontSize="18"

@@ -3,6 +3,238 @@
     x:Class="Optimizer.WinUI.Views.ProfilesPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="Transparent">
-    <TextBlock Text="Profiles" Style="{StaticResource TitleTextBlockStyle}" Margin="24"/>
+    xmlns:converters="using:Optimizer.WinUI.Converters"
+    xmlns:models="using:Optimizer.WinUI.Models"
+    Background="Transparent"
+    Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:DateTimeToStringConverter x:Key="DateTimeToString"/>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="24,16,24,24">
+
+            <!-- ── Page header ────────────────────────────────────────────── -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: icon + title + counts -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind ViewModel.CategoryIcon}"
+                               FontSize="28" VerticalAlignment="Center"/>
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.CategoryName}"
+                                   Style="{StaticResource TitleTextBlockStyle}"/>
+                        <TextBlock FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                            <Run Text="{x:Bind ViewModel.PresetCount, Mode=OneWay}"/>
+                            <Run Text=" built-in presets · "/>
+                            <Run Text="{x:Bind ViewModel.SnapshotCount, Mode=OneWay}"/>
+                            <Run Text=" saved snapshots"/>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Right: action buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="Save Snapshot"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="SaveSnapshot_Click"/>
+                    <Button Content="Import"
+                            Click="Import_Click"/>
+                    <Button Content="Export"
+                            Click="Export_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ── Status / busy bar ─────────────────────────────────────── -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Visibility="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!--  BUILT-IN PRESETS                                          -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <TextBlock Text="BUILT-IN PRESETS"
+                       FontSize="11" FontWeight="SemiBold" CharacterSpacing="100"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Presets, Mode=OneWay}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Horizontal" Spacing="8"/>
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:SettingsProfile">
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="8" Padding="16,12"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    Width="220">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="{x:Bind Name}"
+                                               FontWeight="SemiBold"
+                                               FontSize="14"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{x:Bind ProfileType}"
+                                               FontSize="10"
+                                               Foreground="#60A5FA"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock Text="{x:Bind Description}"
+                                               FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               MaxLines="3"
+                                               MinHeight="44"/>
+                                    <Button Content="APPLY"
+                                            Style="{StaticResource AccentButtonStyle}"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,4,0,0"
+                                            Click="PresetApply_Click"
+                                            Tag="{x:Bind Id}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!-- Empty-state for presets -->
+            <Border CornerRadius="8" Padding="24,16"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="Loading presets…"
+                           FontSize="13"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!--  USER SNAPSHOTS                                            -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="MY SNAPSHOTS"
+                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="100"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1"
+                           FontSize="11"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center">
+                    <Run Text="{x:Bind ViewModel.SnapshotCount, Mode=OneWay}"/>
+                    <Run Text=" snapshots"/>
+                </TextBlock>
+            </Grid>
+
+            <!-- Snapshot list -->
+            <ItemsRepeater x:Name="SnapshotsRepeater"
+                           ItemsSource="{x:Bind ViewModel.Snapshots, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="4"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:SettingsProfile">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8" Padding="16,10"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Name + dates -->
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Name}"
+                                               FontWeight="SemiBold"
+                                               FontSize="13"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                            <Run Text="Created "/>
+                                            <Run Text="{x:Bind CreatedAt, Converter={StaticResource DateTimeToString}}"/>
+                                        </TextBlock>
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                            <Run Text="· Last applied "/>
+                                            <Run Text="{x:Bind LastAppliedAt, Converter={StaticResource DateTimeToString}}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBlock FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                        <Run Text="{x:Bind Optimizations.Count}"/>
+                                        <Run Text=" optimizations"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <!-- APPLY -->
+                                <Button Grid.Column="1"
+                                        Content="APPLY"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        VerticalAlignment="Center"
+                                        Click="SnapshotApply_Click"
+                                        Tag="{x:Bind Id}"/>
+
+                                <!-- UPDATE (refresh to current state) -->
+                                <Button Grid.Column="2"
+                                        Content="Update"
+                                        VerticalAlignment="Center"
+                                        ToolTipService.ToolTip="Refresh this snapshot to the current applied state"
+                                        Click="SnapshotUpdate_Click"
+                                        Tag="{x:Bind Id}"/>
+
+                                <!-- DELETE -->
+                                <Button Grid.Column="3"
+                                        Content="Delete"
+                                        VerticalAlignment="Center"
+                                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                        Click="SnapshotDelete_Click"
+                                        Tag="{x:Bind Id}"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <!-- Empty state for snapshots -->
+            <Border x:Name="SnapshotsEmptyState"
+                    CornerRadius="8" Padding="24,20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed">
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <TextBlock Text="No snapshots yet"
+                               FontSize="14" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Click &quot;Save Snapshot&quot; to capture your current optimization state."
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
 </Page>
