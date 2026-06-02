@@ -34,9 +34,21 @@ else
     builder.Services.AddSingleton<IEmailService, ConsoleEmailService>();
 
 // JWT config values
-var jwtSecret   = builder.Configuration["Jwt:Secret"]   ?? "DEV_ONLY_NEVER_USE_IN_PROD_64+_CHAR_SECRET_KEY_REPLACE_ME_PLEASE";
+const string DevJwtFallbackSecret = "DEV_ONLY_NEVER_USE_IN_PROD_64+_CHAR_SECRET_KEY_REPLACE_ME_PLEASE";
+var configuredJwtSecret = builder.Configuration["Jwt:Secret"];
+var jwtSecret   = configuredJwtSecret ?? DevJwtFallbackSecret;
 var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "optimizer-server";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "optimizer-client";
+
+// Guard: refuse the predictable dev fallback secret outside Development.
+// A committed/known signing secret means anyone can forge JWTs.
+if (!builder.Environment.IsDevelopment() &&
+    (string.IsNullOrEmpty(configuredJwtSecret) || configuredJwtSecret == DevJwtFallbackSecret))
+{
+    throw new InvalidOperationException(
+        "Jwt:Secret must be configured with a strong, unique value outside the Development environment " +
+        "(set it via environment variable or user-secrets). Refusing to start with the dev fallback secret.");
+}
 
 // Auth: policy scheme that picks JWT vs ApiKey based on headers
 builder.Services.AddAuthentication(options =>
