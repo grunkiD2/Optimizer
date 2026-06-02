@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Optimizer.WinUI.Controls.OptimizationCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Optimizer.WinUI.Controls">
+
+    <!-- Outer card border -->
+    <Border CornerRadius="8" Margin="0,0,0,8" Padding="0">
+        <Border.Background>
+            <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+        </Border.Background>
+
+        <Expander HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  Padding="0">
+
+            <!-- ── Expander Header ───────────────────────────────────────── -->
+            <Expander.Header>
+                <Grid Padding="12,10,4,10" ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>   <!-- icon square -->
+                        <ColumnDefinition Width="*"/>      <!-- title + desc -->
+                        <ColumnDefinition Width="Auto"/>   <!-- toggle -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Icon square -->
+                    <Border Grid.Column="0"
+                            Width="36" Height="36"
+                            CornerRadius="6"
+                            Background="{x:Bind IconBackground, Mode=OneWay}"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind Icon, Mode=OneWay}"
+                                   FontSize="18"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Title row + description -->
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{x:Bind Title, Mode=OneWay}"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{x:Bind TitleForeground, Mode=OneWay}"
+                                       VerticalAlignment="Center"/>
+
+                            <!-- ACTIVE badge -->
+                            <Border CornerRadius="4" Padding="6,2"
+                                    Visibility="{x:Bind ActiveBadgeVisibility, Mode=OneWay}"
+                                    VerticalAlignment="Center">
+                                <Border.Background>
+                                    <SolidColorBrush Color="#1E3A5F"/>
+                                </Border.Background>
+                                <TextBlock Text="ACTIVE" FontSize="10" FontWeight="Bold"
+                                           Foreground="#60A5FA"/>
+                            </Border>
+
+                            <!-- Shield (admin required, not elevated) -->
+                            <TextBlock Text="🛡️"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"
+                                       Visibility="{x:Bind ShieldVisibility, Mode=OneWay}"
+                                       ToolTipService.ToolTip="Requires administrator rights"/>
+                        </StackPanel>
+
+                        <TextBlock Text="{x:Bind Description, Mode=OneWay}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <!-- Toggle switch -->
+                    <ToggleSwitch Grid.Column="2"
+                                  x:Name="MainToggle"
+                                  IsOn="{x:Bind IsActive, Mode=OneWay}"
+                                  Opacity="{x:Bind ToggleOpacity, Mode=OneWay}"
+                                  Toggled="Toggle_Toggled"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,8,0"
+                                  OnContent="" OffContent=""/>
+                </Grid>
+            </Expander.Header>
+
+            <!-- ── Expanded content ──────────────────────────────────────── -->
+            <Grid Padding="12,8,12,12" ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: WHAT CHANGES -->
+                <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock Text="WHAT CHANGES"
+                               FontSize="10" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               CharacterSpacing="100"/>
+                    <Border CornerRadius="4" Padding="10,8">
+                        <Border.Background>
+                            <SolidColorBrush Color="{ThemeResource SolidBackgroundFillColorBaseBrush}"/>
+                        </Border.Background>
+                        <TextBlock x:Name="ChangesTextBlock"
+                                   Text="{x:Bind ChangesText, Mode=OneWay}"
+                                   FontFamily="Consolas"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Foreground="#9CA3AF"/>
+                    </Border>
+
+                    <!-- Requirement badges -->
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <Border CornerRadius="4" Padding="6,2"
+                                Visibility="{x:Bind ReversibleVisibility, Mode=OneWay}">
+                            <Border.Background>
+                                <SolidColorBrush Color="#2D1B69"/>
+                            </Border.Background>
+                            <TextBlock Text="Reversible" FontSize="10" Foreground="#A78BFA"/>
+                        </Border>
+
+                        <Border CornerRadius="4" Padding="6,2"
+                                Visibility="{x:Bind AdminVisibility, Mode=OneWay}">
+                            <Border.Background>
+                                <SolidColorBrush Color="#451A03"/>
+                            </Border.Background>
+                            <TextBlock Text="Requires Admin" FontSize="10" Foreground="#F59E0B"/>
+                        </Border>
+
+                        <Border CornerRadius="4" Padding="6,2"
+                                Visibility="{x:Bind RestartVisibility, Mode=OneWay}">
+                            <Border.Background>
+                                <SolidColorBrush Color="#4A1942"/>
+                            </Border.Background>
+                            <TextBlock Text="Requires Restart" FontSize="10" Foreground="#F472B6"/>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Right: IMPACT -->
+                <StackPanel Grid.Column="1" Spacing="6">
+                    <TextBlock Text="IMPACT"
+                               FontSize="10" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               CharacterSpacing="100"/>
+
+                    <!-- Pros -->
+                    <ItemsRepeater x:Name="ProsRepeater" ItemsSource="{x:Bind Pros, Mode=OneWay}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
+                                    <TextBlock Text="▲" FontSize="11" Foreground="#34D399" VerticalAlignment="Top"/>
+                                    <TextBlock Text="{x:Bind}" FontSize="12" TextWrapping="Wrap"
+                                               Foreground="#34D399"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <!-- Cons -->
+                    <ItemsRepeater x:Name="ConsRepeater" ItemsSource="{x:Bind Cons, Mode=OneWay}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
+                                    <TextBlock Text="▼" FontSize="11" Foreground="#F87171" VerticalAlignment="Top"/>
+                                    <TextBlock Text="{x:Bind}" FontSize="12" TextWrapping="Wrap"
+                                               Foreground="#F87171"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Grid>
+
+        </Expander>
+    </Border>
+</UserControl>

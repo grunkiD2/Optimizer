@@ -3,6 +3,126 @@
     x:Class="Optimizer.WinUI.Views.PerformancePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="Transparent">
-    <TextBlock Text="Performance" Style="{StaticResource TitleTextBlockStyle}" Margin="24"/>
+    xmlns:controls="using:Optimizer.WinUI.Controls"
+    xmlns:vm="using:Optimizer.WinUI.ViewModels"
+    Background="Transparent"
+    Loaded="Page_Loaded">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="24,16,24,24">
+
+            <!-- ── Page header ──────────────────────────────────────────── -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: icon + title + subtitle -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind ViewModel.CategoryIcon}"
+                               FontSize="28" VerticalAlignment="Center"/>
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.CategoryName}"
+                                   Style="{StaticResource TitleTextBlockStyle}"/>
+                        <TextBlock FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                            <Run Text="{x:Bind ViewModel.ActiveCount, Mode=OneWay}"/>
+                            <Run Text=" of "/>
+                            <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
+                            <Run Text=" optimizations active"/>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Right: action buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="Apply All"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.ApplyAllCommand}"/>
+                    <Button Content="Undo Category"
+                            Command="{x:Bind ViewModel.UndoCategoryCommand}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ── Local metrics strip ──────────────────────────────────── -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- CPU Usage -->
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="CPU Usage" FontSize="12" Foreground="#60A5FA"/>
+                        <TextBlock Text="{x:Bind ViewModel.CpuText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
+                        <ProgressBar Value="{x:Bind ViewModel.CpuUsage, Mode=OneWay}"
+                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Foreground="#60A5FA"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Memory Usage -->
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Memory" FontSize="12" Foreground="#34D399"/>
+                        <TextBlock Text="{x:Bind ViewModel.MemoryText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
+                        <TextBlock Text="{x:Bind ViewModel.UsedMemoryText, Mode=OneWay}"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ProgressBar Value="{x:Bind ViewModel.MemoryUsage, Mode=OneWay}"
+                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Foreground="#34D399"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Optimizations Active -->
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Optimizations" FontSize="12" Foreground="#A78BFA"/>
+                        <TextBlock FontSize="22" FontWeight="Bold" FontFamily="Consolas">
+                            <Run Text="{x:Bind ViewModel.ActiveCount, Mode=OneWay}"/>
+                            <Run Text=" / "/>
+                            <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
+                        </TextBlock>
+                        <TextBlock Text="active" FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ── Optimization cards ───────────────────────────────────── -->
+            <TextBlock Text="Optimizations"
+                       FontSize="16" FontWeight="SemiBold"
+                       Margin="0,8,0,0"/>
+
+            <ItemsRepeater x:Name="OptimizationsRepeater"
+                           ItemsSource="{x:Bind ViewModel.Optimizations, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="0"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OptimizationCardModel">
+                        <controls:OptimizationCard
+                            Tag="{x:Bind Id}"
+                            Loaded="OptimizationCard_Loaded"/>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+        </StackPanel>
+    </ScrollViewer>
 </Page>
