@@ -82,6 +82,11 @@
                 </NavigationViewItem>
 
                 <NavigationViewItemHeader Content="MANAGE"/>
+                <NavigationViewItem Content="Services" Tag="Services">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9F5;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Profiles" Tag="Profiles">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8FD;"/>

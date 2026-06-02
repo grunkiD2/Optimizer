@@ -20,8 +20,11 @@ public sealed partial class StoragePage : Page
         InitializeComponent();
     }
 
-    private void Page_Loaded(object sender, RoutedEventArgs e)
-        => ViewModel.Load();
+    private async void Page_Loaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Load();
+        await ViewModel.LoadDiskHealthAsync();
+    }
 
     private void OptimizationCard_Loaded(object sender, RoutedEventArgs e)
     {

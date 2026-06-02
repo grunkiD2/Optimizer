@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Optimizer.WinUI.Helpers;
+using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
 using Ids = Optimizer.WinUI.Models.OptimizationIds;
 
@@ -7,7 +9,12 @@ namespace Optimizer.WinUI.ViewModels;
 
 public partial class StorageCategoryViewModel : CategoryViewModelBase
 {
+    private readonly IDiskHealthService _diskHealthService;
+
     [ObservableProperty] private string diskUsageText = "Calculating…";
+    [ObservableProperty] private bool isLoadingDisks;
+
+    public ObservableCollection<DiskHealthInfo> Disks { get; } = [];
 
     public override string CategoryName => "Storage";
     public override string CategoryIcon => "💾";
@@ -22,9 +29,11 @@ public partial class StorageCategoryViewModel : CategoryViewModelBase
         IWindowsOptimizerService optimizer,
         IElevationService elevation,
         IUndoService undoSvc,
-        HistoryService history)
+        HistoryService history,
+        IDiskHealthService diskHealthService)
         : base(optimizer, elevation, undoSvc, history)
     {
+        _diskHealthService = diskHealthService;
     }
 
     public override void Load()
@@ -55,6 +64,21 @@ public partial class StorageCategoryViewModel : CategoryViewModelBase
         catch
         {
             DiskUsageText = "Unknown";
+        }
+    }
+
+    public async Task LoadDiskHealthAsync()
+    {
+        IsLoadingDisks = true;
+        try
+        {
+            var disks = await _diskHealthService.GetDiskHealthAsync();
+            Disks.Clear();
+            foreach (var d in disks) Disks.Add(d);
+        }
+        finally
+        {
+            IsLoadingDisks = false;
         }
     }
 }

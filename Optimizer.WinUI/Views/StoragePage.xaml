@@ -5,11 +5,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Optimizer.WinUI.Controls"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
+    xmlns:models="using:Optimizer.WinUI.Models"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent"
     Loaded="Page_Loaded">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
+
+            <StackPanel.Resources>
+                <converters:HealthScoreToColorConverter x:Key="HealthScoreToColor"/>
+                <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+            </StackPanel.Resources>
 
             <!-- ── Page header ──────────────────────────────────────────── -->
             <Grid>
@@ -88,6 +95,60 @@
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <!-- ── Disk Health ──────────────────────────────────────────── -->
+            <TextBlock Text="DISK HEALTH" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,16,0,8"/>
+
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoadingDisks, Mode=OneWay}"
+                          Width="32" Height="32"
+                          HorizontalAlignment="Left"
+                          Visibility="{x:Bind ViewModel.IsLoadingDisks, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.Disks, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="8"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:DiskHealthInfo">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8" Padding="14,12"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{x:Bind Model}" FontWeight="SemiBold"/>
+                                    <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                        <Run Text="{x:Bind BusType}"/><Run Text=" · "/><Run Text="{x:Bind MediaType}"/><Run Text=" · "/><Run Text="{x:Bind SizeText}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" MinWidth="80">
+                                    <TextBlock Text="Temperature" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind TemperatureText}" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" MinWidth="120">
+                                    <TextBlock Text="Life Remaining" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind WearText}" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" MinWidth="100">
+                                    <TextBlock Text="Power-On" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind PowerOnText}" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <Border Grid.Column="4" CornerRadius="4" Padding="8,3" VerticalAlignment="Center"
+                                        Background="{x:Bind HealthScore, Converter={StaticResource HealthScoreToColor}}">
+                                    <TextBlock Text="{x:Bind HealthBadge}" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
 
             <!-- ── Optimization cards ───────────────────────────────────── -->
             <TextBlock Text="Optimizations"
