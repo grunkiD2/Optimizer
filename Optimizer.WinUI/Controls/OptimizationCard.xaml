@@ -6,10 +6,7 @@
     xmlns:local="using:Optimizer.WinUI.Controls">
 
     <!-- Outer card border -->
-    <Border CornerRadius="8" Margin="0,0,0,8" Padding="0">
-        <Border.Background>
-            <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-        </Border.Background>
+    <Border CornerRadius="8" Margin="0,0,0,8" Padding="0" Background="{ThemeResource LayerFillColorDefaultBrush}">
 
         <Expander HorizontalAlignment="Stretch"
                   HorizontalContentAlignment="Stretch"

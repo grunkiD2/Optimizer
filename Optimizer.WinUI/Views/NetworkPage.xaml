@@ -54,10 +54,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Download Speed -->
-                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="DOWNLOAD" FontSize="12" Foreground="#60A5FA"/>
                         <TextBlock Text="{x:Bind ViewModel.DownloadSpeedText, Mode=OneWay}"
@@ -68,10 +65,7 @@
                 </Border>
 
                 <!-- Upload Speed -->
-                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="UPLOAD" FontSize="12" Foreground="#34D399"/>
                         <TextBlock Text="{x:Bind ViewModel.UploadSpeedText, Mode=OneWay}"
@@ -82,10 +76,7 @@
                 </Border>
 
                 <!-- Latency -->
-                <Border Grid.Column="2" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="LATENCY" FontSize="12" Foreground="#A78BFA"/>
                         <TextBlock Text="{x:Bind ViewModel.LatencyText, Mode=OneWay}"

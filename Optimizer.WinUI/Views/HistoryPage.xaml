@@ -57,10 +57,7 @@
 
             <!-- ── Empty state ─────────────────────────────────────────────── -->
             <Border CornerRadius="8" Padding="32"
-                    Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                <Border.Background>
-                    <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                </Border.Background>
+                    Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" Background="{ThemeResource LayerFillColorDefaultBrush}">
                 <StackPanel HorizontalAlignment="Center" Spacing="8">
                     <TextBlock Text="&#x1F4DC;" FontSize="40" HorizontalAlignment="Center"/>
                     <TextBlock Text="No history yet"
@@ -120,10 +117,8 @@
 
                                         <Border CornerRadius="8" Padding="14,10"
                                                 BorderThickness="1"
-                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                                            <Border.Background>
-                                                <SolidColorBrush Color="{ThemeResource CardBackgroundFillColorDefaultColor}"/>
-                                            </Border.Background>
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
 
                                             <Grid ColumnSpacing="10">
                                                 <Grid.ColumnDefinitions>

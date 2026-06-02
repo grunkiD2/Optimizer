@@ -14,9 +14,31 @@ public partial class App : Application
 
     private Window? _window;
 
+    private static readonly string CrashLogPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Optimizer", "crash.log");
+
     public App()
     {
         InitializeComponent();
+
+        // Catch all unhandled WinUI exceptions and write to crash log
+        UnhandledException += (_, e) =>
+        {
+            e.Handled = true;
+            WriteCrashLog("UnhandledException", e.Exception);
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            WriteCrashLog("AppDomain.UnhandledException", e.ExceptionObject as Exception);
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            e.SetObserved();
+            WriteCrashLog("UnobservedTaskException", e.Exception);
+        };
 
         AppHost = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .ConfigureServices((_, services) =>
@@ -54,22 +76,41 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        var settings = GetService<SettingsService>();
-        settings.Load();
+        try
+        {
+            var settings = GetService<SettingsService>();
+            settings.Load();
 
-        var historyService = GetService<HistoryService>();
-        historyService.Load();
+            var historyService = GetService<HistoryService>();
+            historyService.Load();
 
-        var profileService = GetService<ProfileService>();
-        profileService.Load();
+            var profileService = GetService<ProfileService>();
+            profileService.Load();
 
-        GetService<IUndoService>().Load();
+            GetService<IUndoService>().Load();
 
-        _window = GetService<MainWindow>();
-        _window.Activate();
+            _window = GetService<MainWindow>();
+            _window.Activate();
 
-        ThemeHelper.ApplyBackdrop(_window, settings.Settings.BackdropMaterial);
-        if (_window.Content is FrameworkElement root)
-            ThemeHelper.ApplyTheme(root, settings.Settings.Theme);
+            ThemeHelper.ApplyBackdrop(_window, settings.Settings.BackdropMaterial);
+            if (_window.Content is FrameworkElement root)
+                ThemeHelper.ApplyTheme(root, settings.Settings.Theme);
+        }
+        catch (Exception ex)
+        {
+            WriteCrashLog("OnLaunched", ex);
+            throw;
+        }
+    }
+
+    private static void WriteCrashLog(string context, Exception? ex)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(CrashLogPath)!);
+            var msg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{context}]\n{ex}\n\n";
+            File.AppendAllText(CrashLogPath, msg);
+        }
+        catch { /* cannot crash in the crash handler */ }
     }
 }

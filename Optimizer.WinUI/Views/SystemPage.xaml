@@ -54,10 +54,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Telemetry Status -->
-                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Telemetry" FontSize="12" Foreground="#F87171"/>
                         <TextBlock Text="{x:Bind ViewModel.TelemetryStatus, Mode=OneWay}"
@@ -68,10 +65,7 @@
                 </Border>
 
                 <!-- Optimizations Active -->
-                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Optimizations" FontSize="12" Foreground="#A78BFA"/>
                         <TextBlock FontSize="22" FontWeight="Bold" FontFamily="Consolas">
@@ -85,10 +79,7 @@
                 </Border>
 
                 <!-- Hibernation placeholder -->
-                <Border Grid.Column="2" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Hibernation" FontSize="12" Foreground="#34D399"/>
                         <TextBlock Text="Sleep" FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>

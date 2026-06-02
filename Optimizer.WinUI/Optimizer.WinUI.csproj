@@ -11,6 +11,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <!-- MVVMTK0045: AOT partial-property warning — informational only, not a runtime issue -->
+    <NoWarn>$(NoWarn);MVVMTK0045</NoWarn>
     <WindowsPackageType>None</WindowsPackageType>
     <SelfContained>false</SelfContained>
   </PropertyGroup>

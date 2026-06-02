@@ -50,10 +50,7 @@
                        Visibility="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
             <!-- ── Health InfoBar ─────────────────────────────────────────── -->
-            <Border CornerRadius="8" Padding="16,12">
-                <Border.Background>
-                    <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                </Border.Background>
+            <Border CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -91,10 +88,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- CPU -->
-                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="CPU" FontSize="12" Foreground="#60A5FA"/>
                         <TextBlock Text="{x:Bind ViewModel.CpuText, Mode=OneWay}"
@@ -111,10 +105,7 @@
                 </Border>
 
                 <!-- Memory -->
-                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Memory" FontSize="12" Foreground="#34D399"/>
                         <TextBlock Text="{x:Bind ViewModel.MemoryText, Mode=OneWay}"
@@ -129,10 +120,7 @@
                 </Border>
 
                 <!-- GPU -->
-                <Border Grid.Column="2" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="GPU" FontSize="12" Foreground="#F59E0B"/>
                         <TextBlock Text="{x:Bind ViewModel.GpuText, Mode=OneWay}"
@@ -147,10 +135,7 @@
                 </Border>
 
                 <!-- Disk -->
-                <Border Grid.Column="3" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="3" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Disk" FontSize="12" Foreground="#A78BFA"/>
                         <TextBlock Text="{x:Bind ViewModel.DiskText, Mode=OneWay}"
@@ -165,10 +150,7 @@
                 </Border>
 
                 <!-- Network -->
-                <Border Grid.Column="4" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="4" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Network" FontSize="12" Foreground="#F472B6"/>
                         <TextBlock Text="{x:Bind ViewModel.NetworkText, Mode=OneWay}"
@@ -191,10 +173,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Top Processes -->
-                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="8">
                         <TextBlock Text="Top Processes" FontSize="14" FontWeight="SemiBold"/>
                         <ListView ItemsSource="{x:Bind ViewModel.TopProcesses, Mode=OneWay}"
@@ -240,10 +219,7 @@
                 </Border>
 
                 <!-- I/O Activity -->
-                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="12">
                         <TextBlock Text="I/O Activity" FontSize="14" FontWeight="SemiBold"/>
 

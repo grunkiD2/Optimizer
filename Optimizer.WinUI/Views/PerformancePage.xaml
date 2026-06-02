@@ -54,10 +54,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- CPU Usage -->
-                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="CPU Usage" FontSize="12" Foreground="#60A5FA"/>
                         <TextBlock Text="{x:Bind ViewModel.CpuText, Mode=OneWay}"
@@ -69,10 +66,7 @@
                 </Border>
 
                 <!-- Memory Usage -->
-                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Memory" FontSize="12" Foreground="#34D399"/>
                         <TextBlock Text="{x:Bind ViewModel.MemoryText, Mode=OneWay}"
@@ -87,10 +81,7 @@
                 </Border>
 
                 <!-- Optimizations Active -->
-                <Border Grid.Column="2" CornerRadius="8" Padding="16,12">
-                    <Border.Background>
-                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
-                    </Border.Background>
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Optimizations" FontSize="12" Foreground="#A78BFA"/>
                         <TextBlock FontSize="22" FontWeight="Bold" FontFamily="Consolas">
