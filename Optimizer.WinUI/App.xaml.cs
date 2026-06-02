@@ -70,6 +70,8 @@ public partial class App : Application
                 services.AddSingleton<IServiceManagerService, ServiceManagerService>();
                 services.AddSingleton<IPowerService, PowerService>();
                 services.AddSingleton<IBootAnalysisService, BootAnalysisService>();
+                services.AddSingleton<IDiagnosticsService, DiagnosticsService>();
+                services.AddSingleton<IRecommendationsService, RecommendationsService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
@@ -82,6 +84,8 @@ public partial class App : Application
                 services.AddTransient<HistoryViewModel>();
                 services.AddTransient<HardwareViewModel>();
                 services.AddTransient<ServicesViewModel>();
+                services.AddTransient<DiagnosticsViewModel>();
+                services.AddTransient<RecommendationsViewModel>();
                 services.AddSingleton<SettingsViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)

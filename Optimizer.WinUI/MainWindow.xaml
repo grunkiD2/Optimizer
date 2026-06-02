@@ -81,6 +81,18 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
+                <NavigationViewItemHeader Content="ANALYZE"/>
+                <NavigationViewItem Content="Diagnostics" Tag="Diagnostics">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9D9;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Recommendations" Tag="Recommendations">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE82D;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="MANAGE"/>
                 <NavigationViewItem Content="Services" Tag="Services">
                     <NavigationViewItem.Icon>

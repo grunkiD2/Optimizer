@@ -20,6 +20,8 @@ public sealed partial class MainWindow : Window
         ["System"] = typeof(SystemPage),
         ["Startup"] = typeof(StartupPage),
         ["Hardware"] = typeof(HardwarePage),
+        ["Diagnostics"] = typeof(DiagnosticsPage),
+        ["Recommendations"] = typeof(RecommendationsPage),
         ["Services"] = typeof(ServicesPage),
         ["Profiles"] = typeof(ProfilesPage),
         ["History"] = typeof(HistoryPage),
