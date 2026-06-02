@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Moq;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Events;
 using Xunit;
 
 namespace Optimizer.WinUI.Tests;
@@ -25,7 +26,8 @@ public class IntelligenceServiceTests
         history.Setup(h => h.Entries)
             .Returns(new List<HistoryEntry>().AsReadOnly());
 
-        return new IntelligenceService(recs.Object, history.Object);
+        var eventBus = new Mock<IEventBus>();
+        return new IntelligenceService(recs.Object, history.Object, eventBus.Object);
     }
 
     [Fact]

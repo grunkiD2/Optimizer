@@ -5,6 +5,7 @@ using Moq;
 using Optimizer.WinUI.Models.Plugins;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Cloud;
+using Optimizer.WinUI.Services.Events;
 using Optimizer.WinUI.Services.Optimizations;
 using Optimizer.WinUI.Services.Plugins;
 using Optimizer.WinUI.ViewModels;
@@ -212,7 +213,8 @@ internal sealed class NoOpWindowsOptimizerService : WindowsOptimizerService
             undoService: new Mock<IUndoService>().Object,
             elevationService: new Mock<IElevationService>().Object,
             monitorService: new Mock<ISystemMonitorService>().Object,
-            startupService: new Mock<IStartupService>().Object)
+            startupService: new Mock<IStartupService>().Object,
+            eventBus: new Mock<IEventBus>().Object)
     { }
 
     public new void RefreshHandlers() { /* no-op in tests */ }

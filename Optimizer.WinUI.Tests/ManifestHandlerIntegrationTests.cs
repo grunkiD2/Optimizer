@@ -8,6 +8,7 @@ using Moq;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Models.Plugins;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Events;
 using Optimizer.WinUI.Services.Optimizations;
 using Optimizer.WinUI.Services.Plugins;
 using Xunit;
@@ -178,7 +179,8 @@ public class ManifestHandlerIntegrationTests : IDisposable
             undoMock.Object,
             elevMock.Object,
             monMock.Object,
-            startupMock.Object);
+            startupMock.Object,
+            new Mock<IEventBus>().Object);
 
         var ids = (await service.GetAvailableOptimizationsAsync()).ToList();
         Assert.Contains("merge-test-plugin", ids, StringComparer.OrdinalIgnoreCase);
@@ -236,7 +238,8 @@ public class ManifestHandlerIntegrationTests : IDisposable
             undoMock.Object,
             elevMock.Object,
             monMock.Object,
-            startupMock.Object);
+            startupMock.Object,
+            new Mock<IEventBus>().Object);
 
         // The handler registered should be the built-in (IsPlugin = false)
         var info = service.GetOptimizationInfo("builtin-collision-id");

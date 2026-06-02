@@ -18,6 +18,8 @@ public class OptimizerDbContext : DbContext
     public DbSet<PluginListing> PluginListings => Set<PluginListing>();
     public DbSet<PluginRating> PluginRatings => Set<PluginRating>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -101,6 +103,21 @@ public class OptimizerDbContext : DbContext
             e.Property(k => k.Prefix).IsRequired().HasMaxLength(20);
             e.Property(k => k.KeyHash).IsRequired().HasMaxLength(128);
             e.Property(k => k.ScopesCsv).HasMaxLength(512);
+        });
+
+        mb.Entity<WebhookSubscription>(e =>
+        {
+            e.HasIndex(w => w.UserId);
+            e.HasOne(w => w.User).WithMany().HasForeignKey(w => w.UserId);
+            e.Property(w => w.Url).IsRequired().HasMaxLength(2048);
+            e.Property(w => w.Secret).IsRequired().HasMaxLength(128);
+            e.Property(w => w.EventTypesCsv).HasMaxLength(512);
+        });
+
+        mb.Entity<WebhookDelivery>(e =>
+        {
+            e.HasIndex(d => d.SubscriptionId);
+            e.Property(d => d.EventType).IsRequired().HasMaxLength(64);
         });
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Optimizer.Server.Auth;
 using Optimizer.Server.Data;
 using Optimizer.Server.Endpoints;
+using Optimizer.Server.Models;
 using Optimizer.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,8 @@ builder.Services.AddScoped<IMarketplaceService, MarketplaceService>();
 builder.Services.AddScoped<IPluginMarketplaceService, PluginMarketplaceService>();
 builder.Services.AddSingleton<IPluginSigningService, PluginSigningService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<IWebhookService, WebhookService>();
+builder.Services.AddHttpClient("webhook");
 
 // Email: console for dev, smtp if Smtp:Host configured
 if (!string.IsNullOrEmpty(builder.Configuration["Smtp:Host"]))
@@ -203,6 +206,7 @@ app.MapSync();
 app.MapMarketplace();
 app.MapPlugins();
 app.MapApiKeys();
+app.MapWebhooks();
 
 // Protected example endpoint to verify JWT works
 app.MapGet("/api/me", (HttpContext ctx) =>

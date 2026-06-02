@@ -336,6 +336,31 @@ public class OptimizerCloudClient : IOptimizerCloudClient
         }
     }
 
+    // ── Event forwarding ──────────────────────────────────────────────────
+
+    public async Task ForwardEventAsync(string type, string title, string detail, IReadOnlyDictionary<string, string>? data)
+    {
+        if (_session?.ServerUrl == null || string.IsNullOrEmpty(_session.AccessToken)) return;
+        try
+        {
+            using var req = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/events");
+            req.Content = JsonContent.Create(new
+            {
+                type,
+                title,
+                detail,
+                timestampUtc = DateTime.UtcNow,
+                data
+            });
+            using var resp = await _http.SendAsync(req);
+            // Best-effort: ignore failures
+        }
+        catch
+        {
+            // Best-effort: swallow all failures
+        }
+    }
+
     private static RemotePluginListing MapPlugin(PluginListingBody b) => new(
         b.PluginId, b.Name, b.AuthorDisplayName, b.Description, b.Category,
         b.Downloads, b.AverageRating, b.RatingCount, b.Verified);

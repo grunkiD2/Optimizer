@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models.Plugins;
+using Optimizer.WinUI.Services.Events;
 using Optimizer.WinUI.Services.Optimizations;
 
 namespace Optimizer.WinUI.Services.Plugins;
@@ -19,6 +20,7 @@ public sealed class PluginLoader : IPluginLoader
 {
     private readonly IManifestParser _parser;
     private readonly IDeclarativeChangeExecutor _executor;
+    private readonly IEventBus? _eventBus;
     private readonly string _pluginsFolder;
     private readonly string _stateFilePath;
 
@@ -29,10 +31,11 @@ public sealed class PluginLoader : IPluginLoader
     // ── Public constructors ───────────────────────────────────────────────────
 
     /// <summary>Production constructor — uses the standard AppData\Optimizer\plugins folder.</summary>
-    public PluginLoader(IManifestParser parser, IDeclarativeChangeExecutor executor)
+    public PluginLoader(IManifestParser parser, IDeclarativeChangeExecutor executor, IEventBus eventBus)
         : this(parser, executor,
                Path.Combine(AppPaths.AppDataFolder, "plugins"),
-               AppPaths.GetDataFile("plugin-state.json"))
+               AppPaths.GetDataFile("plugin-state.json"),
+               eventBus)
     { }
 
     /// <summary>
@@ -40,12 +43,14 @@ public sealed class PluginLoader : IPluginLoader
     /// can use a temp directory without touching AppData.
     /// </summary>
     internal PluginLoader(IManifestParser parser, IDeclarativeChangeExecutor executor,
-                          string pluginsFolder, string stateFilePath)
+                          string pluginsFolder, string stateFilePath,
+                          IEventBus? eventBus = null)
     {
         _parser        = parser;
         _executor      = executor;
         _pluginsFolder = pluginsFolder;
         _stateFilePath = stateFilePath;
+        _eventBus      = eventBus;
 
         EnsureFolder();
         Reload();
@@ -162,6 +167,13 @@ public sealed class PluginLoader : IPluginLoader
 
             Reload();
             EngineLog.Write($"[PluginLoader] Installed plugin '{manifest.Id}' from '{sourcePath}'.");
+
+            _eventBus?.Publish(OptimizerEvent.Create(
+                OptimizerEventType.PluginInstalled,
+                "Plugin installed",
+                manifest.Name,
+                new Dictionary<string, string> { ["pluginId"] = manifest.Id }));
+
             return true;
         }
         catch (Exception ex)

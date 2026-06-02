@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Management;
 
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services.Events;
 using Optimizer.WinUI.Services.Optimizations;
 using Optimizer.WinUI.Services.Plugins;
 
@@ -24,6 +25,7 @@ public class WindowsOptimizerService : IWindowsOptimizerService
     private readonly IElevationService _elevationService;
     private readonly ISystemMonitorService _monitorService;
     private readonly IStartupService _startupService;
+    private readonly IEventBus _eventBus;
 
     private readonly ConcurrentDictionary<string, SettingsProfile> _appliedProfiles = new();
     private bool _restorePointCreated;
@@ -34,7 +36,8 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         IUndoService undoService,
         IElevationService elevationService,
         ISystemMonitorService monitorService,
-        IStartupService startupService)
+        IStartupService startupService,
+        IEventBus eventBus)
     {
         _builtInHandlers = handlers.ToDictionary(h => h.Id, StringComparer.OrdinalIgnoreCase);
         _pluginLoader = pluginLoader;
@@ -42,6 +45,7 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         _elevationService = elevationService;
         _monitorService = monitorService;
         _startupService = startupService;
+        _eventBus = eventBus;
 
         // Build initial merged dictionary
         _handlers = BuildMergedHandlers();
@@ -123,7 +127,14 @@ public class WindowsOptimizerService : IWindowsOptimizerService
                 var result = await handler.ApplyAsync(_undoService, _elevationService);
 
                 if (result.Success)
+                {
                     await _undoService.SaveAsync();
+                    _eventBus.Publish(OptimizerEvent.Create(
+                        OptimizerEventType.OptimizationApplied,
+                        "Optimization applied",
+                        handler.Info.Title,
+                        new Dictionary<string, string> { ["optimizationId"] = optimizationId }));
+                }
 
                 return result;
             });
@@ -189,6 +200,13 @@ public class WindowsOptimizerService : IWindowsOptimizerService
             }
 
             await _undoService.SaveAsync();
+
+            _eventBus.Publish(OptimizerEvent.Create(
+                OptimizerEventType.ProfileApplied,
+                "Profile applied",
+                profile.Name,
+                new Dictionary<string, string> { ["profileId"] = profileId }));
+
             return true;
         }
         catch (Exception ex)

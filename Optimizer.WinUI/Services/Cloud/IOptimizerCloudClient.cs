@@ -25,6 +25,9 @@ public interface IOptimizerCloudClient
     Task<RemotePluginDetail?> GetPluginDetailAsync(string pluginId);
     Task<bool> IncrementPluginDownloadAsync(string pluginId);
     Task<bool> SubmitPluginAsync(string manifestYaml);
+
+    // Event forwarding (best-effort, called from EventBus background queue)
+    Task ForwardEventAsync(string type, string title, string detail, IReadOnlyDictionary<string, string>? data);
 }
 
 public record CloudSyncItem(string ItemType, string ItemId, string Payload, bool IsDeleted = false);

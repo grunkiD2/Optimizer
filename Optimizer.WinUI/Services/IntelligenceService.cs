@@ -2,6 +2,7 @@ using Microsoft.ML;
 using Microsoft.ML.Data;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services.Events;
 
 namespace Optimizer.WinUI.Services;
 
@@ -10,6 +11,7 @@ public class IntelligenceService : IIntelligenceService
     private readonly MLContext _ml = new(seed: 42);
     private readonly IRecommendationsService _recommendations;
     private readonly IHistoryService _history;
+    private readonly IEventBus _eventBus;
     private ITransformer? _acceptanceModel;
     private DataViewSchema? _modelSchema;
 
@@ -21,10 +23,11 @@ public class IntelligenceService : IIntelligenceService
     public bool IsTrained => _acceptanceModel != null;
     public DateTime? LastTrainedAt { get; private set; }
 
-    public IntelligenceService(IRecommendationsService recommendations, IHistoryService history)
+    public IntelligenceService(IRecommendationsService recommendations, IHistoryService history, IEventBus eventBus)
     {
         _recommendations = recommendations;
         _history = history;
+        _eventBus = eventBus;
         TryLoadModel();
     }
 
@@ -136,7 +139,7 @@ public class IntelligenceService : IIntelligenceService
             var latest = recentValues[^1];
             if (Math.Abs(latest - avg) > threshold && stdDev > 1)
             {
-                alerts.Add(new AnomalyAlert
+                var alert = new AnomalyAlert
                 {
                     MetricName = metricName,
                     Value = latest,
@@ -144,7 +147,20 @@ public class IntelligenceService : IIntelligenceService
                     Severity = Math.Min(1.0, Math.Abs(latest - avg) / (5 * stdDev)),
                     Description = $"{metricName} is unusually {(latest > avg ? "high" : "low")}: " +
                                   $"{latest:F1} vs expected ~{avg:F1} ±{threshold:F1}"
-                });
+                };
+                alerts.Add(alert);
+
+                _eventBus.Publish(OptimizerEvent.Create(
+                    OptimizerEventType.AnomalyDetected,
+                    $"Anomaly detected: {metricName}",
+                    alert.Description,
+                    new Dictionary<string, string>
+                    {
+                        ["metric"]   = metricName,
+                        ["value"]    = latest.ToString("F1"),
+                        ["expected"] = avg.ToString("F1"),
+                        ["severity"] = alert.Severity.ToString("F2")
+                    }));
             }
         }
         catch (Exception ex)

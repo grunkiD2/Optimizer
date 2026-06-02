@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Hosting;
+using Optimizer.WinUI.Services.Events;
 
 namespace Optimizer.WinUI.Services;
 
@@ -11,6 +12,7 @@ public class BackgroundMonitorService : IHostedService, IDisposable
     private readonly ISystemDataBus _dataBus;
     private readonly IDiskHealthService _diskHealth;
     private readonly INotificationService _notifications;
+    private readonly IEventBus _eventBus;
 
     private readonly Queue<double> _cpuHistory = new();
     private int _tickCount;
@@ -19,11 +21,13 @@ public class BackgroundMonitorService : IHostedService, IDisposable
     public BackgroundMonitorService(
         ISystemDataBus dataBus,
         IDiskHealthService diskHealth,
-        INotificationService notifications)
+        INotificationService notifications,
+        IEventBus eventBus)
     {
         _dataBus       = dataBus;
         _diskHealth    = diskHealth;
         _notifications = notifications;
+        _eventBus      = eventBus;
     }
 
     // ── IHostedService ────────────────────────────────────────────────────────
@@ -77,19 +81,31 @@ public class BackgroundMonitorService : IHostedService, IDisposable
 
             if (_cpuHistory.Count >= 4 && _cpuHistory.All(c => c > 90))
             {
-                _notifications.Show(
-                    "High CPU usage detected",
-                    $"CPU has been at {snapshot.CpuUsagePercentage:F0}% for over 2 minutes.",
-                    NotificationCategory.Performance);
+                var title = "High CPU usage detected";
+                var detail = $"CPU has been at {snapshot.CpuUsagePercentage:F0}% for over 2 minutes.";
+                _notifications.Show(title, detail, NotificationCategory.Performance);
+                _eventBus.Publish(OptimizerEvent.Create(
+                    OptimizerEventType.ThresholdCrossed, title, detail,
+                    new Dictionary<string, string>
+                    {
+                        ["metric"] = "CpuUsage",
+                        ["value"]  = snapshot.CpuUsagePercentage.ToString("F0")
+                    }));
             }
 
             // ── CPU thermal warning ───────────────────────────────────────────
             if (snapshot.CpuTemperature > 90)
             {
-                _notifications.Show(
-                    "CPU thermal warning",
-                    $"CPU temperature is {snapshot.CpuTemperature:F0}°C. Check cooling immediately.",
-                    NotificationCategory.Hardware);
+                var title = "CPU thermal warning";
+                var detail = $"CPU temperature is {snapshot.CpuTemperature:F0}°C. Check cooling immediately.";
+                _notifications.Show(title, detail, NotificationCategory.Hardware);
+                _eventBus.Publish(OptimizerEvent.Create(
+                    OptimizerEventType.ThresholdCrossed, title, detail,
+                    new Dictionary<string, string>
+                    {
+                        ["metric"] = "CpuTemperature",
+                        ["value"]  = snapshot.CpuTemperature.ToString("F0")
+                    }));
             }
 
             // ── Disk space ────────────────────────────────────────────────────
@@ -100,10 +116,17 @@ public class BackgroundMonitorService : IHostedService, IDisposable
                 if (usedPct > 95)
                 {
                     var freeGb = drive.AvailableFreeSpace / 1_073_741_824L;
-                    _notifications.Show(
-                        "Drive nearly full",
-                        $"{drive.Name} is {usedPct:F0}% full. Only {freeGb} GB remaining.",
-                        NotificationCategory.Storage);
+                    var title = "Drive nearly full";
+                    var detail = $"{drive.Name} is {usedPct:F0}% full. Only {freeGb} GB remaining.";
+                    _notifications.Show(title, detail, NotificationCategory.Storage);
+                    _eventBus.Publish(OptimizerEvent.Create(
+                        OptimizerEventType.ThresholdCrossed, title, detail,
+                        new Dictionary<string, string>
+                        {
+                            ["metric"] = "DiskUsage",
+                            ["drive"]  = drive.Name,
+                            ["value"]  = usedPct.ToString("F0")
+                        }));
                 }
             }
 
@@ -111,10 +134,16 @@ public class BackgroundMonitorService : IHostedService, IDisposable
             var disks = await _diskHealth.GetDiskHealthAsync();
             foreach (var disk in disks.Where(d => d.IsPredictedToFail))
             {
-                _notifications.Show(
-                    "Drive failure predicted",
-                    $"{disk.Model} reports unhealthy SMART status. Back up your data immediately.",
-                    NotificationCategory.Hardware);
+                var title = "Drive failure predicted";
+                var detail = $"{disk.Model} reports unhealthy SMART status. Back up your data immediately.";
+                _notifications.Show(title, detail, NotificationCategory.Hardware);
+                _eventBus.Publish(OptimizerEvent.Create(
+                    OptimizerEventType.ThresholdCrossed, title, detail,
+                    new Dictionary<string, string>
+                    {
+                        ["metric"] = "SmartHealth",
+                        ["disk"]   = disk.Model
+                    }));
             }
         }
         catch (Exception ex)

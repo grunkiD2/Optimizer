@@ -12,6 +12,7 @@ using Optimizer.WinUI.Services.Optimizations.Network;
 using Optimizer.WinUI.Services.Optimizations.Performance;
 using Optimizer.WinUI.Services.Optimizations.Storage;
 using Optimizer.WinUI.Services.Optimizations.System;
+using Optimizer.WinUI.Services.Events;
 using Optimizer.WinUI.ViewModels;
 using Serilog;
 
@@ -149,9 +150,12 @@ public partial class App : Application
                 services.AddSingleton<ITemplatesService, TemplatesService>();
                 services.AddSingleton<IComplianceService, ComplianceService>();
 
+                // Event bus (depends on IOptimizerCloudClient — registered just below)
+                services.AddSingleton<IOptimizerCloudClient, OptimizerCloudClient>();
+                services.AddSingleton<IEventBus, EventBus>();
+
                 // Cloud sync
                 services.AddSingleton<ISyncTombstoneCollector, SyncTombstoneCollector>();
-                services.AddSingleton<IOptimizerCloudClient, OptimizerCloudClient>();
                 services.AddSingleton<ICloudSyncOrchestrator, CloudSyncOrchestrator>();
 
                 // REST API host
