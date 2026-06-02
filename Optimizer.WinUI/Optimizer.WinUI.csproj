@@ -51,5 +51,6 @@
     <PackageReference Include="Microsoft.ML.TimeSeries" Version="4.0.2" />
     <!-- OpenAPI / Swagger support for the REST API host -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    <PackageReference Include="YamlDotNet" Version="16.2.1" />
   </ItemGroup>
 </Project>

@@ -6,6 +6,7 @@ using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Cloud;
 using Optimizer.WinUI.Services.Diagnostics;
+using Optimizer.WinUI.Services.Plugins;
 using Optimizer.WinUI.Services.Optimizations;
 using Optimizer.WinUI.Services.Optimizations.Network;
 using Optimizer.WinUI.Services.Optimizations.Performance;
@@ -136,6 +137,8 @@ public partial class App : Application
                 services.AddSingleton<ISmartInsightsService, SmartInsightsService>();
                 services.AddSingleton<ISystemDataBus, SystemDataBus>();
                 services.AddHostedService(sp => (SystemDataBus)sp.GetRequiredService<ISystemDataBus>());
+                services.AddSingleton<IManifestParser, ManifestParser>();
+                services.AddSingleton<IDeclarativeChangeExecutor, DeclarativeChangeExecutor>();
                 services.AddSingleton<IMarketplaceService, MarketplaceService>();
                 services.AddSingleton<IIntelligenceService, IntelligenceService>();
 

@@ -19,6 +19,7 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="YamlDotNet" Version="16.2.1" />
     <!-- Suppress buildTransitive targets (PRI gen / AppxPackage tasks) that flow in from
          the referenced WinUI project. These require VS tooling not present in CLI/CI builds. -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250401001"
