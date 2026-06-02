@@ -28,7 +28,21 @@ public interface IOptimizerCloudClient
 
     // Event forwarding (best-effort, called from EventBus background queue)
     Task ForwardEventAsync(string type, string title, string detail, IReadOnlyDictionary<string, string>? data);
+
+    // Federated Learning scaffold (opt-in, DP-protected)
+    // Uploads the user's differentially-private model statistics.
+    // The caller is responsible for applying DP noise before invoking this method.
+    Task<bool> ContributeFederatedAsync(IReadOnlyList<FederatedCategoryContribution> contributions);
+
+    // Downloads community-aggregated baselines (only categories meeting the k-anonymity threshold).
+    Task<IReadOnlyList<FederatedCommunityBaseline>?> GetCommunityBaselinesAsync();
 }
+
+/// <summary>One category's DP-noised contribution to upload to the federated server.</summary>
+public record FederatedCategoryContribution(string Category, double AcceptanceRate, int SampleWeight);
+
+/// <summary>Community-aggregated acceptance rate baseline for one category.</summary>
+public record FederatedCommunityBaseline(string Category, double CommunityAcceptanceRate, int ContributorCount);
 
 public record CloudSyncItem(string ItemType, string ItemId, string Payload, bool IsDeleted = false);
 public record SyncPullResult(long Cursor, IReadOnlyList<CloudSyncItem> Items);

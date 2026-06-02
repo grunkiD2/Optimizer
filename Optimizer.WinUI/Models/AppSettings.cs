@@ -40,4 +40,9 @@ public class AppSettings
     // Cloud Sync
     public bool CloudSyncEnabled { get; set; } = false;
     public string CloudServerUrl { get; set; } = "http://localhost:5000";
+
+    // Privacy-Preserving Community Insights (Federated Learning scaffold)
+    // Default is FALSE — strictly opt-in. When enabled, only differentially-private
+    // aggregated statistics are shared. Raw preferences or system data are NEVER uploaded.
+    public bool FederatedLearningEnabled { get; set; } = false;
 }

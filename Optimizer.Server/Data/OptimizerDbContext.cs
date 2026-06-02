@@ -20,6 +20,7 @@ public class OptimizerDbContext : DbContext
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
+    public DbSet<FederatedContribution> FederatedContributions => Set<FederatedContribution>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -118,6 +119,13 @@ public class OptimizerDbContext : DbContext
         {
             e.HasIndex(d => d.SubscriptionId);
             e.Property(d => d.EventType).IsRequired().HasMaxLength(64);
+        });
+
+        mb.Entity<FederatedContribution>(e =>
+        {
+            // One latest contribution per (user, category) — enforced by upsert logic in the service.
+            e.HasIndex(f => new { f.UserId, f.Category }).IsUnique();
+            e.Property(f => f.Category).IsRequired().HasMaxLength(64);
         });
     }
 }

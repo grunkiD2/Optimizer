@@ -166,6 +166,8 @@ public partial class App : Application
                 // Cloud sync
                 services.AddSingleton<ISyncTombstoneCollector, SyncTombstoneCollector>();
                 services.AddSingleton<ICloudSyncOrchestrator, CloudSyncOrchestrator>();
+                // Federated learning scaffold (opt-in, DP-protected)
+                services.AddSingleton<IFederatedClient, FederatedClient>();
 
                 // REST API host
                 services.AddSingleton<IApiHostService>(sp =>
@@ -294,6 +296,22 @@ public partial class App : Application
                 catch (Exception ex)
                 {
                     WriteCrashLog("TrendHistoryService.RecordSampleAsync", ex);
+                }
+            });
+
+            // Federated learning scaffold (opt-in, DP-protected).
+            // Only runs when the user has explicitly enabled the feature.
+            // Uploads only differentially-private aggregates; never raw data.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(30)); // let auth session restore
+                    await GetService<IFederatedClient>().SyncAsync();
+                }
+                catch (Exception ex)
+                {
+                    WriteCrashLog("FederatedClient.SyncAsync", ex);
                 }
             });
 

@@ -336,6 +336,52 @@ public class OptimizerCloudClient : IOptimizerCloudClient
         }
     }
 
+    // ── Federated Learning scaffold ────────────────────────────────────────
+
+    public async Task<bool> ContributeFederatedAsync(IReadOnlyList<FederatedCategoryContribution> contributions)
+    {
+        if (_session?.ServerUrl == null || string.IsNullOrEmpty(_session.AccessToken)) return false;
+        try
+        {
+            using var req = NewAuthedRequest(HttpMethod.Post, $"{_session.ServerUrl}/api/federated/contribute");
+            req.Content = JsonContent.Create(new
+            {
+                contributions = contributions.Select(c => new
+                {
+                    category       = c.Category,
+                    acceptanceRate = c.AcceptanceRate,
+                    sampleWeight   = c.SampleWeight
+                }).ToArray()
+            });
+            using var resp = await _http.SendAsync(req);
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Cloud: federated contribute failed", ex);
+            return false;
+        }
+    }
+
+    public async Task<IReadOnlyList<FederatedCommunityBaseline>?> GetCommunityBaselinesAsync()
+    {
+        if (_session?.ServerUrl == null || string.IsNullOrEmpty(_session.AccessToken)) return null;
+        return await WithAuthRetryAsync(async () =>
+        {
+            using var req = NewAuthedRequest(HttpMethod.Get, $"{_session.ServerUrl}/api/federated/baselines");
+            using var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+                return (resp.StatusCode, (IReadOnlyList<FederatedCommunityBaseline>?)null);
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var body = await resp.Content.ReadFromJsonAsync<FederatedBaselinesBody>(opts);
+            if (body == null) return (resp.StatusCode, null);
+            var baselines = body.Baselines
+                .Select(b => new FederatedCommunityBaseline(b.Category, b.CommunityAcceptanceRate, b.ContributorCount))
+                .ToList();
+            return (resp.StatusCode, (IReadOnlyList<FederatedCommunityBaseline>?)baselines);
+        });
+    }
+
     // ── Event forwarding ──────────────────────────────────────────────────
 
     public async Task ForwardEventAsync(string type, string title, string detail, IReadOnlyDictionary<string, string>? data)
@@ -526,4 +572,7 @@ public class OptimizerCloudClient : IOptimizerCloudClient
         int Downloads,
         double AverageRating,
         int RatingCount);
+
+    private record FederatedBaselinesBody(IReadOnlyList<FederatedBaselineItem> Baselines);
+    private record FederatedBaselineItem(string Category, double CommunityAcceptanceRate, int ContributorCount);
 }

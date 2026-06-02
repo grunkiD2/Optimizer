@@ -260,6 +260,20 @@
                 </StackPanel>
             </settingsControls:SettingsCard>
 
+            <!-- ── PRIVACY-PRESERVING COMMUNITY INSIGHTS ─────────────────── -->
+            <TextBlock Text="PRIVACY &amp; AI"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <settingsControls:SettingsCard
+                    Header="Privacy-Preserving Community Insights"
+                    Description="When enabled, your device shares differentially-private, anonymized statistics — never raw data or system info — to help improve recommendation defaults for everyone. Contributions are protected by the Laplace differential-privacy mechanism before leaving your device. You can turn this off anytime. Default: Off.">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.FederatedLearningEnabled, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
             <!-- ── REMOTE API ──────────────────────────────────────────────── -->
             <TextBlock Text="REMOTE API"
                        FontSize="11" FontWeight="SemiBold"

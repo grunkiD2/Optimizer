@@ -25,6 +25,7 @@ builder.Services.AddScoped<IPluginMarketplaceService, PluginMarketplaceService>(
 builder.Services.AddSingleton<IPluginSigningService, PluginSigningService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IWebhookService, WebhookService>();
+builder.Services.AddScoped<IFederatedLearningService, FederatedLearningService>();
 builder.Services.AddHttpClient("webhook");
 
 // Email: console for dev, smtp if Smtp:Host configured
@@ -219,6 +220,7 @@ app.MapMarketplace();
 app.MapPlugins();
 app.MapApiKeys();
 app.MapWebhooks();
+app.MapFederated();
 
 // Protected example endpoint to verify JWT works
 app.MapGet("/api/me", (HttpContext ctx) =>

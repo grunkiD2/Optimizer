@@ -3,6 +3,7 @@ using Microsoft.ML.Data;
 using Microsoft.ML.Transforms.TimeSeries;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services.Ai;
 using Optimizer.WinUI.Services.Events;
 
 namespace Optimizer.WinUI.Services;
@@ -413,5 +414,64 @@ public class IntelligenceService : IIntelligenceService
         if (id.Contains("smart", StringComparison.OrdinalIgnoreCase) || id.Contains("temp", StringComparison.OrdinalIgnoreCase)) return ("Hardware", "Critical");
         if (id.Contains("battery", StringComparison.OrdinalIgnoreCase)) return ("Hardware", "Warning");
         return ("Performance", "Info");
+    }
+
+    // ── E3: per-user summary statistics ─────────────────────────────────────
+
+    /// <inheritdoc cref="IIntelligenceService.ComputeLocalSummary"/>
+    public LocalModelSummary ComputeLocalSummary()
+    {
+        var prefs = _recommendations.GetPreferences();
+        return BuildSummary(prefs, privatize: false, epsilon: 0, rng: null);
+    }
+
+    /// <inheritdoc cref="IIntelligenceService.ComputePrivatizedSummary"/>
+    public LocalModelSummary ComputePrivatizedSummary(double epsilon)
+    {
+        if (epsilon <= 0) throw new ArgumentOutOfRangeException(nameof(epsilon), "epsilon must be > 0");
+        var prefs = _recommendations.GetPreferences();
+        return BuildSummary(prefs, privatize: true, epsilon: epsilon, rng: Random.Shared);
+    }
+
+    private static LocalModelSummary BuildSummary(
+        IReadOnlyDictionary<string, RecommendationPreference> prefs,
+        bool privatize,
+        double epsilon,
+        Random? rng)
+    {
+        // Accumulate accept/total counts per category
+        var acceptCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var totalCounts  = new Dictionary<string, int>(StringComparer.Ordinal);
+        int grandTotal   = 0;
+
+        foreach (var (id, pref) in prefs)
+        {
+            var (cat, _) = ParseIdHeuristic(id);
+            int total = pref.AcceptCount + pref.DismissCount;
+            if (total == 0) continue;
+
+            acceptCounts.TryGetValue(cat, out var acc);
+            totalCounts.TryGetValue(cat, out var tot);
+            acceptCounts[cat] = acc + pref.AcceptCount;
+            totalCounts[cat]  = tot + total;
+            grandTotal += total;
+        }
+
+        var rates = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var cat in totalCounts.Keys)
+        {
+            double rate = totalCounts[cat] == 0 ? 0.0 : (double)acceptCounts[cat] / totalCounts[cat];
+
+            if (privatize && rng != null)
+                rate = DifferentialPrivacy.PrivatizeRate(rate, epsilon, rng);
+
+            rates[cat] = rate;
+        }
+
+        int privatizedTotal = grandTotal;
+        if (privatize && rng != null)
+            privatizedTotal = (int)Math.Round(DifferentialPrivacy.PrivatizeCount(grandTotal, epsilon, rng));
+
+        return new LocalModelSummary(rates, privatizedTotal, DateTime.UtcNow);
     }
 }

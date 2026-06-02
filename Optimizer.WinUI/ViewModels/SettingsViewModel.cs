@@ -7,6 +7,7 @@ using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.ViewModels;
 
+
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsService _settingsService;
@@ -52,6 +53,9 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool cloudMagicLinkSent;
     [ObservableProperty] private string cloudVerifyToken = "";
     [ObservableProperty] private string cloudLastSync = "Never";
+
+    // Privacy-Preserving Community Insights (Federated Learning scaffold, opt-in)
+    [ObservableProperty] private bool federatedLearningEnabled;
 
     public string CategoryName => "Settings";
     public string CategoryIcon => ""; // Settings gear icon
@@ -118,6 +122,9 @@ public partial class SettingsViewModel : ObservableObject
             CloudMagicLinkSent  = false;
             CloudVerifyToken    = "";
             RefreshCloudSyncStatus();
+
+            // Federated learning (opt-in, default OFF)
+            FederatedLearningEnabled = s.FederatedLearningEnabled;
 
             // Reflect actual registry state rather than just saved preference
             StartWithWindows = IsAppRegisteredInStartup();
@@ -386,6 +393,13 @@ public partial class SettingsViewModel : ObservableObject
             _ = _syncOrchestrator.EnableAsync();
         else
             _ = _syncOrchestrator.DisableAsync();
+    }
+
+    partial void OnFederatedLearningEnabledChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.FederatedLearningEnabled = value;
+        _settingsService.Save();
     }
 
     private void RefreshCloudSyncStatus()
