@@ -78,6 +78,12 @@ public class HistoryService
         Save();
     }
 
+    public void Clear()
+    {
+        _entries.Clear();
+        Save();
+    }
+
     private void Save()
     {
         var dir = Path.GetDirectoryName(FilePath)!;
