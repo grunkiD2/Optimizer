@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e088</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e088</value></resheader>
+
+  <!-- Dashboard -->
+  <data name="Dashboard_Title.Text"><value>System Dashboard</value></data>
+  <data name="Dashboard_HealthLabel.Text"><value>Health Score</value></data>
+  <data name="Dashboard_TopProcesses.Text"><value>Top Processes</value></data>
+  <data name="Dashboard_IOActivity.Text"><value>I/O Activity</value></data>
+  <data name="Dashboard_ApplySafeTune.Content"><value>Apply Safe Tune</value></data>
+  <data name="Dashboard_UndoAll.Content"><value>Undo All</value></data>
+
+  <!-- Performance -->
+  <data name="Performance_Title.Text"><value>Performance</value></data>
+  <data name="Performance_PowerPlan.Text"><value>Power Plan</value></data>
+  <data name="Performance_VisualEffects.Text"><value>Visual Effects</value></data>
+
+  <!-- Network -->
+  <data name="Network_Title.Text"><value>Network</value></data>
+  <data name="Network_DNS.Text"><value>DNS Configuration</value></data>
+  <data name="Network_Adapter.Text"><value>Network Adapter</value></data>
+
+  <!-- Storage -->
+  <data name="Storage_Title.Text"><value>Storage</value></data>
+  <data name="Storage_Cleanup.Text"><value>Cleanup</value></data>
+  <data name="Storage_DriveHealth.Text"><value>Drive Health</value></data>
+
+  <!-- System -->
+  <data name="System_Title.Text"><value>System</value></data>
+  <data name="System_Privacy.Text"><value>Privacy</value></data>
+
+  <!-- Settings -->
+  <data name="Settings_Title.Text"><value>Settings</value></data>
+  <data name="Settings_Appearance.Text"><value>Appearance</value></data>
+  <data name="Settings_Monitoring.Text"><value>Monitoring</value></data>
+  <data name="Settings_Notifications.Text"><value>Notifications</value></data>
+  <data name="Settings_Data.Text"><value>Data</value></data>
+  <data name="Settings_Language.Header"><value>Language</value></data>
+  <data name="Settings_Language.Description"><value>Application display language (restart required)</value></data>
+  <data name="Settings_Theme.Header"><value>Theme</value></data>
+  <data name="Settings_Backdrop.Header"><value>Window Backdrop</value></data>
+
+  <!-- Common actions -->
+  <data name="Common_Apply.Content"><value>Apply</value></data>
+  <data name="Common_Cancel.Content"><value>Cancel</value></data>
+  <data name="Common_Save.Content"><value>Save</value></data>
+  <data name="Common_Delete.Content"><value>Delete</value></data>
+  <data name="Common_Refresh.Content"><value>Refresh</value></data>
+  <data name="Common_Back.Content"><value>Back</value></data>
+  <data name="Common_Next.Content"><value>Next</value></data>
+  <data name="Common_Skip.Content"><value>Skip</value></data>
+  <data name="Common_Reset.Content"><value>Reset</value></data>
+
+  <!-- Onboarding -->
+  <data name="Onboarding_Welcome.Text"><value>Welcome to Optimizer</value></data>
+  <data name="Onboarding_GetStarted.Content"><value>Get Started</value></data>
+  <data name="Onboarding_AllSet.Text"><value>All set!</value></data>
+  <data name="Onboarding_OpenDashboard.Content"><value>Open Dashboard</value></data>
+  <data name="Onboarding_SkipSetup.Content"><value>Skip Setup</value></data>
+
+  <!-- Diagnostics / Recommendations -->
+  <data name="Diagnostics_Title.Text"><value>Diagnostics</value></data>
+  <data name="Recommendations_Title.Text"><value>Recommendations</value></data>
+
+  <!-- Profiles -->
+  <data name="Profiles_Title.Text"><value>Optimization Profiles</value></data>
+  <data name="Profiles_Import.Content"><value>Import</value></data>
+  <data name="Profiles_Export.Content"><value>Export</value></data>
+  <data name="Profiles_NewProfile.Content"><value>New Profile</value></data>
+
+</root>

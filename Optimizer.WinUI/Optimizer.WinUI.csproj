@@ -16,6 +16,8 @@
     <WindowsPackageType>None</WindowsPackageType>
     <SelfContained>false</SelfContained>
   </PropertyGroup>
+  <!-- .resw resource files under Strings\ are auto-discovered by the Windows App SDK build targets -->
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.250402" />

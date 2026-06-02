@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 
 namespace Optimizer.WinUI.ViewModels;
@@ -35,9 +36,12 @@ public partial class SettingsViewModel : ObservableObject
     public string CategoryName => "Settings";
     public string CategoryIcon => ""; // Settings gear icon
 
+    [ObservableProperty] private string selectedLanguage = "en-US";
+
     // Collections for dropdowns
-    public List<string> ThemeOptions { get; } = ["Light", "Dark", "Default"];
+    public List<string> ThemeOptions    { get; } = ["Light", "Dark", "Default"];
     public List<string> BackdropOptions { get; } = ["None", "Acrylic", "MicaAlt", "Mica"];
+    public List<string> LanguageOptions { get; } = ["en-US", "es-ES", "de-DE"];
 
     public SettingsViewModel(SettingsService settingsService, HistoryService historyService, IThemeService themeService)
     {
@@ -69,6 +73,8 @@ public partial class SettingsViewModel : ObservableObject
             NotifyRecommendations = s.NotifyRecommendations;
             NotifyOptimizations   = s.NotifyOptimizations;
 
+            SelectedLanguage = s.Language ?? "en-US";
+
             // Reflect actual registry state rather than just saved preference
             StartWithWindows = IsAppRegisteredInStartup();
         }
@@ -76,6 +82,14 @@ public partial class SettingsViewModel : ObservableObject
         {
             _isLoading = false;
         }
+    }
+
+    partial void OnSelectedLanguageChanged(string value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.Language = value;
+        _settingsService.Save();
+        Localization.SetLanguage(value);
     }
 
     partial void OnSelectedThemeChanged(string value)

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e088</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e088</value></resheader>
+
+  <!-- Dashboard -->
+  <data name="Dashboard_Title.Text"><value>Panel del sistema</value></data>
+  <data name="Dashboard_HealthLabel.Text"><value>Puntuación de salud</value></data>
+  <data name="Dashboard_TopProcesses.Text"><value>Procesos principales</value></data>
+  <data name="Dashboard_IOActivity.Text"><value>Actividad de E/S</value></data>
+  <data name="Dashboard_ApplySafeTune.Content"><value>Aplicar ajuste seguro</value></data>
+  <data name="Dashboard_UndoAll.Content"><value>Deshacer todo</value></data>
+
+  <!-- Performance -->
+  <data name="Performance_Title.Text"><value>Rendimiento</value></data>
+  <data name="Performance_PowerPlan.Text"><value>Plan de energía</value></data>
+  <data name="Performance_VisualEffects.Text"><value>Efectos visuales</value></data>
+
+  <!-- Network -->
+  <data name="Network_Title.Text"><value>Red</value></data>
+  <data name="Network_DNS.Text"><value>Configuración DNS</value></data>
+  <data name="Network_Adapter.Text"><value>Adaptador de red</value></data>
+
+  <!-- Storage -->
+  <data name="Storage_Title.Text"><value>Almacenamiento</value></data>
+  <data name="Storage_Cleanup.Text"><value>Limpieza</value></data>
+  <data name="Storage_DriveHealth.Text"><value>Salud de la unidad</value></data>
+
+  <!-- System -->
+  <data name="System_Title.Text"><value>Sistema</value></data>
+  <data name="System_Privacy.Text"><value>Privacidad</value></data>
+
+  <!-- Settings -->
+  <data name="Settings_Title.Text"><value>Configuración</value></data>
+  <data name="Settings_Appearance.Text"><value>Apariencia</value></data>
+  <data name="Settings_Monitoring.Text"><value>Supervisión</value></data>
+  <data name="Settings_Notifications.Text"><value>Notificaciones</value></data>
+  <data name="Settings_Data.Text"><value>Datos</value></data>
+  <data name="Settings_Language.Header"><value>Idioma</value></data>
+  <data name="Settings_Language.Description"><value>Idioma de la aplicación (requiere reinicio)</value></data>
+  <data name="Settings_Theme.Header"><value>Tema</value></data>
+  <data name="Settings_Backdrop.Header"><value>Fondo de ventana</value></data>
+
+  <!-- Common actions -->
+  <data name="Common_Apply.Content"><value>Aplicar</value></data>
+  <data name="Common_Cancel.Content"><value>Cancelar</value></data>
+  <data name="Common_Save.Content"><value>Guardar</value></data>
+  <data name="Common_Delete.Content"><value>Eliminar</value></data>
+  <data name="Common_Refresh.Content"><value>Actualizar</value></data>
+  <data name="Common_Back.Content"><value>Atrás</value></data>
+  <data name="Common_Next.Content"><value>Siguiente</value></data>
+  <data name="Common_Skip.Content"><value>Omitir</value></data>
+  <data name="Common_Reset.Content"><value>Restablecer</value></data>
+
+  <!-- Onboarding -->
+  <data name="Onboarding_Welcome.Text"><value>Bienvenido a Optimizer</value></data>
+  <data name="Onboarding_GetStarted.Content"><value>Comenzar</value></data>
+  <data name="Onboarding_AllSet.Text"><value>¡Todo listo!</value></data>
+  <data name="Onboarding_OpenDashboard.Content"><value>Abrir panel</value></data>
+  <data name="Onboarding_SkipSetup.Content"><value>Omitir configuración</value></data>
+
+  <!-- Diagnostics / Recommendations -->
+  <data name="Diagnostics_Title.Text"><value>Diagnósticos</value></data>
+  <data name="Recommendations_Title.Text"><value>Recomendaciones</value></data>
+
+  <!-- Profiles -->
+  <data name="Profiles_Title.Text"><value>Perfiles de optimización</value></data>
+  <data name="Profiles_Import.Content"><value>Importar</value></data>
+  <data name="Profiles_Export.Content"><value>Exportar</value></data>
+  <data name="Profiles_NewProfile.Content"><value>Nuevo perfil</value></data>
+
+</root>

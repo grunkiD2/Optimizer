@@ -85,6 +85,7 @@ public partial class App : Application
                 services.AddSingleton<ISystemRepairService, SystemRepairService>();
 
                 // ViewModels
+                services.AddTransient<OnboardingViewModel>();
                 services.AddSingleton<DashboardViewModel>();
                 services.AddTransient<PerformanceCategoryViewModel>();
                 services.AddTransient<NetworkCategoryViewModel>();

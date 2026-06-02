@@ -78,6 +78,14 @@ public sealed partial class MainWindow : Window
 
     private void NavView_Loaded(object sender, RoutedEventArgs e)
     {
+        // First-launch: show onboarding wizard before the normal navigation
+        if (!_settingsService.Settings.HasCompletedOnboarding)
+        {
+            NavView.SelectedItem = null;
+            ContentFrame.Navigate(typeof(OnboardingPage));
+            return;
+        }
+
         var lastNav = _settingsService.Settings.LastNavigationItem;
         if (!PageMap.ContainsKey(lastNav)) lastNav = "Dashboard";
 

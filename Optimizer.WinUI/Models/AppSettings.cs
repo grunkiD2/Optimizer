@@ -24,4 +24,11 @@ public class AppSettings
     public bool NotifySecurity        { get; set; } = true;
     public bool NotifyRecommendations { get; set; } = true;
     public bool NotifyOptimizations   { get; set; } = false;
+
+    // Onboarding
+    public bool HasCompletedOnboarding { get; set; } = false;
+    public string UsageProfile         { get; set; } = "";  // "Gaming", "Work / Productivity", "Mixed", "Content Creation"
+
+    // Localization
+    public string Language { get; set; } = "en-US";
 }
