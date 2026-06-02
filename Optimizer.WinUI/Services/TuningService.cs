@@ -169,6 +169,108 @@ public class TuningService : ITuningService
     public async Task<bool> RevertToDefaultsAsync()
         => await ApplyPresetAsync(GetPresets().First(p => p.Id == "stock"));
 
+    // ── GPU vendor tool detection ─────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<VendorTool>> DetectGpuToolsAsync()
+    {
+        var tools = new List<VendorTool>();
+
+        var pf64 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+
+        // MSI Afterburner
+        var afterburnerPaths = new[]
+        {
+            Path.Combine(pf86, "MSI Afterburner", "MSIAfterburner.exe"),
+            Path.Combine(pf64, "MSI Afterburner", "MSIAfterburner.exe"),
+        };
+        tools.Add(new VendorTool
+        {
+            Name = "MSI Afterburner",
+            Description = "Industry-standard GPU overclocking and monitoring",
+            ExecutablePath = afterburnerPaths.FirstOrDefault(File.Exists) ?? "",
+            DownloadUrl = "https://www.msi.com/Landing/afterburner/graphics-cards"
+        });
+
+        // EVGA Precision X1
+        var precisionPaths = new[]
+        {
+            Path.Combine(pf64, "EVGA", "Precision X1", "PrecisionX1.exe"),
+            Path.Combine(pf86, "EVGA", "Precision X1", "PrecisionX1.exe"),
+        };
+        tools.Add(new VendorTool
+        {
+            Name = "EVGA Precision X1",
+            Description = "NVIDIA GPU overclocking with RGB control",
+            ExecutablePath = precisionPaths.FirstOrDefault(File.Exists) ?? "",
+            DownloadUrl = "https://www.evga.com/precisionx1/"
+        });
+
+        // NVIDIA App
+        var nvAppPaths = new[]
+        {
+            Path.Combine(pf64, "NVIDIA Corporation", "NVIDIA App", "CEF", "NVIDIA app.exe"),
+            Path.Combine(pf86, "NVIDIA Corporation", "NVIDIA App", "CEF", "NVIDIA app.exe"),
+        };
+        tools.Add(new VendorTool
+        {
+            Name = "NVIDIA App",
+            Description = "Official NVIDIA software with performance tuning",
+            ExecutablePath = nvAppPaths.FirstOrDefault(File.Exists) ?? "",
+            DownloadUrl = "https://www.nvidia.com/en-us/software/nvidia-app/"
+        });
+
+        // AMD Software: Adrenalin Edition
+        var amdPaths = new[]
+        {
+            Path.Combine(pf64, "AMD", "CNext", "CNext", "RadeonSoftware.exe"),
+            Path.Combine(pf86, "AMD", "CNext", "CNext", "RadeonSoftware.exe"),
+        };
+        tools.Add(new VendorTool
+        {
+            Name = "AMD Software: Adrenalin Edition",
+            Description = "Official AMD GPU control with tuning",
+            ExecutablePath = amdPaths.FirstOrDefault(File.Exists) ?? "",
+            DownloadUrl = "https://www.amd.com/en/support"
+        });
+
+        // Intel Arc Control
+        var intelPaths = new[]
+        {
+            Path.Combine(pf64, "Intel", "Arc Control", "ArcControl.exe"),
+        };
+        tools.Add(new VendorTool
+        {
+            Name = "Intel Arc Control",
+            Description = "Intel GPU control panel and tuning",
+            ExecutablePath = intelPaths.FirstOrDefault(File.Exists) ?? "",
+            DownloadUrl = "https://www.intel.com/content/www/us/en/download-center/home.html"
+        });
+
+        return await Task.FromResult<IReadOnlyList<VendorTool>>(tools);
+    }
+
+    public Task<bool> LaunchToolAsync(VendorTool tool)
+    {
+        try
+        {
+            if (tool.IsInstalled)
+            {
+                Process.Start(new ProcessStartInfo(tool.ExecutablePath) { UseShellExecute = true });
+            }
+            else if (!string.IsNullOrEmpty(tool.DownloadUrl))
+            {
+                Process.Start(new ProcessStartInfo(tool.DownloadUrl) { UseShellExecute = true });
+            }
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("LaunchToolAsync failed", ex);
+            return Task.FromResult(false);
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static async Task<string?> RunPowerCfgAsync(string args)

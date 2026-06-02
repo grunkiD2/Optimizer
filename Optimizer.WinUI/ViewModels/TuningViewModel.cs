@@ -22,8 +22,9 @@ public partial class TuningViewModel : ObservableObject
 
     public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
 
-    public ObservableCollection<TuningPreset> Presets { get; } = [];
-    public ObservableCollection<GpuClockInfo> Gpus    { get; } = [];
+    public ObservableCollection<TuningPreset> Presets   { get; } = [];
+    public ObservableCollection<GpuClockInfo> Gpus      { get; } = [];
+    public ObservableCollection<VendorTool>   GpuTools  { get; } = [];
 
     public string CategoryName => "Tuning";
     public string CategoryIcon => "⚡";  // ⚡
@@ -55,6 +56,10 @@ public partial class TuningViewModel : ObservableObject
         var gpus = await _tuning.GetGpuClocksAsync();
         Gpus.Clear();
         foreach (var g in gpus) Gpus.Add(g);
+
+        var tools = await _tuning.DetectGpuToolsAsync();
+        GpuTools.Clear();
+        foreach (var t in tools) GpuTools.Add(t);
 
         OnPropertyChanged(nameof(BoostModeDisplay));
     }
@@ -121,5 +126,13 @@ public partial class TuningViewModel : ObservableObject
             if (ok) await LoadAsync();
         }
         finally { IsApplying = false; }
+    }
+
+    // ── Launch a vendor GPU tool (or open its download page) ─────────────────
+
+    [RelayCommand]
+    public async Task LaunchToolAsync(VendorTool tool)
+    {
+        await _tuning.LaunchToolAsync(tool);
     }
 }

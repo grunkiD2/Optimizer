@@ -2,6 +2,15 @@ using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
 
+public class VendorTool
+{
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string ExecutablePath { get; set; } = "";
+    public string DownloadUrl { get; set; } = "";
+    public bool IsInstalled => !string.IsNullOrEmpty(ExecutablePath) && File.Exists(ExecutablePath);
+}
+
 public class GpuClockInfo
 {
     public string Name { get; set; } = "";
@@ -28,4 +37,6 @@ public interface ITuningService
     Task<bool> ApplyPresetAsync(TuningPreset preset);
     IReadOnlyList<TuningPreset> GetPresets();
     Task<bool> RevertToDefaultsAsync();
+    Task<IReadOnlyList<VendorTool>> DetectGpuToolsAsync();
+    Task<bool> LaunchToolAsync(VendorTool tool);
 }

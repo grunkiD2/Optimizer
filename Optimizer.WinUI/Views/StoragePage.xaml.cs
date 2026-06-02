@@ -11,12 +11,14 @@ public sealed partial class StoragePage : Page
 {
     public StorageCategoryViewModel ViewModel { get; }
     private readonly SettingsService _settings;
+    private readonly ISystemRepairService _repair;
     private readonly Dictionary<string, EventHandler<bool>> _toggleHandlers = [];
 
     public StoragePage()
     {
         ViewModel = App.GetService<StorageCategoryViewModel>();
         _settings = App.GetService<SettingsService>();
+        _repair   = App.GetService<ISystemRepairService>();
         InitializeComponent();
     }
 
@@ -66,5 +68,27 @@ public sealed partial class StoragePage : Page
             if (file is not null)
                 StorageCategoryViewModel.OpenInExplorer(file);
         }
+    }
+
+    // ── CHKDSK launcher ──────────────────────────────────────────────────────
+
+    private async void RunChkdsk_Click(object sender, RoutedEventArgs e)
+    {
+        var drive = "C:";
+        if (DriveSelector.SelectedItem is ComboBoxItem item && item.Content is string sel)
+            drive = sel;
+
+        var ok = await _repair.LaunchChkdskAsync(drive);
+
+        var dlg = new ContentDialog
+        {
+            Title = ok ? "CHKDSK Scheduled" : "CHKDSK Failed",
+            Content = ok
+                ? $"CHKDSK has been scheduled for {drive} on the next system reboot."
+                : $"Failed to schedule CHKDSK for {drive}. Ensure the app is running as Administrator.",
+            CloseButtonText = "OK",
+            XamlRoot = XamlRoot
+        };
+        await dlg.ShowAsync();
     }
 }

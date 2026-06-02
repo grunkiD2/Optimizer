@@ -11,12 +11,14 @@ public sealed partial class SystemPage : Page
 {
     public SystemCategoryViewModel ViewModel { get; }
     private readonly SettingsService _settings;
+    private readonly ISystemRepairService _repair;
     private readonly Dictionary<string, EventHandler<bool>> _toggleHandlers = [];
 
     public SystemPage()
     {
         ViewModel = App.GetService<SystemCategoryViewModel>();
         _settings = App.GetService<SettingsService>();
+        _repair   = App.GetService<ISystemRepairService>();
         InitializeComponent();
     }
 
@@ -66,5 +68,35 @@ public sealed partial class SystemPage : Page
         };
         _toggleHandlers[id] = handler;
         card.Toggled += handler;
+    }
+
+    // ── SFC scan ──────────────────────────────────────────────────────────────
+
+    private async void RunSfc_Click(object sender, RoutedEventArgs e)
+    {
+        RepairProgressText.Text = "Starting SFC scan...";
+        var progress = new Progress<string>(msg =>
+            DispatcherQueue.TryEnqueue(() => RepairProgressText.Text = msg));
+
+        var ok = await _repair.RunSfcScanAsync(progress);
+        DispatcherQueue.TryEnqueue(() =>
+            RepairProgressText.Text = ok
+                ? "SFC scan completed successfully."
+                : "SFC scan completed with errors or requires Administrator privileges.");
+    }
+
+    // ── DISM repair ───────────────────────────────────────────────────────────
+
+    private async void RunDism_Click(object sender, RoutedEventArgs e)
+    {
+        RepairProgressText.Text = "Starting DISM repair...";
+        var progress = new Progress<string>(msg =>
+            DispatcherQueue.TryEnqueue(() => RepairProgressText.Text = msg));
+
+        var ok = await _repair.RunDismRepairAsync(progress);
+        DispatcherQueue.TryEnqueue(() =>
+            RepairProgressText.Text = ok
+                ? "DISM repair completed successfully."
+                : "DISM repair completed with errors or requires Administrator privileges.");
     }
 }

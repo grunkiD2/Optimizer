@@ -11,6 +11,9 @@
 
     <Page.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:BoolToInstalledBrushConverter x:Key="BoolToInstalledBrush"/>
+        <converters:BoolToInstalledTextConverter  x:Key="BoolToInstalledText"/>
+        <converters:BoolToActionTextConverter     x:Key="BoolToActionText"/>
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -258,18 +261,61 @@
             </Border>
 
             <!-- ═══════════════════════════════════════════════════════════════
-                 GPU (READ-ONLY)
+                 GPU OVERCLOCKING TOOLS
             ════════════════════════════════════════════════════════════════ -->
-            <TextBlock Text="GPU (READ-ONLY)"
+            <TextBlock Text="GPU OVERCLOCKING TOOLS"
                        FontSize="11" FontWeight="SemiBold"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        Margin="0,8,0,0"/>
+            <TextBlock Text="Launch installed GPU OC tools or download official vendor software"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
 
-            <InfoBar Severity="Informational"
-                     IsOpen="True"
-                     IsClosable="False"
-                     Title="For GPU overclocking, use vendor tools"
-                     Message="MSI Afterburner, EVGA Precision X, NVIDIA Performance Tuning (in NVCP), or AMD Adrenalin Software provide safe, full-featured GPU overclocking with their own hardware watchdogs. Optimizer reads basic GPU info via WMI but does not directly control GPU clocks."/>
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.GpuTools, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="320" MinColumnSpacing="8" MinRowSpacing="8"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="services:VendorTool">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8" Padding="14"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center"
+                                                Background="{x:Bind IsInstalled, Converter={StaticResource BoolToInstalledBrush}}">
+                                            <TextBlock Text="{x:Bind IsInstalled, Converter={StaticResource BoolToInstalledText}}"
+                                                       FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{x:Bind Description}" FontSize="11" TextWrapping="Wrap"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" VerticalAlignment="Center"
+                                        Click="LaunchTool_Click" Tag="{x:Bind Name}">
+                                    <TextBlock Text="{x:Bind IsInstalled, Converter={StaticResource BoolToActionText}}"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <!-- ── Detected GPU names (read-only WMI info) ─────────────────── -->
+            <TextBlock Text="DETECTED GPUs"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
 
             <ItemsRepeater ItemsSource="{x:Bind ViewModel.Gpus}">
                 <ItemsRepeater.Layout>
@@ -292,6 +338,33 @@
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 MEMORY DIAGNOSTICS
+            ════════════════════════════════════════════════════════════════ -->
+            <TextBlock Text="MEMORY DIAGNOSTICS"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="14"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Memory Diagnostics" FontWeight="SemiBold"/>
+                        <TextBlock Text="Schedule Windows Memory Diagnostic to test RAM on next reboot"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Launch mdsched" Click="MemoryTest_Click"
+                            VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
 
             <!-- ═══════════════════════════════════════════════════════════════
                  RAM (READ-ONLY)

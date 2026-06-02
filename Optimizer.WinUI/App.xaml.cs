@@ -82,6 +82,7 @@ public partial class App : Application
                 services.AddSingleton<BackgroundMonitorService>();
                 services.AddSingleton<IReportService, ReportService>();
                 services.AddSingleton<ITuningService, TuningService>();
+                services.AddSingleton<ISystemRepairService, SystemRepairService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
