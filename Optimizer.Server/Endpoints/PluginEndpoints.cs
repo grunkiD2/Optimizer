@@ -62,7 +62,8 @@ public static class PluginEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_submission", ex.Message));
             }
-        }).WithName("SubmitPlugin").WithOpenApi();
+        }).WithName("SubmitPlugin").WithOpenApi()
+          .RequireAuthorization($"scope:{ApiScopes.PluginsManage}");
 
         authGroup.MapPost("/{pluginId}/rate", async (
             string pluginId,

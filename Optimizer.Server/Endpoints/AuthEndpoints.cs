@@ -6,9 +6,10 @@ namespace Optimizer.Server.Endpoints;
 
 public static class AuthEndpoints
 {
-    public static void MapAuth(this WebApplication app)
+    public static void MapAuth(this WebApplication app, int authPermitPerMinute = 10)
     {
-        var group = app.MapGroup("/api/auth").WithTags("Auth");
+        var group = app.MapGroup("/api/auth").WithTags("Auth")
+            .RequireRateLimiting("auth");
 
         group.MapPost("/request-magic-link", async ([FromBody] RequestMagicLinkDto dto, IAuthService auth, HttpContext ctx) =>
         {

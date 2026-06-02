@@ -17,6 +17,7 @@ public class OptimizerDbContext : DbContext
     public DbSet<MarketplaceReport> MarketplaceReports => Set<MarketplaceReport>();
     public DbSet<PluginListing> PluginListings => Set<PluginListing>();
     public DbSet<PluginRating> PluginRatings => Set<PluginRating>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -89,6 +90,17 @@ public class OptimizerDbContext : DbContext
         mb.Entity<PluginRating>(e =>
         {
             e.HasIndex(r => new { r.ListingId, r.UserId }).IsUnique();
+        });
+
+        mb.Entity<ApiKey>(e =>
+        {
+            e.HasIndex(k => k.KeyHash).IsUnique();
+            e.HasIndex(k => k.UserId);
+            e.HasOne(k => k.User).WithMany().HasForeignKey(k => k.UserId);
+            e.Property(k => k.Name).IsRequired().HasMaxLength(100);
+            e.Property(k => k.Prefix).IsRequired().HasMaxLength(20);
+            e.Property(k => k.KeyHash).IsRequired().HasMaxLength(128);
+            e.Property(k => k.ScopesCsv).HasMaxLength(512);
         });
     }
 }
