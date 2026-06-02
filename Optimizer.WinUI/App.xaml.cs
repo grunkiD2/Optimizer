@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
-using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
 using Serilog;
@@ -53,6 +52,7 @@ public partial class App : Application
                 services.AddSingleton<IWindowsOptimizerService, WindowsOptimizerService>();
 
                 // New services
+                services.AddSingleton<IThemeService, ThemeService>();
                 services.AddSingleton<NavigationService>();
                 services.AddSingleton<SettingsService>();
                 services.AddSingleton<ProfileService>();
@@ -114,9 +114,10 @@ public partial class App : Application
             _window = GetService<MainWindow>();
             _window.Activate();
 
-            ThemeHelper.ApplyBackdrop(_window, settings.Settings.BackdropMaterial);
-            if (_window.Content is FrameworkElement root)
-                ThemeHelper.ApplyTheme(root, settings.Settings.Theme);
+            var themeService = GetService<IThemeService>();
+            themeService.Initialize(_window);
+            themeService.ApplyBackdrop(settings.Settings.BackdropMaterial);
+            themeService.ApplyTheme(settings.Settings.Theme);
         }
         catch (Exception ex)
         {

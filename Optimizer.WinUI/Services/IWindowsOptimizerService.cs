@@ -7,11 +7,6 @@ public interface IWindowsOptimizerService
     /// <summary>Built-in read-only preset profiles the user can apply or copy into their own profiles.</summary>
     IReadOnlyList<SettingsProfile> GetBuiltInPresets();
 
-    Task<SettingsProfile> CreateProfileAsync(SettingsProfile profile);
-    Task<bool> UpdateProfileAsync(SettingsProfile profile);
-    Task<SettingsProfile?> GetProfileAsync(string profileId);
-    Task<IEnumerable<SettingsProfile>> ListProfilesAsync();
-    Task<bool> DeleteProfileAsync(string profileId);
     Task<bool> ApplyProfileAsync(string profileId);
     Task<bool> RevertProfileAsync(string profileId);
 

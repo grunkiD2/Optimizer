@@ -1,8 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
 using Microsoft.Win32;
-using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 
 namespace Optimizer.WinUI.ViewModels;
@@ -11,6 +9,7 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsService _settingsService;
     private readonly HistoryService _historyService;
+    private readonly IThemeService _themeService;
 
     // Flag to suppress partial-method saves while bulk-loading
     private bool _isLoading;
@@ -24,16 +23,17 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool confirmBeforeApply;
 
     public string CategoryName => "Settings";
-    public string CategoryIcon => ""; // Settings gear icon
+    public string CategoryIcon => ""; // Settings gear icon
 
     // Collections for dropdowns
     public List<string> ThemeOptions { get; } = ["Light", "Dark", "Default"];
     public List<string> BackdropOptions { get; } = ["None", "Acrylic", "MicaAlt", "Mica"];
 
-    public SettingsViewModel(SettingsService settingsService, HistoryService historyService)
+    public SettingsViewModel(SettingsService settingsService, HistoryService historyService, IThemeService themeService)
     {
         _settingsService = settingsService;
         _historyService = historyService;
+        _themeService = themeService;
     }
 
     public void Load()
@@ -63,9 +63,7 @@ public partial class SettingsViewModel : ObservableObject
         if (_isLoading) return;
         _settingsService.Settings.Theme = value;
         _settingsService.Save();
-        var window = App.GetService<MainWindow>();
-        if (window.Content is FrameworkElement root)
-            ThemeHelper.ApplyTheme(root, value);
+        _themeService.ApplyTheme(value);
     }
 
     partial void OnSelectedBackdropChanged(string value)
@@ -73,7 +71,7 @@ public partial class SettingsViewModel : ObservableObject
         if (_isLoading) return;
         _settingsService.Settings.BackdropMaterial = value;
         _settingsService.Save();
-        ThemeHelper.ApplyBackdrop(App.GetService<MainWindow>(), value);
+        _themeService.ApplyBackdrop(value);
     }
 
     partial void OnAccentColorHexChanged(string value)
@@ -119,10 +117,8 @@ public partial class SettingsViewModel : ObservableObject
         Load();
 
         // Re-apply theme and backdrop from the newly reset defaults
-        var window = App.GetService<MainWindow>();
-        if (window.Content is FrameworkElement root)
-            ThemeHelper.ApplyTheme(root, _settingsService.Settings.Theme);
-        ThemeHelper.ApplyBackdrop(window, _settingsService.Settings.BackdropMaterial);
+        _themeService.ApplyTheme(_settingsService.Settings.Theme ?? "Dark");
+        _themeService.ApplyBackdrop(_settingsService.Settings.BackdropMaterial ?? "Mica");
     }
 
     [RelayCommand]

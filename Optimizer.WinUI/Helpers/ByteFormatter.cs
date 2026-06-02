@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Optimizer.WinUI.Helpers;
 
 public static class ByteFormatter
@@ -8,17 +10,17 @@ public static class ByteFormatter
 
     public static string Format(long bytes) => bytes switch
     {
-        >= Gb => $"{bytes / (double)Gb:F1} GB",
-        >= Mb => $"{bytes / (double)Mb:F1} MB",
-        >= Kb => $"{bytes / (double)Kb:F1} KB",
+        >= Gb => ((double)bytes / Gb).ToString("F1", CultureInfo.InvariantCulture) + " GB",
+        >= Mb => ((double)bytes / Mb).ToString("F1", CultureInfo.InvariantCulture) + " MB",
+        >= Kb => ((double)bytes / Kb).ToString("F1", CultureInfo.InvariantCulture) + " KB",
         _ => $"{bytes} B"
     };
 
     public static string FormatSpeed(double bytesPerSecond) => bytesPerSecond switch
     {
-        >= Gb => $"{bytesPerSecond / Gb:F1} GB/s",
-        >= Mb => $"{bytesPerSecond / Mb:F1} MB/s",
-        >= Kb => $"{bytesPerSecond / Kb:F1} KB/s",
-        _ => $"{bytesPerSecond:F0} B/s"
+        >= Gb => (bytesPerSecond / Gb).ToString("F1", CultureInfo.InvariantCulture) + " GB/s",
+        >= Mb => (bytesPerSecond / Mb).ToString("F1", CultureInfo.InvariantCulture) + " MB/s",
+        >= Kb => (bytesPerSecond / Kb).ToString("F1", CultureInfo.InvariantCulture) + " KB/s",
+        _ => ((long)bytesPerSecond) + " B/s"
     };
 }

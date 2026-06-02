@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!-- Suppress WindowsAppSDK packaging/PRI tasks that require VS tooling.
+         The test project only needs the compiled assembly for type resolution. -->
+    <WindowsAppSdkBootstrapAutoInitializeDisabled>true</WindowsAppSdkBootstrapAutoInitializeDisabled>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <GenerateAppxManifestFile>false</GenerateAppxManifestFile>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppContainer>false</WindowsAppContainer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <!-- Suppress buildTransitive targets (PRI gen / AppxPackage tasks) that flow in from
+         the referenced WinUI project. These require VS tooling not present in CLI/CI builds. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250401001"
+                      ExcludeAssets="build;buildTransitive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all" prevents WindowsAppSDK buildTransitive targets (PRI gen etc.)
+         from flowing into this test project. The assembly is still available for
+         compilation via the ProjectReference. -->
+    <ProjectReference Include="..\Optimizer.WinUI\Optimizer.WinUI.csproj"
+                      PrivateAssets="all" />
+  </ItemGroup>
+</Project>

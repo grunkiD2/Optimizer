@@ -1,0 +1,44 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master, "feature/**"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+          10.0.x
+        include-prerelease: true
+
+    - name: Restore dependencies
+      run: dotnet restore Optimizer.WinUI/Optimizer.WinUI.csproj
+
+    - name: Build
+      run: dotnet build Optimizer.WinUI/Optimizer.WinUI.csproj --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --no-build --configuration Release
+      continue-on-error: true  # Tests may need WinUI runtime setup
+
+    - name: Publish artifacts
+      if: github.event_name == 'push'
+      run: dotnet publish Optimizer.WinUI/Optimizer.WinUI.csproj -c Release -r win-x64 --self-contained false -o publish
+
+    - name: Upload artifacts
+      if: github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: Optimizer-WinUI
+        path: publish/
+        retention-days: 7

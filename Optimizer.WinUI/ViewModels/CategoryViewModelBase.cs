@@ -5,7 +5,7 @@ using Optimizer.WinUI.Services;
 
 namespace Optimizer.WinUI.ViewModels;
 
-public abstract partial class CategoryViewModelBase : ObservableObject
+public abstract partial class CategoryViewModelBase : ObservableObject, ICategoryViewModel
 {
     protected readonly IWindowsOptimizerService Optimizer;
     protected readonly IElevationService Elevation;

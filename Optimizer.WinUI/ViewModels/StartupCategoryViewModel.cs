@@ -6,7 +6,7 @@ using Optimizer.WinUI.Services;
 
 namespace Optimizer.WinUI.ViewModels;
 
-public partial class StartupCategoryViewModel : ObservableObject
+public partial class StartupCategoryViewModel : ObservableObject, ICategoryViewModel
 {
     private readonly IStartupService _startupService;
     private readonly IElevationService _elevationService;
@@ -18,6 +18,9 @@ public partial class StartupCategoryViewModel : ObservableObject
 
     public string CategoryName => "Startup";
     public string CategoryIcon => "🚀";
+
+    // ICategoryViewModel: alias EnabledCount as ActiveCount
+    int ICategoryViewModel.ActiveCount => EnabledCount;
 
     public StartupCategoryViewModel(IStartupService startupService, IElevationService elevationService)
     {

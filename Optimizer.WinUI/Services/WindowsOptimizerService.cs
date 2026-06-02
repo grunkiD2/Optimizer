@@ -1,8 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.IO;
 using System.Management;
-using System.Text.Json;
 
 using Microsoft.Win32;
 
@@ -16,16 +14,11 @@ public class WindowsOptimizerService : IWindowsOptimizerService
     // High Performance power scheme (built-in, stable GUID across Windows versions).
     private const string HighPerformanceSchemeGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
 
-    private static readonly string ProfilesPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Optimizer", "profiles.json");
-
     private readonly SystemMonitorService _monitorService;
     private readonly IUndoService _undoService;
     private readonly IElevationService _elevationService;
     private readonly IStartupService _startupService;
 
-    private readonly ConcurrentDictionary<string, SettingsProfile> _profiles = new();
     private readonly ConcurrentDictionary<string, SettingsProfile> _appliedProfiles = new();
 
     public WindowsOptimizerService(
@@ -38,8 +31,6 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         _undoService = undoService;
         _elevationService = elevationService;
         _startupService = startupService;
-
-        LoadProfiles();
     }
 
     public IReadOnlyList<SettingsProfile> GetBuiltInPresets() => BuiltInPresets
@@ -105,32 +96,6 @@ public class WindowsOptimizerService : IWindowsOptimizerService
 
     // ---------------------------------------------------------------- Profiles
 
-    public Task<SettingsProfile> CreateProfileAsync(SettingsProfile profile)
-    {
-        if (string.IsNullOrWhiteSpace(profile.Name))
-            throw new ArgumentException("Profile name cannot be empty");
-
-        profile.Id = Guid.NewGuid().ToString();
-        profile.CreatedAt = DateTime.UtcNow;
-
-        if (!_profiles.TryAdd(profile.Id, profile))
-            throw new InvalidOperationException($"Failed to create profile with ID {profile.Id}");
-
-        SaveProfiles();
-        return Task.FromResult(profile);
-    }
-
-    public Task<bool> UpdateProfileAsync(SettingsProfile profile)
-    {
-        if (string.IsNullOrWhiteSpace(profile.Id) || !_profiles.ContainsKey(profile.Id))
-        {
-            return Task.FromResult(false);
-        }
-        _profiles[profile.Id] = profile;
-        SaveProfiles();
-        return Task.FromResult(true);
-    }
-
     public bool? IsOptimizationApplied(string optimizationId)
     {
         try
@@ -173,35 +138,6 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         return key?.GetValue(name)?.ToString();
     }
 
-    public Task<SettingsProfile?> GetProfileAsync(string profileId)
-    {
-        if (string.IsNullOrWhiteSpace(profileId))
-            throw new ArgumentException("Profile ID cannot be empty");
-
-        _profiles.TryGetValue(profileId, out var profile);
-        return Task.FromResult(profile);
-    }
-
-    public Task<IEnumerable<SettingsProfile>> ListProfilesAsync()
-    {
-        var profiles = _profiles.Values.OrderByDescending(p => p.CreatedAt);
-        return Task.FromResult(profiles.AsEnumerable());
-    }
-
-    public Task<bool> DeleteProfileAsync(string profileId)
-    {
-        if (string.IsNullOrWhiteSpace(profileId))
-            throw new ArgumentException("Profile ID cannot be empty");
-
-        var success = _profiles.TryRemove(profileId, out _);
-        _appliedProfiles.TryRemove(profileId, out _);
-        if (success)
-        {
-            SaveProfiles();
-        }
-        return Task.FromResult(success);
-    }
-
     public async Task<bool> ApplyProfileAsync(string profileId)
     {
         try
@@ -209,12 +145,11 @@ public class WindowsOptimizerService : IWindowsOptimizerService
             if (string.IsNullOrWhiteSpace(profileId))
                 throw new ArgumentException("Profile ID cannot be empty");
 
-            if (!_profiles.TryGetValue(profileId, out var profile))
-                throw new KeyNotFoundException($"Profile {profileId} not found");
+            var profile = BuiltInPresets.FirstOrDefault(p => p.Id == profileId)
+                ?? throw new KeyNotFoundException($"Profile {profileId} not found");
 
             profile.LastAppliedAt = DateTime.UtcNow;
             _appliedProfiles[profileId] = profile;
-            SaveProfiles();
 
             // Apply the registry settings declared on the profile (each captured for undo).
             foreach (var setting in profile.RegistrySettings)
@@ -969,41 +904,4 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         return (deleted, freed);
     }
 
-    // ------------------------------------------------------ Profile persistence
-
-    private void LoadProfiles()
-    {
-        try
-        {
-            if (!File.Exists(ProfilesPath)) return;
-
-            var json = File.ReadAllText(ProfilesPath);
-            var loaded = JsonSerializer.Deserialize<List<SettingsProfile>>(json);
-            if (loaded != null)
-            {
-                foreach (var profile in loaded)
-                {
-                    _profiles[profile.Id] = profile;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            EngineLog.Write($"Failed to load profiles: {ex.Message}");
-        }
-    }
-
-    private void SaveProfiles()
-    {
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(ProfilesPath)!);
-            var json = JsonSerializer.Serialize(_profiles.Values.ToList(), new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(ProfilesPath, json);
-        }
-        catch (Exception ex)
-        {
-            EngineLog.Write($"Failed to save profiles: {ex.Message}");
-        }
-    }
 }
