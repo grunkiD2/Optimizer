@@ -64,6 +64,7 @@ public partial class App : Application
                 services.AddSingleton<ProfileService>();
                 services.AddSingleton<HistoryService>();
                 services.AddSingleton<ITrayIconService, TrayIconService>();
+                services.AddSingleton<IHardwareInfoService, HardwareInfoService>();
 
                 // ViewModels
                 services.AddSingleton<DashboardViewModel>();
@@ -74,6 +75,7 @@ public partial class App : Application
                 services.AddTransient<StartupCategoryViewModel>();
                 services.AddTransient<ProfilesViewModel>();
                 services.AddTransient<HistoryViewModel>();
+                services.AddTransient<HardwareViewModel>();
                 services.AddSingleton<SettingsViewModel>();
 
                 // MainWindow (registered as singleton so DI can inject it)

@@ -75,6 +75,12 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Hardware" Tag="Hardware">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE7F4;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="MANAGE"/>
                 <NavigationViewItem Content="Profiles" Tag="Profiles">
                     <NavigationViewItem.Icon>

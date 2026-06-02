@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Optimizer.WinUI.Views.HardwarePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
+    Background="Transparent"
+    Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
+        </Style>
+        <Style x:Key="ValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="12" Padding="24,16,24,24">
+
+            <!-- ── Header ────────────────────────────────────────────────── -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Hardware" Style="{StaticResource TitleTextBlockStyle}"/>
+                    <TextBlock Text="Complete system inventory"
+                               FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="Refresh" VerticalAlignment="Bottom"
+                        Click="Refresh_Click"/>
+                <Button Grid.Column="2" Content="Export" VerticalAlignment="Bottom"
+                        Margin="8,0,0,0"
+                        Click="Export_Click"/>
+            </Grid>
+
+            <!-- Loading / status -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Visibility="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- ── CPU ────────────────────────────────────────────────────── -->
+            <Expander Header="Processor (CPU)" IsExpanded="True"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.Hardware.Cpu.Name, Mode=OneWay, FallbackValue='—'}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Manufacturer" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.Hardware.Cpu.Manufacturer, Mode=OneWay, FallbackValue='—'}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Cores / Threads" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.CpuCoresText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Clock Speed" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.CpuClockText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Cache (L2 / L3)" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.CpuCacheText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Socket" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.Hardware.Cpu.Socket, Mode=OneWay, FallbackValue='—'}"/>
+                </Grid>
+            </Expander>
+
+            <!-- ── GPU ────────────────────────────────────────────────────── -->
+            <Expander Header="Graphics (GPU)" IsExpanded="True"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Hardware.Gpus, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="x:Object">
+                            <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" FontSize="12" Margin="0,2" TextWrapping="Wrap"
+                                           Text="{Binding Name}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="VRAM" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" Margin="0,2"
+                                           Text="{Binding VramText}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Driver Version" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" Margin="0,2"
+                                           Text="{Binding DriverVersion}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </Expander>
+
+            <!-- ── Memory ─────────────────────────────────────────────────── -->
+            <Expander Header="Memory (RAM)" IsExpanded="True"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Installed" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.MemoryTotalText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Modules" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.MemoryModulesText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Part Numbers" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.MemoryModulePartsText, Mode=OneWay}"/>
+                </Grid>
+            </Expander>
+
+            <!-- ── Motherboard ────────────────────────────────────────────── -->
+            <Expander Header="Motherboard" IsExpanded="False"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Manufacturer" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.Hardware.Motherboard.Manufacturer, Mode=OneWay, FallbackValue='—'}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Model" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.Hardware.Motherboard.Model, Mode=OneWay, FallbackValue='—'}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="BIOS Version" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.BiosVersionText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="BIOS Date" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.BiosDateText, Mode=OneWay}"/>
+                </Grid>
+            </Expander>
+
+            <!-- ── Storage ────────────────────────────────────────────────── -->
+            <Expander Header="Storage" IsExpanded="False"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Hardware.Storage, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="x:Object">
+                            <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2" Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Model" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" FontSize="12" Margin="0,2" TextWrapping="Wrap"
+                                           Text="{Binding Model}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Size" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" Margin="0,2"
+                                           Text="{Binding SizeText}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Interface / Type" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" Margin="0,2"
+                                           Text="{Binding InterfaceType}"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Serial" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" FontSize="12" Margin="0,2" FontFamily="Consolas"
+                                           Text="{Binding SerialNumber}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </Expander>
+
+            <!-- ── Network ────────────────────────────────────────────────── -->
+            <Expander Header="Network Adapters" IsExpanded="False"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Hardware.NetworkAdapters, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="x:Object">
+                            <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" FontSize="12" Margin="0,2" TextWrapping="Wrap"
+                                           Text="{Binding Name}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="MAC Address" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" Margin="0,2" FontFamily="Consolas"
+                                           Text="{Binding MacAddress}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Link Speed" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" Margin="0,2"
+                                           Text="{Binding LinkSpeedText}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </Expander>
+
+            <!-- ── Displays ───────────────────────────────────────────────── -->
+            <Expander Header="Displays" IsExpanded="False"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Hardware.Displays, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="x:Object">
+                            <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" FontSize="12" Margin="0,2" TextWrapping="Wrap"
+                                           Text="{Binding Name}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Resolution" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" Margin="0,2"
+                                           Text="{Binding ResolutionText}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </Expander>
+
+            <!-- ── Operating System ───────────────────────────────────────── -->
+            <Expander Header="Operating System" IsExpanded="False"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Grid Padding="8,4" ColumnSpacing="8" RowSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.Hardware.Os.Name, Mode=OneWay, FallbackValue='—'}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Version / Build" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.OsVersionText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Architecture" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.Hardware.Os.Architecture, Mode=OneWay, FallbackValue='—'}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Installed" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.OsInstallDateText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Secure Boot" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.SecureBootText, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Firmware" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource ValueStyle}"
+                               Text="{x:Bind ViewModel.UefiText, Mode=OneWay}"/>
+                </Grid>
+            </Expander>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

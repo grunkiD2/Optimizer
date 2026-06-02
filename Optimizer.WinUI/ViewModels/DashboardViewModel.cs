@@ -105,6 +105,13 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public ObservableCollection<double> PerCoreUsage { get; } = new();
     public ObservableCollection<SystemResource> ChartHistory { get; } = new();
 
+    // ── Sparkline history (one double per metric tick) ───────────────────────
+    public ObservableCollection<double> CpuHistory { get; } = new();
+    public ObservableCollection<double> MemoryHistory { get; } = new();
+    public ObservableCollection<double> GpuHistory { get; } = new();
+    public ObservableCollection<double> DiskHistory { get; } = new();
+    public ObservableCollection<double> NetworkHistory { get; } = new();
+
     // ── Commands ─────────────────────────────────────────────────────────────
 
     public IRelayCommand RefreshNowCommand { get; }
@@ -209,7 +216,21 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         while (ChartHistory.Count > maxHistory)
             ChartHistory.RemoveAt(0);
 
+        // Update sparkline histories
+        AppendSparkline(CpuHistory, CpuUsage, maxHistory);
+        AppendSparkline(MemoryHistory, MemoryUsage, maxHistory);
+        AppendSparkline(GpuHistory, GpuUsage, maxHistory);
+        AppendSparkline(DiskHistory, DiskUsage, maxHistory);
+        AppendSparkline(NetworkHistory, NetworkUsage, maxHistory);
+
         UpdateHealthScore();
+    }
+
+    private static void AppendSparkline(ObservableCollection<double> history, double value, int maxCount)
+    {
+        history.Add(value);
+        while (history.Count > maxCount)
+            history.RemoveAt(0);
     }
 
     private void UpdateHealthScore()

@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="using:Optimizer.WinUI.Converters"
+    xmlns:controls="using:Optimizer.WinUI.Controls"
     xmlns:models="using:Optimizer.WinUI.Models"
     Background="Transparent"
     Loaded="Page_Loaded"
@@ -89,7 +90,7 @@
 
                 <!-- CPU -->
                 <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
-                    <StackPanel Spacing="6">
+                    <StackPanel Spacing="4">
                         <TextBlock Text="CPU" FontSize="12" Foreground="#60A5FA"/>
                         <TextBlock Text="{x:Bind ViewModel.CpuText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold"
@@ -98,68 +99,98 @@
                             <Run Text="{x:Bind ViewModel.TotalCores, Mode=OneWay}"/>
                             <Run Text=" cores"/>
                         </TextBlock>
+                        <controls:SparklineChart
+                            Height="40" Margin="0,4,0,2"
+                            Values="{x:Bind ViewModel.CpuHistory, Mode=OneWay}"
+                            LineColor="#60A5FA"
+                            LineThickness="1.5"
+                            FillOpacity="0.15"/>
                         <ProgressBar Value="{x:Bind ViewModel.CpuUsage, Mode=OneWay}"
-                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Maximum="100" Height="3" CornerRadius="2"
                                      Foreground="#60A5FA"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Memory -->
                 <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
-                    <StackPanel Spacing="6">
+                    <StackPanel Spacing="4">
                         <TextBlock Text="Memory" FontSize="12" Foreground="#34D399"/>
                         <TextBlock Text="{x:Bind ViewModel.MemoryText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold"
                                    FontFamily="Consolas"/>
                         <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    Text="{x:Bind ViewModel.UsedMemoryText, Mode=OneWay}"/>
+                        <controls:SparklineChart
+                            Height="40" Margin="0,4,0,2"
+                            Values="{x:Bind ViewModel.MemoryHistory, Mode=OneWay}"
+                            LineColor="#34D399"
+                            LineThickness="1.5"
+                            FillOpacity="0.15"/>
                         <ProgressBar Value="{x:Bind ViewModel.MemoryUsage, Mode=OneWay}"
-                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Maximum="100" Height="3" CornerRadius="2"
                                      Foreground="#34D399"/>
                     </StackPanel>
                 </Border>
 
                 <!-- GPU -->
                 <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
-                    <StackPanel Spacing="6">
+                    <StackPanel Spacing="4">
                         <TextBlock Text="GPU" FontSize="12" Foreground="#F59E0B"/>
                         <TextBlock Text="{x:Bind ViewModel.GpuText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold"
                                    FontFamily="Consolas"/>
                         <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    Text="Utilization"/>
+                        <controls:SparklineChart
+                            Height="40" Margin="0,4,0,2"
+                            Values="{x:Bind ViewModel.GpuHistory, Mode=OneWay}"
+                            LineColor="#F59E0B"
+                            LineThickness="1.5"
+                            FillOpacity="0.15"/>
                         <ProgressBar Value="{x:Bind ViewModel.GpuUsage, Mode=OneWay}"
-                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Maximum="100" Height="3" CornerRadius="2"
                                      Foreground="#F59E0B"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Disk -->
                 <Border Grid.Column="3" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
-                    <StackPanel Spacing="6">
+                    <StackPanel Spacing="4">
                         <TextBlock Text="Disk" FontSize="12" Foreground="#A78BFA"/>
                         <TextBlock Text="{x:Bind ViewModel.DiskText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold"
                                    FontFamily="Consolas"/>
                         <TextBlock Text="I/O activity" FontSize="11"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <controls:SparklineChart
+                            Height="40" Margin="0,4,0,2"
+                            Values="{x:Bind ViewModel.DiskHistory, Mode=OneWay}"
+                            LineColor="#A78BFA"
+                            LineThickness="1.5"
+                            FillOpacity="0.15"/>
                         <ProgressBar Value="{x:Bind ViewModel.DiskUsage, Mode=OneWay}"
-                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Maximum="100" Height="3" CornerRadius="2"
                                      Foreground="#A78BFA"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Network -->
                 <Border Grid.Column="4" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
-                    <StackPanel Spacing="6">
+                    <StackPanel Spacing="4">
                         <TextBlock Text="Network" FontSize="12" Foreground="#F472B6"/>
                         <TextBlock Text="{x:Bind ViewModel.NetworkText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold"
                                    FontFamily="Consolas"/>
                         <TextBlock Text="Bandwidth" FontSize="11"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <controls:SparklineChart
+                            Height="40" Margin="0,4,0,2"
+                            Values="{x:Bind ViewModel.NetworkHistory, Mode=OneWay}"
+                            LineColor="#F472B6"
+                            LineThickness="1.5"
+                            FillOpacity="0.15"/>
                         <ProgressBar Value="{x:Bind ViewModel.NetworkUsage, Mode=OneWay}"
-                                     Maximum="100" Height="4" CornerRadius="2"
+                                     Maximum="100" Height="3" CornerRadius="2"
                                      Foreground="#F472B6"/>
                     </StackPanel>
                 </Border>
