@@ -3,6 +3,118 @@
     x:Class="Optimizer.WinUI.Views.NetworkPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="Transparent">
-    <TextBlock Text="Network" Style="{StaticResource TitleTextBlockStyle}" Margin="24"/>
+    xmlns:controls="using:Optimizer.WinUI.Controls"
+    xmlns:vm="using:Optimizer.WinUI.ViewModels"
+    Background="Transparent"
+    Loaded="Page_Loaded">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="24,16,24,24">
+
+            <!-- ── Page header ──────────────────────────────────────────── -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: icon + title + subtitle -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind ViewModel.CategoryIcon}"
+                               FontSize="28" VerticalAlignment="Center"/>
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.CategoryName}"
+                                   Style="{StaticResource TitleTextBlockStyle}"/>
+                        <TextBlock FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                            <Run Text="{x:Bind ViewModel.ActiveCount, Mode=OneWay}"/>
+                            <Run Text=" of "/>
+                            <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
+                            <Run Text=" optimizations active"/>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Right: action buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="Apply All"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.ApplyAllCommand}"/>
+                    <Button Content="Undo Category"
+                            Command="{x:Bind ViewModel.UndoCategoryCommand}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ── Local metrics strip ──────────────────────────────────── -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Download Speed -->
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="DOWNLOAD" FontSize="12" Foreground="#60A5FA"/>
+                        <TextBlock Text="{x:Bind ViewModel.DownloadSpeedText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
+                        <TextBlock Text="inbound" FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Upload Speed -->
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="UPLOAD" FontSize="12" Foreground="#34D399"/>
+                        <TextBlock Text="{x:Bind ViewModel.UploadSpeedText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
+                        <TextBlock Text="outbound" FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Latency -->
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12">
+                    <Border.Background>
+                        <SolidColorBrush Color="{ThemeResource LayerFillColorDefaultColor}"/>
+                    </Border.Background>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="LATENCY" FontSize="12" Foreground="#A78BFA"/>
+                        <TextBlock Text="{x:Bind ViewModel.LatencyText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
+                        <TextBlock Text="ping" FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ── Optimization cards ───────────────────────────────────── -->
+            <TextBlock Text="Optimizations"
+                       FontSize="16" FontWeight="SemiBold"
+                       Margin="0,8,0,0"/>
+
+            <ItemsRepeater x:Name="OptimizationsRepeater"
+                           ItemsSource="{x:Bind ViewModel.Optimizations, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="0"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OptimizationCardModel">
+                        <controls:OptimizationCard
+                            Tag="{x:Bind Id}"
+                            Loaded="OptimizationCard_Loaded"/>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+        </StackPanel>
+    </ScrollViewer>
 </Page>
