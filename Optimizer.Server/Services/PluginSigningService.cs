@@ -7,63 +7,101 @@ namespace Optimizer.Server.Services;
 /// Ed25519-based signing service for plugin manifests.
 ///
 /// Configuration (appsettings / user-secrets):
-///   Plugins:SigningPrivateKey  — base64-encoded 64-byte Ed25519 private key seed+public key (NSec export)
+///   Plugins:SigningPrivateKey  — base64-encoded 32-byte Ed25519 raw private key seed
 ///   Plugins:SigningPublicKey   — base64-encoded 32-byte Ed25519 public key
 ///
-/// If neither is configured the service falls back to a hard-coded DEV keypair.
-/// The dev public key is also baked into the WinUI client (PluginVerifier.DevPublicKeyBase64).
+/// PRIVATE KEY HANDLING:
+///   The private key MUST NOT appear in source control. For local development, place the dev
+///   keypair in Optimizer.Server/appsettings.Development.json (which is gitignored):
 ///
-/// DEV KEYPAIR (do NOT use in production):
-///   Private: see appsettings.Development.json  → Plugins:SigningPrivateKey
-///   Public:  pIn3VdAkG7MyYWAaoynpKxzFe6azFofFjJJPfSWVDcU=
+///     "Plugins": {
+///       "SigningPrivateKey": "<base64 private seed>",
+///       "SigningPublicKey":  "<base64 public key>"
+///     }
+///
+///   For production, supply the keys via environment variables or user-secrets — never commit them.
+///
+///   If NO private key is configured at startup:
+///     • Development environment: an ephemeral keypair is generated, logged with a loud warning.
+///       Seeded plugins will be signed with this ephemeral key; the WinUI client's hard-coded
+///       DevPublicKeyBase64 will NOT match, so those plugins will fail signature verification
+///       unless the client also uses the ephemeral key. Use the Development config above to avoid
+///       this mismatch.
+///     • Production environment: an error is logged and IsConfigured = false. Sign() will throw.
+///
+/// The PUBLIC key constant (DevPublicKeyBase64) stays in source — it is not a secret.
+/// Both the server's constant and the WinUI client's PluginVerifier.DevPublicKeyBase64 must remain
+/// the same value so that dev-signed plugins verify correctly on the client.
+///
+/// DEV PUBLIC KEY: pIn3VdAkG7MyYWAaoynpKxzFe6azFofFjJJPfSWVDcU=
 /// </summary>
 public class PluginSigningService : IPluginSigningService
 {
-    // Dev keypair — generated once, hard-coded so server + client always agree in dev.
-    // Production deployments MUST override via Plugins:SigningPrivateKey / Plugins:SigningPublicKey in secrets.
-    //
-    // To regenerate:
-    //   var algo = SignatureAlgorithm.Ed25519;
-    //   var key  = Key.Create(algo, new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
-    //   Console.WriteLine("Private: " + Convert.ToBase64String(key.Export(KeyBlobFormat.RawPrivateKey)));
-    //   Console.WriteLine("Public:  " + Convert.ToBase64String(key.PublicKey.Export(KeyBlobFormat.RawPublicKey)));
-    internal const string DevPrivateKeyBase64 = "gfg1fH391/FnG1DSJWg/M0TIE4rN/SrCCRsh3kUxyq4=";
-    internal const string DevPublicKeyBase64  = "pIn3VdAkG7MyYWAaoynpKxzFe6azFofFjJJPfSWVDcU=";
+    // Only the PUBLIC key is safe to hard-code (it is not a secret).
+    // The matching PRIVATE key lives in appsettings.Development.json (gitignored).
+    internal const string DevPublicKeyBase64 = "pIn3VdAkG7MyYWAaoynpKxzFe6azFofFjJJPfSWVDcU=";
 
-    private readonly Key _privateKey;
+    private readonly Key? _privateKey;
     private readonly PublicKey _publicKey;
     private readonly SignatureAlgorithm _algo = SignatureAlgorithm.Ed25519;
     private readonly bool _isConfigured;
 
-    public PluginSigningService(IConfiguration config, ILogger<PluginSigningService> logger)
+    public PluginSigningService(IConfiguration config, ILogger<PluginSigningService> logger,
+        IWebHostEnvironment? env = null)
     {
         var privateKeyB64 = config["Plugins:SigningPrivateKey"];
         var publicKeyB64  = config["Plugins:SigningPublicKey"];
 
         if (!string.IsNullOrWhiteSpace(privateKeyB64) && !string.IsNullOrWhiteSpace(publicKeyB64))
         {
+            // Configured keypair (production or dev via appsettings.Development.json / secrets).
             var privBytes = Convert.FromBase64String(privateKeyB64);
             var pubBytes  = Convert.FromBase64String(publicKeyB64);
             _privateKey   = Key.Import(_algo, privBytes, KeyBlobFormat.RawPrivateKey,
                                 new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
             _publicKey    = PublicKey.Import(_algo, pubBytes, KeyBlobFormat.RawPublicKey);
             _isConfigured = true;
-            logger.LogInformation("Plugin signing: using configured production keypair. Public key: {PubKey}", publicKeyB64);
+            logger.LogInformation("Plugin signing: using configured keypair. Public key: {PubKey}", publicKeyB64);
         }
         else
         {
-            // Dev fallback — log a clear warning
-            logger.LogWarning(
-                "Plugin signing: no keys configured — using hard-coded DEV keypair. " +
-                "Set Plugins:SigningPrivateKey + Plugins:SigningPublicKey in user-secrets for production. " +
-                "Dev public key: {PubKey}", DevPublicKeyBase64);
+            bool isDevelopment = env?.IsDevelopment() ?? false;
 
-            var privBytes = Convert.FromBase64String(DevPrivateKeyBase64);
-            var pubBytes  = Convert.FromBase64String(DevPublicKeyBase64);
-            _privateKey   = Key.Import(_algo, privBytes, KeyBlobFormat.RawPrivateKey,
-                                new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
-            _publicKey    = PublicKey.Import(_algo, pubBytes, KeyBlobFormat.RawPublicKey);
-            _isConfigured = false;
+            if (isDevelopment)
+            {
+                // Dev environment with no configured key: generate an ephemeral keypair.
+                // WARNING: ephemeral keys change on every restart. Seeded plugins signed with this
+                // key will NOT verify against the client's hard-coded DevPublicKeyBase64.
+                // To avoid this, add Plugins:SigningPrivateKey + Plugins:SigningPublicKey to
+                // appsettings.Development.json (gitignored).
+                var ephemeralKey = Key.Create(_algo,
+                    new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
+                _privateKey   = ephemeralKey;
+                _publicKey    = ephemeralKey.PublicKey;
+                _isConfigured = true;
+
+                var pubKeyStr = Convert.ToBase64String(_publicKey.Export(KeyBlobFormat.RawPublicKey));
+                var privKeyStr = Convert.ToBase64String(_privateKey.Export(KeyBlobFormat.RawPrivateKey));
+                logger.LogWarning(
+                    "Plugin signing: DEV EPHEMERAL KEYPAIR generated — NOT persistent, NOT for production. " +
+                    "To use a fixed dev key (recommended), add to appsettings.Development.json (gitignored): " +
+                    "Plugins:SigningPrivateKey={PrivKey}  Plugins:SigningPublicKey={PubKey}",
+                    privKeyStr, pubKeyStr);
+            }
+            else
+            {
+                // Production with no configured private key: signing is disabled.
+                // Verification still works using the known dev public key (for marketplace integrity checks).
+                var pubBytes = Convert.FromBase64String(DevPublicKeyBase64);
+                _publicKey   = PublicKey.Import(_algo, pubBytes, KeyBlobFormat.RawPublicKey);
+                _privateKey  = null;
+                _isConfigured = false;
+
+                logger.LogError(
+                    "Plugin signing: Plugins:SigningPrivateKey is NOT configured in a non-Development environment. " +
+                    "Signing is DISABLED. Set Plugins:SigningPrivateKey + Plugins:SigningPublicKey via user-secrets " +
+                    "or environment variables before deploying to production.");
+            }
         }
     }
 
@@ -72,6 +110,10 @@ public class PluginSigningService : IPluginSigningService
 
     public string Sign(string content)
     {
+        if (_privateKey == null)
+            throw new InvalidOperationException(
+                "Plugin signing is not configured. Set Plugins:SigningPrivateKey in configuration or user-secrets.");
+
         var data = Encoding.UTF8.GetBytes(content);
         var sig  = _algo.Sign(_privateKey, data);
         return Convert.ToBase64String(sig);

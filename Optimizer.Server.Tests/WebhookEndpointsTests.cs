@@ -24,6 +24,14 @@ public class WebhookEndpointsTests : IClassFixture<WebhookEndpointsTests.Webhook
         _factory = factory;
     }
 
+    // Public IP literals used in integration tests to avoid DNS resolution.
+    // Using IP literals means the SSRF check doesn't need to resolve hostnames — fast and hermetic.
+    // 93.184.216.34  = example.com (IANA)
+    // 93.184.216.35  = a second example.com IP used to differentiate test entries
+    private const string TestHookUrl1 = "https://93.184.216.34/hook";
+    private const string TestHookUrl2 = "https://93.184.216.35/hook";
+    private const string TestHookUrl3 = "https://93.184.216.34/hook-delete";
+
     // ── Auth guard ─────────────────────────────────────────────────────────
 
     [Fact]
@@ -31,7 +39,7 @@ public class WebhookEndpointsTests : IClassFixture<WebhookEndpointsTests.Webhook
     {
         var client = _factory.CreateClient();
         var resp = await client.PostAsJsonAsync("/api/webhooks",
-            new { url = "https://example.com/hook", eventTypes = (string[]?)null });
+            new { url = TestHookUrl1, eventTypes = (string[]?)null });
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
     }
 
@@ -44,7 +52,7 @@ public class WebhookEndpointsTests : IClassFixture<WebhookEndpointsTests.Webhook
         var client = await CreateAuthenticatedClientAsync(factory);
 
         var resp = await client.PostAsJsonAsync("/api/webhooks",
-            new { url = "https://example.com/hook", eventTypes = (string[]?)null });
+            new { url = TestHookUrl1, eventTypes = (string[]?)null });
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         var jsonOpts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -62,7 +70,7 @@ public class WebhookEndpointsTests : IClassFixture<WebhookEndpointsTests.Webhook
 
         // Create one
         await client.PostAsJsonAsync("/api/webhooks",
-            new { url = "https://list-test.com/hook", eventTypes = (string[]?)null });
+            new { url = TestHookUrl2, eventTypes = (string[]?)null });
 
         // List
         var resp = await client.GetAsync("/api/webhooks");
@@ -70,7 +78,7 @@ public class WebhookEndpointsTests : IClassFixture<WebhookEndpointsTests.Webhook
         var jsonOpts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var list = await resp.Content.ReadFromJsonAsync<List<WebhookDto>>(jsonOpts);
         Assert.NotNull(list);
-        Assert.Contains(list!, w => w.Url == "https://list-test.com/hook");
+        Assert.Contains(list!, w => w.Url == TestHookUrl2);
     }
 
     [Fact]
@@ -79,9 +87,9 @@ public class WebhookEndpointsTests : IClassFixture<WebhookEndpointsTests.Webhook
         using var factory = new WebhookTestFactory();
         var client = await CreateAuthenticatedClientAsync(factory);
 
-        // Create
+        // Create — use IP literal so SSRF check passes without DNS
         var createResp = await client.PostAsJsonAsync("/api/webhooks",
-            new { url = "https://delete-test.com/hook", eventTypes = (string[]?)null });
+            new { url = TestHookUrl3, eventTypes = (string[]?)null });
         Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
         var jsonOpts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var created = await createResp.Content.ReadFromJsonAsync<CreatedWebhookDto>(jsonOpts);

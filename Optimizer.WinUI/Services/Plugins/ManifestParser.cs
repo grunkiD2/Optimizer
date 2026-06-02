@@ -28,6 +28,44 @@ public sealed class ManifestParser : IManifestParser
     // Lowercase slug: starts with [a-z0-9], then 2–63 more [a-z0-9-] chars → total 3–64
     private static readonly Regex IdPattern = new(@"^[a-z0-9][a-z0-9-]{2,63}$", RegexOptions.Compiled);
 
+    // Scheduled-task name: word chars (no whitespace except plain space ' '), backslash (path
+    // separator), forward-slash, dot, hyphen — anything else (especially '"' or newline/control
+    // chars) is rejected to prevent schtasks injection.
+    // Example valid: "Microsoft\Windows\Defrag\ScheduledDefrag"
+    private static readonly Regex TaskNamePattern = new(@"^[\w \.\-\\/]+$", RegexOptions.Compiled);
+
+    // Shell metacharacters that must never appear in powercfg arguments.
+    // A manifest could otherwise inject: /h off & calc.exe, /h off; malware, etc.
+    private static readonly char[] PowerCfgForbiddenChars = ['&', '|', ';', '>', '<', '`', '\n', '\r'];
+
+    /// <summary>
+    /// Allowed powercfg sub-command first tokens (the part after "powercfg").
+    /// Only well-known safe sub-commands are permitted.
+    ///
+    /// Allowlist:
+    ///   /h [on|off]                    — hibernate
+    ///   /hibernate [on|off]            — hibernate (long form)
+    ///   /setactive {GUID}              — set active power scheme
+    ///   /change sleep-timeout-ac N    — change power setting
+    ///   /change sleep-timeout-dc N
+    ///   /change monitor-timeout-ac N
+    ///   /change monitor-timeout-dc N
+    ///   /change disk-timeout-ac N
+    ///   /change disk-timeout-dc N
+    ///   /change hibernate-timeout-ac N
+    ///   /change hibernate-timeout-dc N
+    ///   /change standby-timeout-ac N
+    ///   /change standby-timeout-dc N
+    /// </summary>
+    private static readonly HashSet<string> AllowedPowerCfgFirstTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/h", "/hibernate", "/setactive", "/change"
+    };
+
+    private static readonly Regex GuidPattern =
+        new(@"^\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}$",
+            RegexOptions.Compiled);
+
     // ── YAML deserialiser (snake_case → PascalCase) ───────────────────────────
 
     private static readonly IDeserializer YamlDeserialiser = new DeserializerBuilder()
@@ -199,12 +237,21 @@ public sealed class ManifestParser : IManifestParser
 
                     case "powercfg":
                         if (string.IsNullOrWhiteSpace(c.PowerCfgArgs))
+                        {
                             errors.Add($"{prefix} (powercfg): 'power_cfg_args' is required.");
+                        }
+                        else
+                        {
+                            errors.AddRange(ValidatePowerCfgArgs(prefix, c.PowerCfgArgs));
+                        }
                         break;
 
                     case "scheduled-task":
                         if (string.IsNullOrWhiteSpace(c.TaskName))
                             errors.Add($"{prefix} (scheduled-task): 'task_name' is required.");
+                        else if (!TaskNamePattern.IsMatch(c.TaskName))
+                            errors.Add($"{prefix} (scheduled-task): 'task_name' contains disallowed characters. " +
+                                       @"Only word characters, spaces, \, /, ., - are permitted.");
                         if (string.IsNullOrWhiteSpace(c.TaskAction))
                             errors.Add($"{prefix} (scheduled-task): 'task_action' is required.");
                         break;
@@ -219,4 +266,94 @@ public sealed class ManifestParser : IManifestParser
 
     private static ManifestParseResult Fail(string error)
         => new(false, null, new[] { error });
+
+    /// <summary>
+    /// Validates <paramref name="args"/> as a powercfg argument string.
+    ///
+    /// Rules:
+    ///   1. No shell metacharacters (&amp; | ; &gt; &lt; ` newline).
+    ///   2. First token must start with '/' (i.e. be a sub-command flag).
+    ///   3. First token must be one of the allowed sub-commands:
+    ///        /h, /hibernate, /setactive, /change
+    ///   4. For /setactive, the second token must be a valid GUID in braces.
+    ///   5. For /h and /hibernate, the second token must be "on" or "off".
+    ///   6. For /change, the second token must be a known setting name.
+    ///
+    /// Returns an enumerable of error strings (empty if valid).
+    /// </summary>
+    private static IEnumerable<string> ValidatePowerCfgArgs(string prefix, string args)
+    {
+        var errors = new List<string>();
+
+        // Rule 1: no shell metacharacters
+        if (args.IndexOfAny(PowerCfgForbiddenChars) >= 0)
+        {
+            errors.Add($"{prefix} (powercfg): 'power_cfg_args' contains forbidden characters " +
+                       $"(&, |, ;, >, <, `, newline). Value: '{args}'");
+            return errors;  // stop early — further checks may be misleading
+        }
+
+        var tokens = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0)
+        {
+            errors.Add($"{prefix} (powercfg): 'power_cfg_args' is blank after trimming.");
+            return errors;
+        }
+
+        // Rule 2: first token must start with '/'
+        if (!tokens[0].StartsWith('/'))
+        {
+            errors.Add($"{prefix} (powercfg): 'power_cfg_args' must start with a sub-command flag " +
+                       $"beginning with '/' (got '{tokens[0]}').");
+            return errors;
+        }
+
+        // Rule 3: first token must be in the allowlist
+        if (!AllowedPowerCfgFirstTokens.Contains(tokens[0]))
+        {
+            errors.Add($"{prefix} (powercfg): sub-command '{tokens[0]}' is not permitted. " +
+                       $"Allowed: {string.Join(", ", AllowedPowerCfgFirstTokens)}.");
+            return errors;
+        }
+
+        switch (tokens[0].ToLowerInvariant())
+        {
+            case "/setactive":
+                // Rule 4: second token must be a GUID in braces
+                if (tokens.Length < 2 || !GuidPattern.IsMatch(tokens[1]))
+                    errors.Add($"{prefix} (powercfg): /setactive requires a GUID in braces " +
+                               "e.g. {{8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c}}.");
+                break;
+
+            case "/h":
+            case "/hibernate":
+                // Rule 5: second token must be "on" or "off"
+                if (tokens.Length < 2 ||
+                    (!tokens[1].Equals("on", StringComparison.OrdinalIgnoreCase) &&
+                     !tokens[1].Equals("off", StringComparison.OrdinalIgnoreCase)))
+                {
+                    errors.Add($"{prefix} (powercfg): {tokens[0]} requires 'on' or 'off'.");
+                }
+                break;
+
+            case "/change":
+                // Rule 6: second token must be a known setting name
+                var allowedSettings = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "sleep-timeout-ac", "sleep-timeout-dc",
+                    "monitor-timeout-ac", "monitor-timeout-dc",
+                    "disk-timeout-ac", "disk-timeout-dc",
+                    "hibernate-timeout-ac", "hibernate-timeout-dc",
+                    "standby-timeout-ac", "standby-timeout-dc",
+                };
+                if (tokens.Length < 2 || !allowedSettings.Contains(tokens[1]))
+                {
+                    errors.Add($"{prefix} (powercfg): /change requires a known setting name " +
+                               $"(e.g. sleep-timeout-ac). Got: '{(tokens.Length >= 2 ? tokens[1] : "<none>")}'.");
+                }
+                break;
+        }
+
+        return errors;
+    }
 }

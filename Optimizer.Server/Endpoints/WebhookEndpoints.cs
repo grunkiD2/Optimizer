@@ -57,14 +57,37 @@ public static class WebhookEndpoints
 
         app.MapPost("/api/events", (
             [FromBody] IncomingEventDto evt,
-            IWebhookService svc,
+            IServiceScopeFactory scopeFactory,
             HttpContext ctx) =>
         {
             var userId = GetUserId(ctx);
             if (userId == null) return Results.Unauthorized();
 
-            // Fire-and-forget: dispatch runs in background; caller gets 202 immediately
-            _ = Task.Run(() => svc.DispatchAsync(userId.Value, evt));
+            // Fire-and-forget: dispatch runs in a fresh DI scope so it gets its own
+            // DbContext and WebhookService, independent of the request scope that is
+            // disposed as soon as this handler returns.
+            //
+            // Without this fix, the request-scoped WebhookService / DbContext would be
+            // disposed when the HTTP response is sent, causing SaveChangesAsync inside
+            // DeliverWithRetryAsync (which runs after retry delays) to hit an
+            // ObjectDisposedException on the DbContext.
+            _ = Task.Run(async () =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var svc    = scope.ServiceProvider.GetRequiredService<IWebhookService>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                try
+                {
+                    await svc.DispatchAsync(userId.Value, evt);
+                }
+                catch (Exception ex)
+                {
+                    // Log dispatch failures — previously these were silently swallowed
+                    logger.LogError(ex,
+                        "Webhook dispatch failed for user {UserId}, event type {EventType}.",
+                        userId.Value, evt.Type);
+                }
+            });
 
             return Results.Accepted();
         }).WithTags("Events").RequireAuthorization()

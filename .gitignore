@@ -21,6 +21,11 @@ BundleArtifacts/
 .worktrees/
 .claude/worktrees/
 
+## ASP.NET Core environment-specific config (may contain secrets)
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
 ## User-specific
 *.rsuser
 .localhistory/

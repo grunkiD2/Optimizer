@@ -49,10 +49,10 @@ public class WebhookServiceTests : IDisposable
     [Fact]
     public async Task Create_StoresSubscription_AndReturnsSecret()
     {
-        var result = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://example.com/hook", null));
+        var result = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://93.184.216.34/hook", null));
 
         Assert.NotEqual(Guid.Empty, result.Id);
-        Assert.Equal("https://example.com/hook", result.Url);
+        Assert.Equal("https://93.184.216.34/hook", result.Url);
         Assert.False(string.IsNullOrEmpty(result.Secret));
 
         var stored = await _db.WebhookSubscriptions.FindAsync(result.Id);
@@ -83,12 +83,12 @@ public class WebhookServiceTests : IDisposable
         _db.Users.Add(new User { Id = otherId, Email = "other@example.com" });
         _db.SaveChanges();
 
-        await _svc.CreateAsync(_userId,   new CreateWebhookRequest("https://mine.com/hook",  null));
-        await _svc.CreateAsync(otherId,   new CreateWebhookRequest("https://other.com/hook", null));
+        await _svc.CreateAsync(_userId,   new CreateWebhookRequest("https://93.184.216.34/hook",  null));
+        await _svc.CreateAsync(otherId,   new CreateWebhookRequest("https://93.184.216.35/hook", null));
 
         var list = await _svc.ListAsync(_userId);
         Assert.Single(list);
-        Assert.Equal("https://mine.com/hook", list[0].Url);
+        Assert.Equal("https://93.184.216.34/hook", list[0].Url);
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ public class WebhookServiceTests : IDisposable
     [Fact]
     public async Task Delete_RemovesSubscription()
     {
-        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://example.com/hook", null));
+        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://93.184.216.34/hook", null));
         var deleted = await _svc.DeleteAsync(_userId, created.Id);
 
         Assert.True(deleted);
@@ -108,7 +108,7 @@ public class WebhookServiceTests : IDisposable
     public async Task Delete_WrongUser_ReturnsFalse()
     {
         var otherId = Guid.NewGuid();
-        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://example.com/hook", null));
+        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://93.184.216.34/hook", null));
 
         var deleted = await _svc.DeleteAsync(otherId, created.Id);
         Assert.False(deleted);
@@ -120,7 +120,7 @@ public class WebhookServiceTests : IDisposable
     public async Task Dispatch_MatchesAllEventsSubscription()
     {
         _stubHttp.SetResponse(HttpStatusCode.OK);
-        await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://example.com/hook", null)); // all events
+        await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://93.184.216.34/hook", null)); // all events
 
         await _svc.DispatchAsync(_userId, new IncomingEventDto(
             "OptimizationApplied", "Opt", "Detail", DateTime.UtcNow, null));
@@ -133,7 +133,7 @@ public class WebhookServiceTests : IDisposable
     {
         _stubHttp.SetResponse(HttpStatusCode.OK);
         await _svc.CreateAsync(_userId, new CreateWebhookRequest(
-            "https://example.com/hook",
+            "https://93.184.216.34/hook",
             new[] { "OptimizationApplied" }));
 
         await _svc.DispatchAsync(_userId, new IncomingEventDto(
@@ -147,7 +147,7 @@ public class WebhookServiceTests : IDisposable
     {
         _stubHttp.SetResponse(HttpStatusCode.OK);
         await _svc.CreateAsync(_userId, new CreateWebhookRequest(
-            "https://example.com/hook",
+            "https://93.184.216.34/hook",
             new[] { "PluginInstalled" }));
 
         await _svc.DispatchAsync(_userId, new IncomingEventDto(
@@ -160,7 +160,7 @@ public class WebhookServiceTests : IDisposable
     public async Task Dispatch_SignsPayloadWithHmac()
     {
         _stubHttp.SetResponse(HttpStatusCode.OK);
-        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://example.com/hook", null));
+        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://93.184.216.34/hook", null));
 
         await _svc.DispatchAsync(_userId, new IncomingEventDto(
             "OptimizationApplied", "Opt", "Detail", DateTime.UtcNow, null));
@@ -185,7 +185,7 @@ public class WebhookServiceTests : IDisposable
     public async Task Dispatch_FailedDelivery_IncrementsConsecutiveFailures()
     {
         _stubHttp.SetResponse(HttpStatusCode.InternalServerError);
-        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://example.com/hook", null));
+        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://93.184.216.34/hook", null));
 
         await _svc.DispatchAsync(_userId, new IncomingEventDto(
             "OptimizationApplied", "Opt", "Detail", DateTime.UtcNow, null));
@@ -199,7 +199,7 @@ public class WebhookServiceTests : IDisposable
     public async Task Dispatch_AutoDisablesAfterThresholdFailures()
     {
         _stubHttp.SetResponse(HttpStatusCode.InternalServerError);
-        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://example.com/hook", null));
+        var created = await _svc.CreateAsync(_userId, new CreateWebhookRequest("https://93.184.216.34/hook", null));
 
         // Force 10 failures (the auto-disable threshold)
         for (int i = 0; i < 10; i++)

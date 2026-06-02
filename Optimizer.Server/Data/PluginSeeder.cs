@@ -90,7 +90,10 @@ public static class PluginSeeder
         int downloads, double rating, int ratingCount)
     {
         var sha256    = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(manifestYaml))).ToLowerInvariant();
-        var signature = signing.Sign(manifestYaml);
+        // Sign only when the service is configured (private key is available).
+        // In test environments where signing is disabled the seeded entries have an empty
+        // signature — they will fail client-side signature verification, which is fine for tests.
+        var signature = signing.IsConfigured ? signing.Sign(manifestYaml) : string.Empty;
 
         return new PluginListing
         {

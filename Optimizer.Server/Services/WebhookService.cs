@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -209,13 +210,105 @@ public class WebhookService : IWebhookService
         return types.Any(t => string.Equals(t.Trim(), eventType, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static void ValidateUrl(string url)
+    // ── SSRF protection ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Validates a webhook URL against SSRF attacks.
+    ///
+    /// Checks performed:
+    ///   1. Must be an absolute http or https URL.
+    ///   2. The target host is resolved to IP address(es).  If the host is already an IP literal
+    ///      it is checked directly; otherwise all addresses returned by DNS are checked.
+    ///   3. Any loopback, link-local (169.254.x.x / fe80::), or RFC-1918/unique-local private
+    ///      address is rejected.
+    ///
+    /// Note: DNS-rebinding attacks (where DNS returns a public IP at registration time but a
+    /// private IP at delivery time) are NOT prevented here.  Full protection would require
+    /// re-resolving and re-checking at every delivery attempt.
+    /// </summary>
+    internal static void ValidateUrl(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
             throw new ArgumentException("Webhook URL must be a valid absolute http or https URL.", nameof(url));
         }
+
+        var host = uri.Host;
+
+        // Collect all IP addresses for this host
+        IEnumerable<IPAddress> addresses;
+
+        if (IPAddress.TryParse(host, out var literal))
+        {
+            // URL contained an IP literal (e.g. http://127.0.0.1/...)
+            addresses = [literal];
+        }
+        else
+        {
+            // Hostname — resolve via DNS (blocks if the resolver is slow; acceptable at registration time)
+            try
+            {
+                addresses = Dns.GetHostAddresses(host);
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"Webhook URL host '{host}' could not be resolved: {ex.Message}", nameof(url));
+            }
+        }
+
+        foreach (var addr in addresses)
+        {
+            if (IsDisallowedAddress(addr))
+            {
+                throw new ArgumentException(
+                    $"Webhook URL resolves to a disallowed address ({addr}). " +
+                    "Loopback, link-local, and private-subnet targets are not permitted.",
+                    nameof(url));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if the address is loopback, link-local (169.254.0.0/16 or fe80::/10),
+    /// or any of the RFC-1918 / unique-local private ranges
+    /// (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7).
+    ///
+    /// Extracted as a separate method so it can be unit-tested directly with IP literals,
+    /// avoiding DNS dependency in tests.
+    /// </summary>
+    internal static bool IsDisallowedAddress(IPAddress addr)
+    {
+        if (addr.IsIPv4MappedToIPv6)
+            addr = addr.MapToIPv4();
+
+        if (IPAddress.IsLoopback(addr))           return true;
+        if (addr.IsIPv6LinkLocal)                 return true;  // fe80::/10
+        if (addr.IsIPv6UniqueLocal)               return true;  // fc00::/7
+
+        var bytes = addr.GetAddressBytes();
+
+        if (bytes.Length == 4)
+        {
+            // 169.254.0.0/16 (link-local)
+            if (bytes[0] == 169 && bytes[1] == 254) return true;
+            // 10.0.0.0/8
+            if (bytes[0] == 10) return true;
+            // 172.16.0.0/12  (172.16.x.x – 172.31.x.x)
+            if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+            // 192.168.0.0/16
+            if (bytes[0] == 192 && bytes[1] == 168) return true;
+        }
+
+        if (bytes.Length == 16)
+        {
+            // fc00::/7 unique-local (fc00:: and fd00::)
+            if ((bytes[0] & 0xFE) == 0xFC) return true;
+            // fe80::/10 link-local
+            if (bytes[0] == 0xFE && (bytes[1] & 0xC0) == 0x80) return true;
+        }
+
+        return false;
     }
 
     private static WebhookDto MapToDto(WebhookSubscription s) => new(

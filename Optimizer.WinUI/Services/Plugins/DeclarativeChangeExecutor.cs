@@ -248,28 +248,48 @@ public sealed class DeclarativeChangeExecutor : IDeclarativeChangeExecutor
         if (string.IsNullOrWhiteSpace(change.FilePath))
             throw new InvalidOperationException("File change is missing file_path.");
 
-        var expanded = Environment.ExpandEnvironmentVariables(change.FilePath);
+        // Canonicalize the path before acting on it.
+        // Path.GetFullPath resolves '..' segments, eliminating traversal attacks like
+        // %TEMP%\..\..\..\Windows\System32\...  — the permission check at ValidatePermissions
+        // time uses the same canonicalization, so both agree on the resolved path.
+        string canonicalized;
+        try
+        {
+            canonicalized = Path.GetFullPath(Environment.ExpandEnvironmentVariables(change.FilePath));
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"File path '{change.FilePath}' is invalid: {ex.Message}");
+        }
+
+        // Defense in depth: re-check permission on the canonicalized path immediately before
+        // the file operation, in case the permission check at manifest-load time was bypassed.
+        if (!ManifestPermissions.IsFilePathAllowed(canonicalized))
+        {
+            throw new InvalidOperationException(
+                $"File path '{canonicalized}' is outside the permitted allow-list (post-canonicalization check).");
+        }
 
         switch (change.FileAction?.ToLowerInvariant())
         {
             case "delete":
-                if (File.Exists(expanded))
+                if (File.Exists(canonicalized))
                 {
-                    File.Delete(expanded);
-                    EngineLog.Write($"[Plugin] Deleted file: {expanded}");
+                    File.Delete(canonicalized);
+                    EngineLog.Write($"[Plugin] Deleted file: {canonicalized}");
                 }
-                else if (Directory.Exists(expanded))
+                else if (Directory.Exists(canonicalized))
                 {
-                    Directory.Delete(expanded, recursive: true);
-                    EngineLog.Write($"[Plugin] Deleted directory: {expanded}");
+                    Directory.Delete(canonicalized, recursive: true);
+                    EngineLog.Write($"[Plugin] Deleted directory: {canonicalized}");
                 }
                 break;
 
             case "clear":
-                if (File.Exists(expanded))
+                if (File.Exists(canonicalized))
                 {
-                    File.WriteAllBytes(expanded, Array.Empty<byte>());
-                    EngineLog.Write($"[Plugin] Cleared file: {expanded}");
+                    File.WriteAllBytes(canonicalized, Array.Empty<byte>());
+                    EngineLog.Write($"[Plugin] Cleared file: {canonicalized}");
                 }
                 break;
 
@@ -294,24 +314,35 @@ public sealed class DeclarativeChangeExecutor : IDeclarativeChangeExecutor
         if (string.IsNullOrWhiteSpace(change.TaskName) || string.IsNullOrWhiteSpace(change.TaskAction))
             throw new InvalidOperationException("Scheduled-task change is missing task_name or task_action.");
 
-        var verb = change.TaskAction.ToLowerInvariant() switch
-        {
-            "disable" => "/Change /DISABLE",
-            "enable" => "/Change /ENABLE",
-            _ => throw new InvalidOperationException($"Unknown task action '{change.TaskAction}'.")
-        };
-
-        var psi = new ProcessStartInfo("schtasks.exe", $"{verb} /TN \"{change.TaskName}\"")
+        // Use ArgumentList (not a single argument string) so the runtime handles quoting/escaping.
+        // This prevents argument injection via crafted task names containing '"' or other shell chars.
+        // ManifestParser.Validate also rejects task names with '"' or control characters as defense in depth.
+        var psi = new ProcessStartInfo("schtasks.exe")
         {
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+
+        psi.ArgumentList.Add("/Change");
+
+        // Add the enable/disable flag as a separate argument — safely escaped by the runtime
+        var verbFlag = change.TaskAction.ToLowerInvariant() switch
+        {
+            "disable" => "/DISABLE",
+            "enable"  => "/ENABLE",
+            _ => throw new InvalidOperationException($"Unknown task action '{change.TaskAction}'.")
+        };
+        psi.ArgumentList.Add(verbFlag);
+
+        psi.ArgumentList.Add("/TN");
+        psi.ArgumentList.Add(change.TaskName);  // runtime escapes this; injection is not possible
+
         using var proc = Process.Start(psi);
         proc?.WaitForExit(10000);
 
-        EngineLog.Write($"[Plugin] schtasks {verb} /TN \"{change.TaskName}\"");
+        EngineLog.Write($"[Plugin] schtasks /Change {verbFlag} /TN {change.TaskName}");
     }
 
     // ── Registry path helpers ─────────────────────────────────────────────────
@@ -320,6 +351,13 @@ public sealed class DeclarativeChangeExecutor : IDeclarativeChangeExecutor
     /// Splits a full registry path like "HKLM\SOFTWARE\Foo\Bar" into root "HKLM"
     /// and subkey "SOFTWARE\Foo\Bar".
     /// Also normalises HKEY_LOCAL_MACHINE → HKLM and HKEY_CURRENT_USER → HKCU.
+    ///
+    /// Returns <c>(null, original)</c> for any of:
+    ///   • unrecognised root hive
+    ///   • no backslash separator
+    ///   • subkey containing '.' or '..' path-traversal segments
+    /// A null root causes all downstream callers to reject the path — defence in depth
+    /// alongside <see cref="ManifestPermissions.IsRegistryPathAllowed"/>.
     /// </summary>
     private static (string? root, string subKey) SplitRegistryPath(string path)
     {
@@ -331,9 +369,18 @@ public sealed class DeclarativeChangeExecutor : IDeclarativeChangeExecutor
         var idx = path.IndexOf('\\', StringComparison.Ordinal);
         if (idx < 0) return (null, path);
 
-        var root = path[..idx].ToUpperInvariant();
+        var root   = path[..idx].ToUpperInvariant();
         var subKey = path[(idx + 1)..];
-        return root is "HKLM" or "HKCU" ? (root, subKey) : (null, subKey);
+
+        if (root is not ("HKLM" or "HKCU"))
+            return (null, subKey);
+
+        // Reject any '.' or '..' segment — prevents HKCU\Software\Foo\..\..\..\SYSTEM\...
+        var segments = subKey.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Any(s => s is "." or ".."))
+            return (null, subKey);
+
+        return (root, subKey);
     }
 
     private static RegistryKey? RootToHive(string root) => root switch
