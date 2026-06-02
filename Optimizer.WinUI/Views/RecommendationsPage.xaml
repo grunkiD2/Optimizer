@@ -57,8 +57,52 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        FontSize="12"/>
 
+            <!-- ── Smart Insights ─────────────────────────────────────────── -->
+            <TextBlock Text="SMART INSIGHTS"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,4"/>
+
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.Insights, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Orientation="Vertical" Spacing="8"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:SmartInsight">
+                        <Border Background="{ThemeResource AccentFillColorTertiaryBrush}"
+                                CornerRadius="8" Padding="16"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1">
+                            <StackPanel Spacing="6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="&#x1F4A1;" FontSize="20" Margin="0,0,12,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{x:Bind Title, Mode=OneWay}"
+                                               FontWeight="SemiBold" FontSize="14"
+                                               VerticalAlignment="Center"
+                                               TextWrapping="Wrap"/>
+                                </Grid>
+                                <TextBlock Text="{x:Bind Body, Mode=OneWay}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="4" Padding="8,4">
+                                    <TextBlock Text="{x:Bind SupportingDataText, Mode=OneWay}"
+                                               FontSize="11" FontFamily="Consolas"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
             <!-- ── Filter bar ────────────────────────────────────────────── -->
-            <Grid ColumnSpacing="8">
+            <Grid ColumnSpacing="8" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -131,6 +175,9 @@
                                             Style="{ThemeResource AccentButtonStyle}"
                                             Tag="{x:Bind}"
                                             Click="Action_Click"/>
+                                    <Button Content="Snooze 7 days"
+                                            Tag="{x:Bind Id}"
+                                            Click="Snooze_Click"/>
                                     <Button Content="Dismiss"
                                             Tag="{x:Bind}"
                                             Click="Dismiss_Click"/>

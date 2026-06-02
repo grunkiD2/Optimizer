@@ -16,7 +16,10 @@ public sealed partial class RecommendationsPage : Page
     }
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
-        => await ViewModel.LoadAsync();
+    {
+        await ViewModel.LoadAsync();
+        await ViewModel.LoadInsightsAsync();
+    }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e)
         => await ViewModel.RefreshCommand.ExecuteAsync(null);
@@ -28,6 +31,12 @@ public sealed partial class RecommendationsPage : Page
     {
         if (sender is Button btn && btn.Tag is Recommendation rec)
             await ViewModel.ApplyActionCommand.ExecuteAsync(rec);
+    }
+
+    private async void Snooze_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string id)
+            await ViewModel.SnoozeCommand.ExecuteAsync(id);
     }
 
     private async void Dismiss_Click(object sender, RoutedEventArgs e)
