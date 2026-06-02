@@ -32,7 +32,14 @@ public class ApiHostService : IApiHostService
         // Bind to localhost only for security
         builder.WebHost.UseUrls($"http://localhost:{port}");
 
+        // OpenAPI / Swagger — .NET 9+ built-in (no Swashbuckle needed)
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddOpenApi();
+
         var app = builder.Build();
+
+        // Serve /openapi/v1.json
+        app.MapOpenApi();
 
         // Serve static files from WebDashboard folder (co-located with the exe)
         var webRoot = Path.Combine(AppContext.BaseDirectory, "WebDashboard");
@@ -88,7 +95,10 @@ public class ApiHostService : IApiHostService
         // ── Endpoints ──────────────────────────────────────────────────────────
 
         app.MapGet("/api/health", () =>
-            Results.Ok(new { status = "ok", version = "2.0", timestamp = DateTime.UtcNow }));
+            Results.Ok(new { status = "ok", version = "2.0", timestamp = DateTime.UtcNow }))
+            .WithName("GetHealth")
+            .WithTags("Health")
+            .WithOpenApi();
 
         app.MapGet("/api/metrics", () =>
         {
@@ -116,7 +126,10 @@ public class ApiHostService : IApiHostService
                 },
                 timestamp = snap.Timestamp
             });
-        });
+        })
+        .WithName("GetMetrics")
+        .WithTags("System")
+        .WithOpenApi();
 
         app.MapGet("/api/sensors", () =>
         {
@@ -132,7 +145,10 @@ public class ApiHostService : IApiHostService
                 gpuCoreMhz = snap.GpuCoreMhz,
                 fans      = snap.FanSpeeds.Select(f => new { name = f.Name, rpm = f.Value })
             });
-        });
+        })
+        .WithName("GetSensors")
+        .WithTags("Sensors")
+        .WithOpenApi();
 
         app.MapGet("/api/profiles", () =>
         {
@@ -145,7 +161,10 @@ public class ApiHostService : IApiHostService
                 name        = p.Name,
                 description = p.Description
             }));
-        });
+        })
+        .WithName("GetProfiles")
+        .WithTags("Profiles")
+        .WithOpenApi();
 
         app.MapPost("/api/apply/{profileId}", async (string profileId) =>
         {
@@ -153,7 +172,10 @@ public class ApiHostService : IApiHostService
             if (optimizer == null) return Results.StatusCode(503);
             var success = await optimizer.ApplyProfileAsync(profileId);
             return Results.Ok(new { success, profileId });
-        });
+        })
+        .WithName("ApplyProfile")
+        .WithTags("Profiles")
+        .WithOpenApi();
 
         app.MapPost("/api/cleanup", async () =>
         {
@@ -161,28 +183,40 @@ public class ApiHostService : IApiHostService
             if (optimizer == null) return Results.StatusCode(503);
             var result = await optimizer.ApplyOptimizationAsync(OptimizationIds.ClearTemporaryFiles);
             return Results.Ok(new { success = result.Success, message = result.Message });
-        });
+        })
+        .WithName("RunCleanup")
+        .WithTags("System")
+        .WithOpenApi();
 
         app.MapGet("/api/hardware", async () =>
         {
             var hw = _appServices.GetService<IHardwareInfoService>();
             if (hw == null) return Results.StatusCode(503);
             return Results.Ok(await hw.GetHardwareInfoAsync());
-        });
+        })
+        .WithName("GetHardware")
+        .WithTags("Hardware")
+        .WithOpenApi();
 
         app.MapGet("/api/disks", async () =>
         {
             var dh = _appServices.GetService<IDiskHealthService>();
             if (dh == null) return Results.StatusCode(503);
             return Results.Ok(await dh.GetDiskHealthAsync());
-        });
+        })
+        .WithName("GetDiskHealth")
+        .WithTags("Hardware")
+        .WithOpenApi();
 
         app.MapGet("/api/recommendations", async () =>
         {
             var recs = _appServices.GetService<IRecommendationsService>();
             if (recs == null) return Results.StatusCode(503);
             return Results.Ok(await recs.GenerateAsync());
-        });
+        })
+        .WithName("GetRecommendations")
+        .WithTags("Diagnostics")
+        .WithOpenApi();
 
         _app = app;
         await _app.StartAsync();

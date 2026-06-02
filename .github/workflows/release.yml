@@ -1,0 +1,179 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v2.0.0)'
+        required: true
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+          10.0.x
+        include-prerelease: true
+
+    - name: Determine version
+      id: version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_REF_TYPE -eq 'tag') {
+          $tag = $env:GITHUB_REF_NAME
+        } else {
+          $tag = '${{ github.event.inputs.tag }}'
+        }
+        $version = $tag -replace '^v', ''
+        echo "TAG=$tag" >> $env:GITHUB_OUTPUT
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+    - name: Restore dependencies
+      run: |
+        dotnet restore Optimizer.WinUI/Optimizer.WinUI.csproj
+        dotnet restore Optimizer.Cli/Optimizer.Cli.csproj
+
+    - name: Run tests (must pass before release)
+      run: dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj -c Release --logger "trx;LogFileName=test-results.trx"
+
+    - name: Build WinUI
+      run: dotnet publish Optimizer.WinUI/Optimizer.WinUI.csproj -c Release -r win-x64 --self-contained false -o publish/winui -p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Build CLI
+      run: dotnet publish Optimizer.Cli/Optimizer.Cli.csproj -c Release -r win-x64 --self-contained false -o publish/cli -p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Create self-signed certificate
+      shell: pwsh
+      run: |
+        $cert = New-SelfSignedCertificate `
+          -Subject "CN=Optimizer Dev" `
+          -Type CodeSigning `
+          -CertStoreLocation Cert:\CurrentUser\My `
+          -KeyUsage DigitalSignature `
+          -FriendlyName "Optimizer Dev Cert" `
+          -NotAfter (Get-Date).AddYears(1)
+        $pwd = ConvertTo-SecureString -String "dev-only-password" -Force -AsPlainText
+        Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath cert.pfx -Password $pwd | Out-Null
+        echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+        Write-Host "Created self-signed cert: $($cert.Thumbprint)"
+
+    - name: Sign WinUI executable (self-signed)
+      shell: pwsh
+      continue-on-error: true
+      run: |
+        $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+        if ($signtool) {
+          & $signtool sign /f cert.pfx /p "dev-only-password" /tr http://timestamp.digicert.com /td sha256 /fd sha256 "publish\winui\Optimizer.WinUI.exe"
+          Write-Host "Signed with self-signed cert."
+          Write-Host "WARNING: NOT TRUSTED — users will see SmartScreen warnings. Use a trusted CA cert for production."
+        } else {
+          Write-Host "signtool.exe not found — skipping code signing."
+        }
+
+    - name: Sign CLI executable (self-signed)
+      shell: pwsh
+      continue-on-error: true
+      run: |
+        $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+        if ($signtool) {
+          & $signtool sign /f cert.pfx /p "dev-only-password" /tr http://timestamp.digicert.com /td sha256 /fd sha256 "publish\cli\Optimizer.Cli.exe"
+        }
+
+    - name: Package WinUI artifact
+      shell: pwsh
+      run: |
+        Compress-Archive -Path publish/winui/* -DestinationPath "optimizer-${{ steps.version.outputs.VERSION }}-win-x64.zip" -Force
+
+    - name: Package CLI artifact
+      shell: pwsh
+      run: |
+        Compress-Archive -Path publish/cli/* -DestinationPath "optimizer-cli-${{ steps.version.outputs.VERSION }}-win-x64.zip" -Force
+
+    - name: Package web dashboard
+      shell: pwsh
+      run: |
+        Compress-Archive -Path Optimizer.WinUI/WebDashboard/* -DestinationPath "optimizer-web-dashboard-${{ steps.version.outputs.VERSION }}.zip" -Force
+
+    - name: Generate SHA256 checksums
+      shell: pwsh
+      run: |
+        Get-ChildItem *.zip | ForEach-Object {
+          $hash = Get-FileHash $_.FullName -Algorithm SHA256
+          "$($hash.Hash)  $($_.Name)" | Out-File checksums.txt -Append
+        }
+        Write-Host "Checksums:"
+        Get-Content checksums.txt
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: Optimizer.WinUI.Tests/TestResults/*.trx
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.TAG }}
+        name: Optimizer ${{ steps.version.outputs.TAG }}
+        body: |
+          # Optimizer ${{ steps.version.outputs.TAG }}
+
+          ## Downloads
+
+          | Package | Description |
+          |---------|-------------|
+          | `optimizer-${{ steps.version.outputs.VERSION }}-win-x64.zip` | Desktop app (Windows x64) |
+          | `optimizer-cli-${{ steps.version.outputs.VERSION }}-win-x64.zip` | CLI tool (Windows x64) |
+          | `optimizer-web-dashboard-${{ steps.version.outputs.VERSION }}.zip` | Web dashboard / PWA |
+          | `checksums.txt` | SHA256 hashes for verification |
+
+          ## System Requirements
+
+          - Windows 10 22H2+ or Windows 11
+          - .NET 10 Desktop Runtime (downloaded automatically if missing)
+          - Administrator privileges for system optimizations
+
+          ## Verifying Downloads
+
+          Check file integrity with PowerShell:
+          ```powershell
+          Get-FileHash optimizer-${{ steps.version.outputs.VERSION }}-win-x64.zip -Algorithm SHA256
+          ```
+          Compare against `checksums.txt`.
+
+          ## Code Signing Notice
+
+          This release is signed with a **self-signed certificate**. Windows SmartScreen will warn
+          on first run. To bypass: click **"More info"** → **"Run anyway"**.
+
+          Production releases will use a trusted CA certificate to eliminate this warning.
+
+          ## REST API
+
+          The desktop app hosts a local REST API on port 7071 with:
+          - Swagger UI at `http://localhost:7071/swagger.html`
+          - OpenAPI spec at `http://localhost:7071/openapi/v1.json`
+
+          ## Changelog
+
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
+        files: |
+          optimizer-*.zip
+          checksums.txt
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.TAG, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
