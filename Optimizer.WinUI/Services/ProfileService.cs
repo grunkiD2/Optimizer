@@ -30,7 +30,10 @@ public class ProfileService
             var loaded = JsonSerializer.Deserialize<List<SettingsProfile>>(json);
             if (loaded != null) _snapshots.AddRange(loaded);
         }
-        catch { }
+        catch
+        {
+            // corrupted file — start fresh
+        }
     }
 
     /// <summary>Apply a built-in preset by its profile ID.</summary>
@@ -49,7 +52,7 @@ public class ProfileService
         {
             Id = Guid.NewGuid().ToString(),
             Name = name,
-            Description = $"Snapshot saved {DateTime.Now:g}",
+            Description = $"Snapshot saved {DateTime.UtcNow:g}",
             ProfileType = ProfileType.Custom,
             CreatedAt = DateTime.UtcNow,
             Optimizations = activeIds

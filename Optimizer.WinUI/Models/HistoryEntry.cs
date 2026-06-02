@@ -2,7 +2,7 @@ namespace Optimizer.WinUI.Models;
 
 public class HistoryEntry
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Id { get; } = Guid.NewGuid().ToString();
     public string OptimizationId { get; set; } = "";
     public string OptimizationTitle { get; set; } = "";
     public string Category { get; set; } = "";
