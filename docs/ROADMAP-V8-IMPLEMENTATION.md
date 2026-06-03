@@ -203,6 +203,19 @@ Theme 9 (A11y + i18n) ── cross-cutting; LAST, over the now-stable UI
 
 ## Phase F — Theme 3: Voice + Conversational Assistant
 
+> **Status update (2026-06-03):** Shipped a **cloud (Claude API) intent path** instead of starting
+> with the on-device LLM. The assistant is **opt-in, off by default, bring-your-own-key** (the
+> Anthropic key is stored encrypted via Windows DPAPI, never in the settings file). It maps natural
+> language to the app's existing actions via Claude **tool-use** over a new `ICommandRegistry`;
+> read-only queries answer directly, while system-changing actions are **proposed → confirmed →
+> executed** through the existing `IUndoService`. It lives in a new **persistent console dock**
+> (Activity tab = live `IEventBus` stream; Assistant tab = chat) that toggles with `Ctrl+\`` and can
+> **pop out** into its own window, plus a `Ctrl+K` omnibox. The only data leaving the machine is the
+> user's messages plus a short system-metrics summary, sent to Anthropic under the user's own key.
+> The on-device Phi-3/ONNX runtime below remains a **future, fully-offline option**. Spec:
+> `docs/superpowers/specs/2026-06-03-claude-intent-assistant-design.md`;
+> plan: `docs/superpowers/plans/2026-06-03-claude-intent-assistant.md`.
+
 **Goal:** Talk to your PC. On-device LLM, no cloud, no telemetry.
 
 **Builds on:** Theme 7 ML runtime, Theme 8 command surface + event bus, existing RelayCommands.
