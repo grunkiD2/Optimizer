@@ -208,6 +208,12 @@ public partial class App : Application
                 services.AddSingleton<Optimizer.WinUI.Services.Analytics.IRecommendationRanker,
                                       Optimizer.WinUI.Services.Analytics.RecommendationRanker>();
 
+                // Phase 6: Intelligence — anomaly detection & predictive alerts
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IAnomalyDetector,
+                                      Optimizer.WinUI.Services.Analytics.AnomalyDetector>();
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IPredictiveAlertService,
+                                      Optimizer.WinUI.Services.Analytics.PredictiveAlertService>();
+
                 // REST API host
                 services.AddSingleton<IApiHostService>(sp =>
                     new ApiHostService(sp));
@@ -246,6 +252,8 @@ public partial class App : Application
                                       Optimizer.WinUI.Services.Assistant.AssistantSettings>();
                 services.AddSingleton<Optimizer.WinUI.Services.Assistant.IClaudeClient,
                                       Optimizer.WinUI.Services.Assistant.ClaudeClient>();
+                services.AddSingleton<Optimizer.WinUI.Services.Assistant.IContextualPromptBuilder,
+                                      Optimizer.WinUI.Services.Assistant.ContextualPromptBuilder>();
                 services.AddSingleton<Optimizer.WinUI.Services.Assistant.IAssistantService,
                                       Optimizer.WinUI.Services.Assistant.AssistantService>();
 
@@ -449,6 +457,50 @@ public partial class App : Application
                 catch (Exception ex)
                 {
                     WriteCrashLog("ProfileContext/RuleSuggestion", ex);
+                }
+            });
+
+            // Phase 6: Learn metric baselines per context, flag anomalies, and raise
+            // predictive-maintenance alerts. Samples every 2 minutes; alerts hourly.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(2));
+                    var detector = GetService<Optimizer.WinUI.Services.Analytics.IAnomalyDetector>();
+                    var contextDetect = GetService<IContextDetectionService>();
+                    var monitor = GetService<ISystemMonitorService>();
+                    var predictive = GetService<Optimizer.WinUI.Services.Analytics.IPredictiveAlertService>();
+
+                    var ticks = 0;
+                    while (true)
+                    {
+                        var context = await contextDetect.DetectContextAsync();
+                        var snap = monitor.CollectSnapshot();
+                        var cpu = snap.CpuUsagePercentage;
+                        var memUsedPct = snap.TotalPhysicalMemory > 0
+                            ? 100.0 * (snap.TotalPhysicalMemory - snap.AvailablePhysicalMemory) / snap.TotalPhysicalMemory
+                            : 0;
+
+                        await detector.RecordSampleAsync(context, "cpu", cpu);
+                        await detector.RecordSampleAsync(context, "memory", memUsedPct);
+                        await detector.EvaluateAsync(context, new Dictionary<string, double>
+                        {
+                            ["cpu"] = cpu,
+                            ["memory"] = memUsedPct
+                        });
+
+                        // Predictive maintenance check once per ~30 ticks (~hourly).
+                        if (ticks % 30 == 0)
+                            await predictive.EvaluateAsync();
+                        ticks++;
+
+                        await Task.Delay(TimeSpan.FromMinutes(2));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    WriteCrashLog("AnomalyDetector/PredictiveAlerts", ex);
                 }
             });
 

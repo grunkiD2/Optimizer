@@ -60,6 +60,11 @@ public class AssistantServiceTests
         public Task<string> DetectContextAsync() => Task.FromResult("Unknown");
     }
 
+    private sealed class FakePromptBuilder : IContextualPromptBuilder
+    {
+        public Task<string> BuildAsync() => Task.FromResult("system prompt");
+    }
+
     private static ClaudeResult Text(string s) =>
         new(new ClaudeTurn("end_turn", [new ClaudeBlock(ClaudeBlockKind.Text, Text: s)]), ClaudeErrorKind.None, null);
 
@@ -76,7 +81,7 @@ public class AssistantServiceTests
         reg.Register(cmd);
         var claude = new ScriptedClaude(script);
         var settings = new FakeAssistantSettings { AllowActions = allowActions };
-        return (new AssistantService(claude, reg, settings, new NoopActionLogger(), new FakeContextDetection()), claude, cmd);
+        return (new AssistantService(claude, reg, settings, new NoopActionLogger(), new FakeContextDetection(), new FakePromptBuilder()), claude, cmd);
     }
 
     [Fact]

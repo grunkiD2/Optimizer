@@ -358,6 +358,62 @@ public static class DatabaseSchema
         """,
 
         // ────────────────────────────────────────────────────────────────
+        // Anomaly Detection with Learning (new in Phase 6)
+        // Online mean/variance (Welford) baseline per (context, metric).
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS MetricBaselines (
+            Context TEXT NOT NULL,
+            Metric TEXT NOT NULL,
+            SampleCount INTEGER NOT NULL DEFAULT 0,
+            Mean REAL NOT NULL DEFAULT 0,
+            M2 REAL NOT NULL DEFAULT 0,
+            UpdatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(Context, Metric)
+        )
+        """,
+
+        // How many times the user dismissed alerts for a (context, metric);
+        // once it crosses a threshold the detector stops surfacing them.
+        """
+        CREATE TABLE IF NOT EXISTS AnomalySuppressions (
+            Context TEXT NOT NULL,
+            Metric TEXT NOT NULL,
+            DismissCount INTEGER NOT NULL DEFAULT 0,
+            UpdatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(Context, Metric)
+        )
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS AnomalyAlerts (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Context TEXT NOT NULL,
+            Metric TEXT NOT NULL,
+            Value REAL NOT NULL,
+            Expected REAL NOT NULL,
+            Sigma REAL NOT NULL,
+            CreatedAtUtc TEXT NOT NULL
+        )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
+        // Predictive Maintenance Alerts (new in Phase 6)
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS MaintenanceAlerts (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Signature TEXT NOT NULL UNIQUE,
+            Kind TEXT NOT NULL,            -- 'DiskSpace' | 'DiskFailure'
+            Target TEXT NOT NULL,
+            Message TEXT NOT NULL,
+            Severity TEXT NOT NULL,
+            CreatedAtUtc TEXT NOT NULL,
+            Acknowledged INTEGER NOT NULL DEFAULT 0
+        )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
         // Metadata (version tracking)
         // ────────────────────────────────────────────────────────────────
         """

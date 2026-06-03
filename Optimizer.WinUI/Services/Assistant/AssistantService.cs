@@ -8,11 +8,13 @@ public sealed class AssistantService(
     ICommandRegistry registry,
     IAssistantSettings settings,
     IAssistantActionLogger actionLogger,
-    IContextDetectionService contextDetection) : IAssistantService
+    IContextDetectionService contextDetection,
+    IContextualPromptBuilder promptBuilder) : IAssistantService
 {
     private const int MaxToolRounds = 8;
 
-    private const string SystemPrompt =
+    /// <summary>Fallback prompt if the dynamic builder fails for any reason.</summary>
+    private const string FallbackSystemPrompt =
         "You are the assistant inside Optimizer, a Windows PC optimization app. " +
         "Use the provided tools to answer questions about the user's PC and to perform actions they request. " +
         "Read-only tools run immediately. Tools that change the system require user confirmation, which the app handles — " +
@@ -28,9 +30,15 @@ public sealed class AssistantService(
         _history.Add(new ClaudeMessage("user", [new ClaudeBlock(ClaudeBlockKind.Text, Text: userText)]));
         var tools = ToolCatalog.Build(registry, settings.AllowActions);
 
+        // Build the context-aware system prompt once per turn so it stays stable across
+        // the tool-use loop (keeps prompt caching effective within the turn).
+        string systemPrompt;
+        try { systemPrompt = await promptBuilder.BuildAsync(); }
+        catch { systemPrompt = FallbackSystemPrompt; }
+
         for (int round = 0; round < MaxToolRounds; round++)
         {
-            var result = await claude.SendAsync(SystemPrompt, _history, tools, settings.Model, cb.OnAssistantText, ct);
+            var result = await claude.SendAsync(systemPrompt, _history, tools, settings.Model, cb.OnAssistantText, ct);
             if (result.Error != ClaudeErrorKind.None || result.Turn is null)
             {
                 var msg = result.ErrorMessage ?? "The assistant request failed.";
