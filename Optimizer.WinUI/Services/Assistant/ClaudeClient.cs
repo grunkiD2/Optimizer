@@ -41,14 +41,14 @@ public sealed class ClaudeClient(IApiKeyStore keyStore) : IClaudeClient
             };
 
             // Stream text deltas to the UI as they arrive.
-            await foreach (var streamEvent in client.Messages.CreateStreaming(parameters).WithCancellation(ct))
+            await foreach (var streamEvent in client.Messages.CreateStreaming(parameters, ct).WithCancellation(ct))
             {
                 if (streamEvent.TryPickContentBlockDelta(out var delta) && delta.Delta.TryPickText(out var text))
                     onText(text.Text);
             }
 
             // Re-issue non-streaming to get the structured final message (tool_use blocks + stop_reason).
-            var final = await client.Messages.Create(parameters);
+            var final = await client.Messages.Create(parameters, ct);
             var collected = new List<ClaudeBlock>();
             foreach (var block in final.Content)
             {
