@@ -30,10 +30,23 @@ public sealed partial class HudCard : UserControl
     }
     public static readonly DependencyProperty HeaderProperty =
         DependencyProperty.Register(nameof(Header), typeof(string), typeof(HudCard),
-            new PropertyMetadata("", (d, e) =>
-            {
-                var card = (HudCard)d;
-                card.HeaderText.Visibility = string.IsNullOrWhiteSpace(e.NewValue as string)
-                    ? Visibility.Collapsed : Visibility.Visible;
-            }));
+            new PropertyMetadata("", (d, _) => ((HudCard)d).RefreshHeaderArea()));
+
+    public string Description
+    {
+        get => (string)GetValue(DescriptionProperty);
+        set => SetValue(DescriptionProperty, value);
+    }
+    public static readonly DependencyProperty DescriptionProperty =
+        DependencyProperty.Register(nameof(Description), typeof(string), typeof(HudCard),
+            new PropertyMetadata("", (d, _) => ((HudCard)d).RefreshHeaderArea()));
+
+    private void RefreshHeaderArea()
+    {
+        bool hasHeader = !string.IsNullOrWhiteSpace(Header);
+        bool hasDesc = !string.IsNullOrWhiteSpace(Description);
+        HeaderText.Visibility = hasHeader ? Visibility.Visible : Visibility.Collapsed;
+        DescText.Visibility = hasDesc ? Visibility.Visible : Visibility.Collapsed;
+        HeaderArea.Visibility = (hasHeader || hasDesc) ? Visibility.Visible : Visibility.Collapsed;
+    }
 }

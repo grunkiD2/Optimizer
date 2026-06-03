@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Helpers;
+using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
@@ -11,16 +13,54 @@ public sealed partial class PerformancePage : Page
     public PerformanceCategoryViewModel ViewModel { get; }
     private readonly Dictionary<string, EventHandler<bool>> _toggleHandlers = [];
 
+    private readonly ISystemDataBus _bus;
+    private const int TrendLength = 40;
+    private readonly Queue<double> _cpuTrend = new();
+    private readonly Queue<double> _memTrend = new();
+
     public PerformancePage()
     {
         ViewModel = App.GetService<PerformanceCategoryViewModel>();
+        _bus = App.GetService<ISystemDataBus>();
         InitializeComponent();
+        Unloaded += (_, _) => _bus.MetricsUpdated -= OnMetrics;
     }
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
     {
         ViewModel.Load();
         await ViewModel.LoadPowerAsync();
+
+        _bus.MetricsUpdated += OnMetrics;
+        if (_bus.LatestMetrics is { } seed) OnMetrics(seed);
+    }
+
+    private void OnMetrics(SystemResource m)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            double cpu = m.CpuUsagePercentage;
+            Push(_cpuTrend, cpu);
+            CpuTile.Value = cpu.ToString("F0");
+            CpuTile.Caption = m.CpuTemperature > 0 ? $"{m.CpuTemperature:F0}°C" : "live";
+            CpuTile.SetTrend(_cpuTrend.ToArray());
+
+            double memTotal = m.TotalPhysicalMemory;
+            double memUsed = memTotal > 0 ? memTotal - m.AvailablePhysicalMemory : 0;
+            double memPct = memTotal > 0 ? memUsed / memTotal * 100.0 : 0;
+            Push(_memTrend, memPct);
+            MemTile.Value = memPct.ToString("F0");
+            MemTile.Caption = $"{memUsed / 1_073_741_824.0:F1} GB used";
+            MemTile.SetTrend(_memTrend.ToArray());
+
+            OptTile.Value = $"{ViewModel.ActiveCount} / {ViewModel.TotalCount}";
+        });
+    }
+
+    private static void Push(Queue<double> q, double v)
+    {
+        q.Enqueue(v);
+        while (q.Count > TrendLength) q.Dequeue();
     }
 
     private void OptimizationCard_Loaded(object sender, RoutedEventArgs e)

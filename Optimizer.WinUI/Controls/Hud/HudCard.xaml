@@ -9,11 +9,18 @@
             BorderBrush="{StaticResource HudGlassBorderBrush}"
             BorderThickness="1"
             Padding="{StaticResource CardPadding}">
-        <StackPanel Spacing="10">
-            <TextBlock x:Name="HeaderText"
-                       Style="{StaticResource HudMicroStyle}"
-                       Text="{x:Bind Header, Mode=OneWay}"
-                       Visibility="Collapsed"/>
+        <StackPanel Spacing="12">
+            <StackPanel x:Name="HeaderArea" Spacing="2" Visibility="Collapsed">
+                <TextBlock x:Name="HeaderText"
+                           Style="{StaticResource HudMicroStyle}"
+                           Text="{x:Bind Header, Mode=OneWay}"
+                           Visibility="Collapsed"/>
+                <TextBlock x:Name="DescText"
+                           Style="{StaticResource HudCaptionStyle}"
+                           Text="{x:Bind Description, Mode=OneWay}"
+                           TextWrapping="Wrap"
+                           Visibility="Collapsed"/>
+            </StackPanel>
             <ContentPresenter Content="{x:Bind CardContent, Mode=OneWay}"
                               HorizontalContentAlignment="Stretch"/>
         </StackPanel>

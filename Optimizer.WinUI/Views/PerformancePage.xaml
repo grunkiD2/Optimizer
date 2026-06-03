@@ -18,7 +18,7 @@
 
     <hud:HudBackdrop>
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32,24,32,32">
-            <StackPanel Spacing="24" MaxWidth="1280" HorizontalAlignment="Left">
+            <StackPanel Spacing="24" MaxWidth="1360" HorizontalAlignment="Left">
                 <StackPanel.ChildrenTransitions>
                     <TransitionCollection>
                         <EntranceThemeTransition FromVerticalOffset="20"/>
@@ -26,192 +26,145 @@
                 </StackPanel.ChildrenTransitions>
 
                 <!-- ── Page header ──────────────────────────────────────────── -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-                        <TextBlock Text="{x:Bind ViewModel.CategoryIcon}" FontSize="30" VerticalAlignment="Center"/>
-                        <StackPanel Spacing="4" VerticalAlignment="Center">
-                            <TextBlock Text="{x:Bind ViewModel.CategoryName}" Style="{StaticResource HudTitleStyle}"/>
-                            <TextBlock Style="{StaticResource HudCaptionStyle}">
-                                <Run Text="{x:Bind ViewModel.ActiveCount, Mode=OneWay}"/>
-                                <Run Text=" of "/>
-                                <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
-                                <Run Text=" optimizations active"/>
-                            </TextBlock>
-                        </StackPanel>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <hud:HudPageHeader Icon="{x:Bind ViewModel.CategoryIcon}"
+                                   Title="{x:Bind ViewModel.CategoryName}"
+                                   Description="Tune CPU, memory, power mode, and per-process priority for snappier response.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button Content="Apply All" Style="{StaticResource AccentButtonStyle}"
                                 Command="{x:Bind ViewModel.ApplyAllCommand}"/>
                         <Button Content="Undo Category" Command="{x:Bind ViewModel.UndoCategoryCommand}"/>
                     </StackPanel>
-                </Grid>
+                </hud:HudPageHeader>
 
-                <!-- ── Live metrics strip ───────────────────────────────────── -->
+                <!-- ── Vitals (live sparklines) ─────────────────────────────── -->
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-
-                    <Border Grid.Column="0" CornerRadius="{StaticResource CardCornerRadius}" Padding="{StaticResource CardPaddingTight}"
-                            Background="{ThemeResource HudSurfaceBrush}" BorderBrush="{StaticResource HudGlassBorderBrush}" BorderThickness="1">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="CPU USAGE" Style="{StaticResource HudMicroStyle}"/>
-                            <TextBlock Text="{x:Bind ViewModel.CpuText, Mode=OneWay}" Style="{StaticResource HudMetricStyle}"
-                                       Foreground="{StaticResource InfoBrush}"/>
-                            <ProgressBar Value="{x:Bind ViewModel.CpuUsage, Mode=OneWay}" Maximum="100" Height="4"
-                                         CornerRadius="2" Foreground="{StaticResource InfoBrush}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Column="1" CornerRadius="{StaticResource CardCornerRadius}" Padding="{StaticResource CardPaddingTight}"
-                            Background="{ThemeResource HudSurfaceBrush}" BorderBrush="{StaticResource HudGlassBorderBrush}" BorderThickness="1">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="MEMORY" Style="{StaticResource HudMicroStyle}"/>
-                            <TextBlock Text="{x:Bind ViewModel.MemoryText, Mode=OneWay}" Style="{StaticResource HudMetricStyle}"
-                                       Foreground="{StaticResource SuccessBrush}"/>
-                            <TextBlock Text="{x:Bind ViewModel.UsedMemoryText, Mode=OneWay}" Style="{StaticResource HudMonoSmallStyle}"
-                                       Foreground="{StaticResource MutedBrush}"/>
-                            <ProgressBar Value="{x:Bind ViewModel.MemoryUsage, Mode=OneWay}" Maximum="100" Height="4"
-                                         CornerRadius="2" Foreground="{StaticResource SuccessBrush}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Column="2" CornerRadius="{StaticResource CardCornerRadius}" Padding="{StaticResource CardPaddingTight}"
-                            Background="{ThemeResource HudSurfaceBrush}" BorderBrush="{StaticResource HudGlassBorderBrush}" BorderThickness="1">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="OPTIMIZATIONS" Style="{StaticResource HudMicroStyle}"/>
-                            <TextBlock Style="{StaticResource HudMetricStyle}" Foreground="{StaticResource VioletBrush}">
-                                <Run Text="{x:Bind ViewModel.ActiveCount, Mode=OneWay}"/>
-                                <Run Text=" / "/>
-                                <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
-                            </TextBlock>
-                            <TextBlock Text="active" Style="{StaticResource HudMonoSmallStyle}" Foreground="{StaticResource MutedBrush}"/>
-                        </StackPanel>
-                    </Border>
+                    <hud:StatTile x:Name="CpuTile" Grid.Column="0" Label="CPU" Unit="%" Value="--" Status="Info"/>
+                    <hud:StatTile x:Name="MemTile" Grid.Column="1" Label="MEMORY" Unit="%" Value="--" Status="Success"/>
+                    <hud:StatTile x:Name="OptTile" Grid.Column="2" Label="OPTIMIZATIONS ACTIVE" Value="--" Status="Accent"/>
                 </Grid>
 
-                <!-- ── Power Plan ───────────────────────────────────────────── -->
-                <hud:HudCard Header="POWER PLAN">
-                    <StackPanel Spacing="12">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                <!-- ── Bento body: optimizations | (power + processes) ──────── -->
+                <Grid ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
 
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Active Plan" FontWeight="SemiBold"/>
-                                <TextBlock Text="{x:Bind ViewModel.ActivePowerPlan.Name, Mode=OneWay, FallbackValue=Loading...}"
-                                           Style="{StaticResource HudCaptionStyle}"/>
-                            </StackPanel>
-
-                            <ToggleSwitch Grid.Column="1" Header="Game Mode"
-                                          IsOn="{x:Bind ViewModel.GameModeEnabled, Mode=TwoWay}"/>
-
-                            <Button Grid.Column="2" Content="Enable Ultimate Perf"
-                                    VerticalAlignment="Center" Click="UltimatePerf_Click"/>
-                        </Grid>
-
-                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.PowerPlans, Mode=OneWay}">
+                    <!-- Left: optimizations -->
+                    <StackPanel Grid.Column="0" Spacing="12">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="OPTIMIZATIONS" Style="{StaticResource HudMicroStyle}"/>
+                            <TextBlock Text="Toggle individual tweaks. Each card shows exactly what it changes and the trade-offs."
+                                       Style="{StaticResource HudCaptionStyle}"/>
+                        </StackPanel>
+                        <ItemsRepeater x:Name="OptimizationsRepeater"
+                                       ItemsSource="{x:Bind ViewModel.Optimizations, Mode=OneWay}">
                             <ItemsRepeater.Layout>
-                                <UniformGridLayout MinItemWidth="180" MinColumnSpacing="8" MinRowSpacing="8"/>
+                                <StackLayout Orientation="Vertical" Spacing="0"/>
                             </ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate>
-                                <DataTemplate x:DataType="services:PowerPlan">
-                                    <Button Click="PowerPlan_Click" Tag="{x:Bind Guid}"
-                                            HorizontalAlignment="Stretch" Padding="12,8">
-                                        <StackPanel>
-                                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="ACTIVE" FontSize="10" FontWeight="SemiBold"
-                                                       Foreground="{StaticResource AccentCyanBrush}"
-                                                       Visibility="{x:Bind IsActive, Converter={StaticResource BoolToVisibility}}"/>
-                                        </StackPanel>
-                                    </Button>
+                                <DataTemplate x:DataType="vm:OptimizationCardModel">
+                                    <controls:OptimizationCard Tag="{x:Bind Id}" Loaded="OptimizationCard_Loaded"/>
                                 </DataTemplate>
                             </ItemsRepeater.ItemTemplate>
                         </ItemsRepeater>
                     </StackPanel>
-                </hud:HudCard>
 
-                <!-- ── Running processes ────────────────────────────────────── -->
-                <hud:HudCard Header="RUNNING PROCESSES">
-                    <ListView x:Name="ProcessListView"
-                              ItemsSource="{x:Bind ViewModel.Processes, Mode=OneWay}"
-                              SelectionMode="None" MaxHeight="400">
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:ProcessPriorityInfo">
-                                <Border Padding="8,8" BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="0,0,0,1">
-                                    <Grid ColumnSpacing="12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="80"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                    <!-- Right: power + processes -->
+                    <StackPanel Grid.Column="1" Spacing="24">
+                        <hud:HudCard Header="POWER" Description="Choose a Windows power plan and toggle Game Mode.">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Active plan" Style="{StaticResource HudCaptionStyle}"/>
+                                        <TextBlock Text="{x:Bind ViewModel.ActivePowerPlan.Name, Mode=OneWay, FallbackValue=Loading...}"
+                                                   FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" Header="Game Mode"
+                                                  IsOn="{x:Bind ViewModel.GameModeEnabled, Mode=TwoWay}"/>
+                                </Grid>
 
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Style="{StaticResource HudMonoSmallStyle}" Foreground="{StaticResource MutedBrush}">
-                                                <Run Text="PID:"/>
-                                                <Run Text="{x:Bind PidText}"/>
-                                            </TextBlock>
-                                        </StackPanel>
+                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.PowerPlans, Mode=OneWay}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout MinItemWidth="150" MinColumnSpacing="8" MinRowSpacing="8"/>
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="services:PowerPlan">
+                                            <Button Click="PowerPlan_Click" Tag="{x:Bind Guid}"
+                                                    HorizontalAlignment="Stretch" Padding="12,8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="ACTIVE" FontSize="10" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource AccentCyanBrush}"
+                                                               Visibility="{x:Bind IsActive, Converter={StaticResource BoolToVisibility}}"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
 
-                                        <TextBlock Grid.Column="1" Text="{x:Bind MemoryText}" Style="{StaticResource HudMonoSmallStyle}"
-                                                   VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                                <Button Content="Enable Ultimate Performance" HorizontalAlignment="Stretch"
+                                        Click="UltimatePerf_Click"/>
+                            </StackPanel>
+                        </hud:HudCard>
 
-                                        <TextBlock Grid.Column="2" Text="{x:Bind Priority}" FontSize="11"
-                                                   VerticalAlignment="Center" MinWidth="80"/>
-
-                                        <ComboBox Grid.Column="3" Tag="{x:Bind Pid}"
-                                                  SelectionChanged="Priority_Changed"
-                                                  SelectedItem="{x:Bind Priority, Mode=OneWay}" MinWidth="120">
-                                            <ComboBoxItem Content="High"/>
-                                            <ComboBoxItem Content="AboveNormal"/>
-                                            <ComboBoxItem Content="Normal"/>
-                                            <ComboBoxItem Content="BelowNormal"/>
-                                            <ComboBoxItem Content="Idle"/>
-                                        </ComboBox>
-
-                                        <Button Grid.Column="4" Tag="{x:Bind Pid}" Content="Affinity"
-                                                VerticalAlignment="Center" Click="Affinity_Click"
-                                                ToolTipService.ToolTip="Set per-core CPU affinity"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </hud:HudCard>
-
-                <!-- ── Optimization cards ───────────────────────────────────── -->
-                <TextBlock Text="OPTIMIZATIONS" Style="{StaticResource HudMicroStyle}" Margin="0,8,0,0"/>
-                <ItemsRepeater x:Name="OptimizationsRepeater"
-                               ItemsSource="{x:Bind ViewModel.Optimizations, Mode=OneWay}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Orientation="Vertical" Spacing="0"/>
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="vm:OptimizationCardModel">
-                            <controls:OptimizationCard Tag="{x:Bind Id}" Loaded="OptimizationCard_Loaded"/>
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
+                        <hud:HudCard Header="RUNNING PROCESSES" Description="Set priority or per-core CPU affinity for any process.">
+                            <ListView x:Name="ProcessListView"
+                                      ItemsSource="{x:Bind ViewModel.Processes, Mode=OneWay}"
+                                      SelectionMode="None" MaxHeight="420">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:ProcessPriorityInfo">
+                                        <Border Padding="6,8" BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="0,0,0,1">
+                                            <Grid ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Style="{StaticResource HudMonoSmallStyle}" Foreground="{StaticResource MutedBrush}">
+                                                        <Run Text="PID"/>
+                                                        <Run Text="{x:Bind PidText}"/>
+                                                        <Run Text="·"/>
+                                                        <Run Text="{x:Bind MemoryText}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <ComboBox Grid.Column="1" Tag="{x:Bind Pid}"
+                                                          SelectionChanged="Priority_Changed"
+                                                          SelectedItem="{x:Bind Priority, Mode=OneWay}" MinWidth="116">
+                                                    <ComboBoxItem Content="High"/>
+                                                    <ComboBoxItem Content="AboveNormal"/>
+                                                    <ComboBoxItem Content="Normal"/>
+                                                    <ComboBoxItem Content="BelowNormal"/>
+                                                    <ComboBoxItem Content="Idle"/>
+                                                </ComboBox>
+                                                <Button Grid.Column="2" Tag="{x:Bind Pid}" Content="Affinity"
+                                                        VerticalAlignment="Center" Click="Affinity_Click"
+                                                        ToolTipService.ToolTip="Set per-core CPU affinity"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </hud:HudCard>
+                    </StackPanel>
+                </Grid>
 
             </StackPanel>
         </ScrollViewer>
