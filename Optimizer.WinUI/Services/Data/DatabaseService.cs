@@ -16,6 +16,12 @@ public class DatabaseService : IAsyncDisposable
         _connectionString = $"Data Source={dbPath};Cache=Shared";
     }
 
+    /// <summary>Test-only: point the service at a specific database file (e.g. a temp path).</summary>
+    internal DatabaseService(string dbFilePath)
+    {
+        _connectionString = $"Data Source={dbFilePath};Cache=Shared";
+    }
+
     /// <summary>Initialize database: create tables, run migrations.</summary>
     public async Task InitializeAsync()
     {

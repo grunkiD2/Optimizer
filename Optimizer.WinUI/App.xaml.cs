@@ -214,6 +214,15 @@ public partial class App : Application
                 services.AddSingleton<Optimizer.WinUI.Services.Analytics.IPredictiveAlertService,
                                       Optimizer.WinUI.Services.Analytics.PredictiveAlertService>();
 
+                // Phase 7: Autonomous context switching & full automation (opt-in)
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IAutoApplyPolicy,
+                                      Optimizer.WinUI.Services.Analytics.AutoApplyPolicy>();
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IContextStateManager,
+                                      Optimizer.WinUI.Services.Analytics.ContextStateManager>();
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.ContextAutomationService>();
+                services.AddHostedService(sp =>
+                    sp.GetRequiredService<Optimizer.WinUI.Services.Analytics.ContextAutomationService>());
+
                 // REST API host
                 services.AddSingleton<IApiHostService>(sp =>
                     new ApiHostService(sp));

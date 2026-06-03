@@ -414,6 +414,32 @@ public static class DatabaseSchema
         """,
 
         // ────────────────────────────────────────────────────────────────
+        // Optimization Outcomes per Context (new in Phase 7)
+        // Drives the confirm-on-first-occurrence auto-apply gate.
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS OptimizationOutcomes (
+            OptimizationId TEXT NOT NULL,
+            Context TEXT NOT NULL,
+            SuccessCount INTEGER NOT NULL DEFAULT 0,
+            FailureCount INTEGER NOT NULL DEFAULT 0,
+            LastAppliedUtc TEXT,
+            PRIMARY KEY(OptimizationId, Context)
+        )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
+        // Per-Context State Snapshots (new in Phase 7)
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS ContextSnapshots (
+            Context TEXT PRIMARY KEY,
+            StateJson TEXT NOT NULL,
+            CapturedAtUtc TEXT NOT NULL
+        )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
         // Metadata (version tracking)
         // ────────────────────────────────────────────────────────────────
         """
@@ -437,15 +463,16 @@ public static class DatabaseSchema
         "ALTER TABLE UndoStack ADD COLUMN DetectedContext TEXT",
     };
 
-    /// <summary>Insert default contexts and metadata.</summary>
+    /// <summary>Insert default contexts and metadata. Columns are named explicitly so the
+    /// tables' default-valued columns (UpdatedAt / CreatedAt) are populated automatically.</summary>
     public static readonly string[] InitialData = new[]
     {
-        $"INSERT OR IGNORE INTO Metadata VALUES ('SchemaVersion', '{CurrentVersion}')",
-        $"INSERT OR IGNORE INTO Metadata VALUES ('CreatedAt', '{DateTime.UtcNow:O}')",
+        $"INSERT OR IGNORE INTO Metadata (Key, Value) VALUES ('SchemaVersion', '{CurrentVersion}')",
+        $"INSERT OR IGNORE INTO Metadata (Key, Value) VALUES ('CreatedAt', '{DateTime.UtcNow:O}')",
 
-        "INSERT OR IGNORE INTO Contexts VALUES ('Gaming', 'Gaming context')",
-        "INSERT OR IGNORE INTO Contexts VALUES ('Work', 'Work/Productivity context')",
-        "INSERT OR IGNORE INTO Contexts VALUES ('Plex', 'Plex server/Media hosting context')",
-        "INSERT OR IGNORE INTO Contexts VALUES ('Unknown', 'Unknown or general context')"
+        "INSERT OR IGNORE INTO Contexts (Name, Description) VALUES ('Gaming', 'Gaming context')",
+        "INSERT OR IGNORE INTO Contexts (Name, Description) VALUES ('Work', 'Work/Productivity context')",
+        "INSERT OR IGNORE INTO Contexts (Name, Description) VALUES ('Plex', 'Plex server/Media hosting context')",
+        "INSERT OR IGNORE INTO Contexts (Name, Description) VALUES ('Unknown', 'Unknown or general context')"
     };
 }

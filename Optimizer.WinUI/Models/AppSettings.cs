@@ -51,4 +51,24 @@ public class AppSettings
     public bool AssistantEnabled { get; set; } = false;
     public bool AssistantAllowActions { get; set; } = true;
     public string AssistantModel { get; set; } = "claude-sonnet-4-6";
+
+    // ── Phase 7: Autonomous automation (all opt-in, all reversible) ──
+    // Master kill switch — when true, ALL automation is paused regardless of the toggles below.
+    public bool AutomationPaused { get; set; } = false;
+
+    // Auto-switch to the best-known profile when the detected context changes.
+    public bool AutoContextSwitchEnabled { get; set; } = false;
+
+    // Minimum confidence (success-rate × volume, 0..1) required to auto-switch.
+    public double AutoContextSwitchConfidence { get; set; } = 0.7;
+
+    // Auto-apply "safe" optimizations that have already succeeded repeatedly in a context
+    // (confirm-on-first-occurrence: the first applications still require the user).
+    public bool AutoApplyEnabled { get; set; } = false;
+
+    // Number of prior successes in a context before an optimization may auto-apply.
+    public int AutoApplySuccessThreshold { get; set; } = 3;
+
+    // Optimization ids the user never wants auto-applied.
+    public List<string> AutoApplyExcluded { get; set; } = new();
 }
