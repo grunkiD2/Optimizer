@@ -5,7 +5,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Optimizer">
 
-    <Grid x:Name="RootGrid">
+    <!-- KeyboardAcceleratorPlacementMode="Hidden" suppresses the auto-generated
+         "Ctrl+K" tooltip that otherwise appeared on hover anywhere in the window. -->
+    <Grid x:Name="RootGrid" KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
