@@ -17,6 +17,9 @@ public class AppSettings
     public bool MinimizeToTray { get; set; } = true;
     public bool StartMinimized { get; set; } = false;
 
+    // Launch maximized (fills the screen, keeps the title bar/window controls). Default ON.
+    public bool StartMaximized { get; set; } = true;
+
     // Notification toggles
     public bool NotifyPerformance     { get; set; } = true;
     public bool NotifyStorage         { get; set; } = true;

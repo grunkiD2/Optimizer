@@ -75,9 +75,18 @@ public sealed partial class MainWindow : Window
             });
 
         Title = "Optimizer";
+        // Set the restore (un-maximized) size from saved preferences…
         AppWindow.Resize(new Windows.Graphics.SizeInt32(
             (int)_settingsService.Settings.WindowWidth,
             (int)_settingsService.Settings.WindowHeight));
+
+        // …then launch maximized by default (unless starting minimized to tray).
+        if (_settingsService.Settings.StartMaximized
+            && !_settingsService.Settings.StartMinimized
+            && AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Maximize();
+        }
 
         // Ctrl+` toggles the console dock. VK_OEM_3 (192) has no named VirtualKey member,
         // so it can't be declared in XAML — register it here with an explicit cast.

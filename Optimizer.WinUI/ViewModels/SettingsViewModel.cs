@@ -31,6 +31,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool confirmBeforeApply;
     [ObservableProperty] private bool minimizeToTray;
     [ObservableProperty] private bool startMinimized;
+    [ObservableProperty] private bool startMaximized = true;
 
     // Console: mirror all engine output to the Activity console (default ON)
     [ObservableProperty] private bool verboseConsole = true;
@@ -114,6 +115,7 @@ public partial class SettingsViewModel : ObservableObject
             ConfirmBeforeApply = s.ConfirmBeforeApply;
             MinimizeToTray = s.MinimizeToTray;
             StartMinimized = s.StartMinimized;
+            StartMaximized = s.StartMaximized;
             VerboseConsole = s.VerboseConsole;
 
             // Notification toggles
@@ -230,6 +232,13 @@ public partial class SettingsViewModel : ObservableObject
     {
         if (_isLoading) return;
         _settingsService.Settings.VerboseConsole = value;
+        _settingsService.Save();
+    }
+
+    partial void OnStartMaximizedChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.StartMaximized = value;
         _settingsService.Save();
     }
 
