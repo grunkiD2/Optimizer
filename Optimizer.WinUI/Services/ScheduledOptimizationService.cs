@@ -205,22 +205,16 @@ public class ScheduledOptimizationService(
         }
     }
 
-    private static ScheduledTask Map(Dictionary<string, object> row) => new()
+    private static ScheduledTask Map(DbRow row) => new()
     {
-        Id = row["Id"].ToString()!,
-        Kind = row["Kind"].ToString()!,
-        TargetId = row["TargetId"].ToString()!,
-        ScheduleType = row["ScheduleType"].ToString()!,
-        ScheduleValue = row["ScheduleValue"].ToString()!,
-        Enabled = Convert.ToInt32(row["Enabled"]) == 1,
-        LastRunUtc = ParseNullable(row["LastRunUtc"]),
-        NextRunUtc = ParseNullable(row["NextRunUtc"]),
-        CreatedAtUtc = DateTime.Parse(row["CreatedAtUtc"].ToString()!)
+        Id = row.GetString("Id"),
+        Kind = row.GetString("Kind"),
+        TargetId = row.GetString("TargetId"),
+        ScheduleType = row.GetString("ScheduleType"),
+        ScheduleValue = row.GetString("ScheduleValue"),
+        Enabled = row.GetBool("Enabled"),
+        LastRunUtc = row.GetDateTimeOrNull("LastRunUtc"),
+        NextRunUtc = row.GetDateTimeOrNull("NextRunUtc"),
+        CreatedAtUtc = row.GetDateTime("CreatedAtUtc")
     };
-
-    private static DateTime? ParseNullable(object? value)
-    {
-        var s = value?.ToString();
-        return string.IsNullOrEmpty(s) ? null : DateTime.Parse(s);
-    }
 }

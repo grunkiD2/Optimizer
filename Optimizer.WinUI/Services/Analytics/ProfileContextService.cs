@@ -49,10 +49,10 @@ public class ProfileContextService(DatabaseService db) : IProfileContextService
 
         foreach (var row in pending)
         {
-            var id = Convert.ToInt64(row["Id"]);
-            var profileId = row["ProfileId"].ToString()!;
-            var context = row["Context"].ToString()!;
-            var appliedAt = DateTime.Parse(row["AppliedAtUtc"].ToString()!);
+            var id = row.GetLong("Id");
+            var profileId = row.GetString("ProfileId");
+            var context = row.GetString("Context");
+            var appliedAt = row.GetDateTime("AppliedAtUtc");
 
             // Was this application superseded by a *later* apply (any profile)?
             const string supersededSql = """
@@ -149,12 +149,12 @@ public class ProfileContextService(DatabaseService db) : IProfileContextService
         });
     }
 
-    private static ProfileContextAssociation MapAssociation(Dictionary<string, object> row) => new()
+    private static ProfileContextAssociation MapAssociation(DbRow row) => new()
     {
-        ProfileId = row["ProfileId"].ToString()!,
-        Context = row["Context"].ToString()!,
-        ApplyCount = Convert.ToInt32(row["ApplyCount"]),
-        SuccessCount = Convert.ToInt32(row["SuccessCount"]),
-        LastAppliedUtc = row["LastAppliedUtc"] == null ? null : DateTime.Parse(row["LastAppliedUtc"].ToString()!)
+        ProfileId = row.GetString("ProfileId"),
+        Context = row.GetString("Context"),
+        ApplyCount = row.GetInt("ApplyCount"),
+        SuccessCount = row.GetInt("SuccessCount"),
+        LastAppliedUtc = row.GetDateTimeOrNull("LastAppliedUtc")
     };
 }

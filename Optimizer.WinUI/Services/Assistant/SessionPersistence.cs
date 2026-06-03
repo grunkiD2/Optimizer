@@ -66,11 +66,11 @@ public class SessionPersistence(DatabaseService db) : ISessionPersistence
 
         return results.Select(row => new SessionEvent
         {
-            Id = Convert.ToInt32(row["Id"]),
-            SessionId = row["SessionId"].ToString()!,
-            EventType = Enum.Parse<SessionEventType>(row["EventType"].ToString()!),
-            Content = row["Content"]?.ToString() ?? "",
-            CreatedAtUtc = DateTime.Parse(row["CreatedAtUtc"].ToString()!)
+            Id = row.GetInt("Id"),
+            SessionId = row.GetString("SessionId"),
+            EventType = Enum.Parse<SessionEventType>(row.GetString("EventType")),
+            Content = row.GetString("Content"),
+            CreatedAtUtc = row.GetDateTime("CreatedAtUtc")
         }).ToList();
     }
 
@@ -111,10 +111,10 @@ public class SessionPersistence(DatabaseService db) : ISessionPersistence
         var results = await db.ExecuteQueryAsync(sql, parameters);
         return results.Select(row => new AssistantSession
         {
-            Id = row["Id"].ToString()!,
-            SessionDate = DateTime.Parse(row["SessionDate"].ToString()!),
-            CreatedAtUtc = DateTime.Parse(row["CreatedAtUtc"].ToString()!),
-            ArchivedAtUtc = row["ArchivedAtUtc"] == null ? null : DateTime.Parse(row["ArchivedAtUtc"].ToString()!)
+            Id = row.GetString("Id"),
+            SessionDate = row.GetDateTime("SessionDate"),
+            CreatedAtUtc = row.GetDateTime("CreatedAtUtc"),
+            ArchivedAtUtc = row.GetDateTimeOrNull("ArchivedAtUtc")
         }).ToList();
     }
 

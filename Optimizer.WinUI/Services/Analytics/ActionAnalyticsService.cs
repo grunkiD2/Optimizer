@@ -104,11 +104,9 @@ public class ActionAnalyticsService(DatabaseService db) : IActionAnalyticsServic
 
     public async Task RecalculateMetricsAsync()
     {
-        // Rebuild the ToolContextMetrics summary table from the raw action log.
-        // This is the materialized rollup used for fast reads elsewhere.
-        await db.ExecuteNonQueryAsync("DELETE FROM ToolContextMetrics");
-
-        const string sql = """
+        // Rebuild the ToolContextMetrics rollup from the raw action log, atomically — the
+        // DELETE-all + repopulate must not be observable as an empty table mid-rebuild.
+        const string insertSql = """
             INSERT INTO ToolContextMetrics
                 (ToolId, Context, TotalInvocations, SuccessfulInvocations, AverageDurationMs, LastInvokedUtc, UpdatedAt)
             SELECT
@@ -123,12 +121,14 @@ public class ActionAnalyticsService(DatabaseService db) : IActionAnalyticsServic
             GROUP BY ToolId, COALESCE(DetectedContext, 'Unknown')
             """;
 
-        var parameters = new Dictionary<string, object>
+        await db.RunInTransactionAsync(async batch =>
         {
-            ["updatedAt"] = DateTime.UtcNow.ToString("O")
-        };
-
-        await db.ExecuteNonQueryAsync(sql, parameters);
+            await batch.ExecuteNonQueryAsync("DELETE FROM ToolContextMetrics");
+            await batch.ExecuteNonQueryAsync(insertSql, new Dictionary<string, object>
+            {
+                ["updatedAt"] = DateTime.UtcNow.ToString("O")
+            });
+        });
         EngineLog.Write("Recalculated tool/context metrics rollup");
     }
 
@@ -137,12 +137,12 @@ public class ActionAnalyticsService(DatabaseService db) : IActionAnalyticsServic
         var rows = await db.ExecuteQueryAsync(sql, parameters);
         return rows.Select(row => new ToolContextMetrics
         {
-            ToolId = row["ToolId"].ToString()!,
-            Context = row["Context"]?.ToString() ?? "Unknown",
-            TotalInvocations = Convert.ToInt32(row["TotalInvocations"]),
-            SuccessfulInvocations = Convert.ToInt32(row["SuccessfulInvocations"]),
-            AverageDurationMs = row["AverageDurationMs"] == null ? 0 : Convert.ToDouble(row["AverageDurationMs"]),
-            LastInvokedUtc = row["LastInvokedUtc"] == null ? null : DateTime.Parse(row["LastInvokedUtc"].ToString()!)
+            ToolId = row.GetString("ToolId"),
+            Context = row.GetStringOrNull("Context") ?? "Unknown",
+            TotalInvocations = row.GetInt("TotalInvocations"),
+            SuccessfulInvocations = row.GetInt("SuccessfulInvocations"),
+            AverageDurationMs = row.GetDouble("AverageDurationMs"),
+            LastInvokedUtc = row.GetDateTimeOrNull("LastInvokedUtc")
         }).ToList();
     }
 }

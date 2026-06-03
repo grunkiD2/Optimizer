@@ -119,12 +119,12 @@ public class DatabaseService : IAsyncDisposable
         return await cmd.ExecuteNonQueryAsync();
     }
 
-    /// <summary>Execute a query returning multiple rows.</summary>
-    public async Task<List<Dictionary<string, object>>> ExecuteQueryAsync(
+    /// <summary>Execute a query returning multiple rows (use the typed getters on <see cref="DbRow"/>).</summary>
+    public async Task<List<DbRow>> ExecuteQueryAsync(
         string sql,
         Dictionary<string, object>? parameters = null)
     {
-        var results = new List<Dictionary<string, object>>();
+        var results = new List<DbRow>();
         await using var conn = GetConnection();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -138,34 +138,72 @@ public class DatabaseService : IAsyncDisposable
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var row = new Dictionary<string, object>();
+            var row = new Dictionary<string, object?>();
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 var value = reader.GetValue(i);
-                row[reader.GetName(i)] = value == DBNull.Value ? null! : value;
+                row[reader.GetName(i)] = value == DBNull.Value ? null : value;
             }
-            results.Add(row);
+            results.Add(new DbRow(row));
         }
 
         return results;
     }
 
-    /// <summary>Backup database to JSON (for export).</summary>
-    public async Task BackupToJsonAsync(string outputPath)
+    /// <summary>
+    /// Run several statements atomically in a single transaction. Use for batch rebuilds
+    /// (e.g. DELETE-all then re-INSERT) so a mid-operation failure can't leave a partial table.
+    /// </summary>
+    public async Task RunInTransactionAsync(Func<DbBatch, Task> action)
     {
-        // Placeholder for Phase 8
-        await Task.CompletedTask;
+        await using var conn = GetConnection();
+        await using var tx = (SqliteTransaction)await conn.BeginTransactionAsync();
+        try
+        {
+            await action(new DbBatch(conn, tx));
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
     }
 
-    /// <summary>Restore database from JSON.</summary>
-    public async Task RestoreFromJsonAsync(string inputPath)
+    /// <summary>Create a consistent backup copy of the database to a .db file (online backup API).</summary>
+    public Task BackupToFileAsync(string destPath) => Task.Run(() =>
     {
-        // Placeholder for Phase 8
-        await Task.CompletedTask;
-    }
+        using var source = GetConnection();
+        using var dest = new SqliteConnection($"Data Source={destPath}");
+        dest.Open();
+        source.BackupDatabase(dest);
+    });
 
-    public async ValueTask DisposeAsync()
+    /// <summary>Restore the database in place from a backup .db file produced by <see cref="BackupToFileAsync"/>.</summary>
+    public Task RestoreFromFileAsync(string sourcePath) => Task.Run(() =>
     {
-        await Task.CompletedTask;
+        using var source = new SqliteConnection($"Data Source={sourcePath};Mode=ReadOnly");
+        source.Open();
+        using var dest = GetConnection();
+        source.BackupDatabase(dest);
+    });
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}
+
+/// <summary>A set of statements executed against one shared connection + transaction.</summary>
+public sealed class DbBatch(SqliteConnection connection, SqliteTransaction transaction)
+{
+    public async Task<int> ExecuteNonQueryAsync(string sql, Dictionary<string, object>? parameters = null)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.Transaction = transaction;
+        cmd.CommandText = sql;
+        if (parameters != null)
+        {
+            foreach (var (key, value) in parameters)
+                cmd.Parameters.AddWithValue($"@{key}", value ?? DBNull.Value);
+        }
+        return await cmd.ExecuteNonQueryAsync();
     }
 }

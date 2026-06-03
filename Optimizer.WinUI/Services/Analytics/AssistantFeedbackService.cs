@@ -54,12 +54,12 @@ public class AssistantFeedbackService(DatabaseService db) : IAssistantFeedbackSe
 
         return rows.Select(row => new AssistantFeedbackEntry
         {
-            Id = Convert.ToInt32(row["Id"]),
-            SessionId = string.IsNullOrEmpty(row["SessionId"]?.ToString()) ? null : row["SessionId"].ToString(),
-            ToolId = row["ToolId"].ToString()!,
-            Verdict = Enum.Parse<FeedbackVerdict>(row["UserFeedback"].ToString()!),
-            Comment = string.IsNullOrEmpty(row["Comment"]?.ToString()) ? null : row["Comment"].ToString(),
-            CreatedAtUtc = DateTime.Parse(row["CreatedAtUtc"].ToString()!)
+            Id = row.GetInt("Id"),
+            SessionId = row.GetStringOrNull("SessionId"),
+            ToolId = row.GetString("ToolId"),
+            Verdict = Enum.Parse<FeedbackVerdict>(row.GetString("UserFeedback")),
+            Comment = row.GetStringOrNull("Comment"),
+            CreatedAtUtc = row.GetDateTime("CreatedAtUtc")
         }).ToList();
     }
 }

@@ -102,17 +102,17 @@ public class ChangeSetService(DatabaseService db) : IChangeSetService
         return true;
     }
 
-    private static ChangeSet Map(Dictionary<string, object> row) => new()
+    private static ChangeSet Map(DbRow row) => new()
     {
-        Id = Convert.ToInt64(row["Id"]),
-        OptimizationId = row["OptimizationId"].ToString()!,
-        Title = row["Title"]?.ToString() ?? "",
-        GroupId = string.IsNullOrEmpty(row["GroupId"]?.ToString()) ? null : row["GroupId"].ToString(),
-        BeforeState = row["BeforeState"]?.ToString(),
-        AfterState = row["AfterState"]?.ToString(),
-        AppliedAtUtc = DateTime.Parse(row["AppliedAtUtc"].ToString()!),
-        Reversible = Convert.ToInt32(row["Reversible"]) == 1,
-        IsUndone = Convert.ToInt32(row["IsUndone"]) == 1,
-        Context = row["DetectedContext"]?.ToString()
+        Id = row.GetLong("Id"),
+        OptimizationId = row.GetString("OptimizationId"),
+        Title = row.GetString("Title"),
+        GroupId = row.GetStringOrNull("GroupId"),
+        BeforeState = row.GetStringOrNull("BeforeState"),
+        AfterState = row.GetStringOrNull("AfterState"),
+        AppliedAtUtc = row.GetDateTime("AppliedAtUtc"),
+        Reversible = row.GetBool("Reversible"),
+        IsUndone = row.GetBool("IsUndone"),
+        Context = row.GetStringOrNull("DetectedContext")
     };
 }

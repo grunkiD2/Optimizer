@@ -65,23 +65,26 @@ public class PatternExtractionService(
             .Where(c => c.ObservedCount >= MinObservations)
             .ToList();
 
-        // Rebuild the learned-pattern table from this pass.
-        await db.ExecuteNonQueryAsync("DELETE FROM LearnedPatterns");
-
-        foreach (var c in kept)
+        // Rebuild the learned-pattern table atomically: a crash mid-rebuild must not leave a
+        // half-populated (or empty) table behind.
+        await db.RunInTransactionAsync(async batch =>
         {
-            var pattern = new LearnedPattern
+            await batch.ExecuteNonQueryAsync("DELETE FROM LearnedPatterns");
+            foreach (var c in kept)
             {
-                Description = BuildDescription(c.Context, c.Sequence),
-                ActionSequence = c.Sequence,
-                ApplicableContext = c.Context,
-                ObservedCount = c.ObservedCount,
-                SuccessfulCount = c.SuccessfulCount,
-                FirstObservedUtc = c.FirstObservedUtc
-            };
-
-            await UpsertPatternAsync(pattern);
-        }
+                await batch.ExecuteNonQueryAsync(UpsertPatternSql, new Dictionary<string, object>
+                {
+                    ["id"] = Guid.NewGuid().ToString(),
+                    ["description"] = BuildDescription(c.Context, c.Sequence),
+                    ["sequence"] = JsonSerializer.Serialize(c.Sequence),
+                    ["context"] = c.Context,
+                    ["observed"] = c.ObservedCount,
+                    ["successful"] = c.SuccessfulCount,
+                    ["firstObserved"] = c.FirstObservedUtc.ToString("O"),
+                    ["updatedAt"] = DateTime.UtcNow.ToString("O")
+                });
+            }
+        });
 
         EngineLog.Write($"Extracted {kept.Count} learned pattern(s) from {actions.Count} actions");
     }
@@ -119,46 +122,29 @@ public class PatternExtractionService(
         return best is { Confidence: >= 0.6 } ? best : null;
     }
 
-    private async Task UpsertPatternAsync(LearnedPattern pattern)
+    private const string UpsertPatternSql = """
+        INSERT INTO LearnedPatterns
+            (Id, Description, ActionSequence, ApplicableContext,
+             ObservedCount, SuccessfulCount, FirstObservedUtc, UpdatedAt)
+        VALUES
+            (@id, @description, @sequence, @context,
+             @observed, @successful, @firstObserved, @updatedAt)
+        """;
+
+    private static LearnedPattern MapPattern(DbRow row)
     {
-        const string sql = """
-            INSERT INTO LearnedPatterns
-                (Id, Description, ActionSequence, ApplicableContext,
-                 ObservedCount, SuccessfulCount, FirstObservedUtc, UpdatedAt)
-            VALUES
-                (@id, @description, @sequence, @context,
-                 @observed, @successful, @firstObserved, @updatedAt)
-            """;
-
-        var parameters = new Dictionary<string, object>
-        {
-            ["id"] = pattern.Id,
-            ["description"] = pattern.Description,
-            ["sequence"] = JsonSerializer.Serialize(pattern.ActionSequence),
-            ["context"] = pattern.ApplicableContext ?? "Unknown",
-            ["observed"] = pattern.ObservedCount,
-            ["successful"] = pattern.SuccessfulCount,
-            ["firstObserved"] = pattern.FirstObservedUtc.ToString("O"),
-            ["updatedAt"] = DateTime.UtcNow.ToString("O")
-        };
-
-        await db.ExecuteNonQueryAsync(sql, parameters);
-    }
-
-    private static LearnedPattern MapPattern(Dictionary<string, object> row)
-    {
-        var sequenceJson = row["ActionSequence"]?.ToString() ?? "[]";
+        var sequenceJson = row.GetStringOrNull("ActionSequence") ?? "[]";
         var sequence = JsonSerializer.Deserialize<List<string>>(sequenceJson) ?? new();
 
         return new LearnedPattern
         {
-            Id = row["Id"].ToString()!,
-            Description = row["Description"]?.ToString() ?? "",
+            Id = row.GetString("Id"),
+            Description = row.GetString("Description"),
             ActionSequence = sequence,
-            ApplicableContext = row["ApplicableContext"]?.ToString(),
-            ObservedCount = Convert.ToInt32(row["ObservedCount"]),
-            SuccessfulCount = Convert.ToInt32(row["SuccessfulCount"]),
-            FirstObservedUtc = DateTime.Parse(row["FirstObservedUtc"].ToString()!)
+            ApplicableContext = row.GetStringOrNull("ApplicableContext"),
+            ObservedCount = row.GetInt("ObservedCount"),
+            SuccessfulCount = row.GetInt("SuccessfulCount"),
+            FirstObservedUtc = row.GetDateTime("FirstObservedUtc")
         };
     }
 

@@ -30,8 +30,8 @@ public class RuleSuggestionService(DatabaseService db) : IRuleSuggestionService
 
         foreach (var row in rows)
         {
-            var profileId = row["ProfileId"].ToString()!;
-            var appliedAt = DateTime.Parse(row["AppliedAtUtc"].ToString()!).ToLocalTime();
+            var profileId = row.GetString("ProfileId");
+            var appliedAt = row.GetDateTime("AppliedAtUtc").ToLocalTime();
             var slot = appliedAt.Hour / 2; // 0..11 (two-hour slots)
             var day = DateOnly.FromDateTime(appliedAt);
 
@@ -86,14 +86,14 @@ public class RuleSuggestionService(DatabaseService db) : IRuleSuggestionService
         var rows = await db.ExecuteQueryAsync(sql);
         return rows.Select(row => new SuggestedAutomationRule
         {
-            Id = row["Id"].ToString()!,
-            ProfileId = row["ProfileId"].ToString()!,
-            ProfileName = row["ProfileName"]?.ToString() ?? "",
-            TriggerType = row["TriggerType"].ToString()!,
-            TriggerValue = row["TriggerValue"]?.ToString() ?? "",
-            ConfidenceScore = Convert.ToDouble(row["ConfidenceScore"]),
-            ReasoningText = row["ReasoningText"]?.ToString() ?? "",
-            CreatedAtUtc = DateTime.Parse(row["CreatedAtUtc"].ToString()!)
+            Id = row.GetString("Id"),
+            ProfileId = row.GetString("ProfileId"),
+            ProfileName = row.GetString("ProfileName"),
+            TriggerType = row.GetString("TriggerType"),
+            TriggerValue = row.GetString("TriggerValue"),
+            ConfidenceScore = row.GetDouble("ConfidenceScore"),
+            ReasoningText = row.GetString("ReasoningText"),
+            CreatedAtUtc = row.GetDateTime("CreatedAtUtc")
         }).ToList();
     }
 

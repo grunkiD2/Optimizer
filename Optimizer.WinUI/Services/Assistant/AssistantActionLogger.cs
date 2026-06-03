@@ -66,10 +66,10 @@ public class AssistantActionLogger(DatabaseService db) : IAssistantActionLogger
         {
             ToolId = toolId,
             Context = context,
-            TotalInvocations = Convert.ToInt32(row["TotalInvocations"]),
-            SuccessfulInvocations = Convert.ToInt32(row["SuccessfulInvocations"]),
-            AverageDurationMs = row["AverageDurationMs"] == null ? 0 : Convert.ToDouble(row["AverageDurationMs"]),
-            LastInvokedUtc = row["LastInvokedUtc"] == null ? null : DateTime.Parse(row["LastInvokedUtc"].ToString()!)
+            TotalInvocations = row.GetInt("TotalInvocations"),
+            SuccessfulInvocations = row.GetInt("SuccessfulInvocations"),
+            AverageDurationMs = row.GetDouble("AverageDurationMs"),
+            LastInvokedUtc = row.GetDateTimeOrNull("LastInvokedUtc")
         };
     }
 
@@ -100,14 +100,14 @@ public class AssistantActionLogger(DatabaseService db) : IAssistantActionLogger
         var results = await db.ExecuteQueryAsync(sql, parameters);
         return results.Select(row => new AssistantActionLog
         {
-            Id = Convert.ToInt32(row["Id"]),
-            ToolId = row["ToolId"].ToString()!,
-            Arguments = row["Arguments"]?.ToString(),
-            Success = Convert.ToInt32(row["Success"]) == 1,
-            ErrorMessage = row["ErrorMessage"]?.ToString(),
-            ExecutedAtUtc = DateTime.Parse(row["ExecutedAtUtc"].ToString()!),
-            ExecutionTimeMs = Convert.ToInt32(row["ExecutionTimeMs"]),
-            DetectedContext = row["DetectedContext"]?.ToString()
+            Id = row.GetInt("Id"),
+            ToolId = row.GetString("ToolId"),
+            Arguments = row.GetStringOrNull("Arguments"),
+            Success = row.GetBool("Success"),
+            ErrorMessage = row.GetStringOrNull("ErrorMessage"),
+            ExecutedAtUtc = row.GetDateTime("ExecutedAtUtc"),
+            ExecutionTimeMs = row.GetInt("ExecutionTimeMs"),
+            DetectedContext = row.GetStringOrNull("DetectedContext")
         }).ToList();
     }
 }

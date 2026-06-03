@@ -113,15 +113,15 @@ public class PredictiveAlertService(
         return true;
     }
 
-    private static MaintenanceAlert Map(Dictionary<string, object> row) => new()
+    private static MaintenanceAlert Map(DbRow row) => new()
     {
-        Id = Convert.ToInt64(row["Id"]),
-        Signature = row["Signature"].ToString()!,
-        Kind = row["Kind"].ToString()!,
-        Target = row["Target"].ToString()!,
-        Message = row["Message"].ToString()!,
-        Severity = row["Severity"].ToString()!,
-        CreatedAtUtc = DateTime.Parse(row["CreatedAtUtc"].ToString()!),
-        Acknowledged = Convert.ToInt32(row["Acknowledged"]) == 1
+        Id = row.GetLong("Id"),
+        Signature = row.GetString("Signature"),
+        Kind = row.GetString("Kind"),
+        Target = row.GetString("Target"),
+        Message = row.GetString("Message"),
+        Severity = row.GetString("Severity"),
+        CreatedAtUtc = row.GetDateTime("CreatedAtUtc"),
+        Acknowledged = row.GetBool("Acknowledged")
     };
 }
