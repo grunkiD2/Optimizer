@@ -25,6 +25,10 @@ public partial class App : Application
     public static T GetService<T>() where T : class => AppHost.Services.GetRequiredService<T>();
     internal static IHost GetHost() => AppHost;
 
+    /// <summary>The main window's UI-thread dispatcher, captured at MainWindow construction.
+    /// Used to marshal background-thread events (e.g. event-bus publishes) onto the UI thread.</summary>
+    public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcher { get; set; }
+
     private Window? _window;
 
     [DllImport("user32.dll")]
@@ -234,14 +238,23 @@ public partial class App : Application
                     return reg;
                 });
 
-                // ── Console + Assistant ViewModels (UI-thread dispatch helper) ──
+                // ── Console + Assistant ViewModels ──
+                // Marshal onto the captured UI dispatcher. Event-bus publishes fire on
+                // background threads where GetForCurrentThread() is null, so we must use
+                // the dispatcher captured on the UI thread (App.UiDispatcher) or lines drop.
+                static void OnUi(System.Action a)
+                {
+                    var dq = UiDispatcher;
+                    if (dq != null) dq.TryEnqueue(() => a());
+                    else a();
+                }
                 services.AddSingleton(sp => new Optimizer.WinUI.ViewModels.ConsoleViewModel(
                     sp.GetRequiredService<Optimizer.WinUI.Services.Events.IEventBus>(),
-                    a => Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread()?.TryEnqueue(() => a())));
+                    OnUi));
                 services.AddSingleton(sp => new Optimizer.WinUI.ViewModels.AssistantViewModel(
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IAssistantService>(),
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IApiKeyStore>(),
-                    a => Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread()?.TryEnqueue(() => a())));
+                    OnUi));
 
                 // MainWindow (registered as singleton so DI can inject it)
                 services.AddSingleton<MainWindow>();

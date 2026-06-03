@@ -53,6 +53,9 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Capture the UI-thread dispatcher so background-thread events (event bus) can marshal to UI.
+        App.UiDispatcher = DispatcherQueue;
+
         _navigationService = navigationService;
         _settingsService = settingsService;
         _navigationService.Frame = ContentFrame;
@@ -85,20 +88,31 @@ public sealed partial class MainWindow : Window
         consoleAccel.Invoked += ConsoleAccel_Invoked;
         RootGrid.KeyboardAccelerators.Add(consoleAccel);
 
-        // Hook close button — minimize to tray when setting is enabled
+        // The X (and taskbar right-click → Close) quit the app for real.
         AppWindow.Closing += AppWindow_Closing;
 
         InitializeElevationState();
+
+        // Console dock is open by default on the right — no Ctrl+` needed.
+        EnsureDockPanel();
+        SetConsoleVisible(true);
     }
+
+    private bool _shuttingDown;
 
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        if (IsExiting) return;  // genuine exit from tray — skip minimize
-        if (_settingsService.Settings.MinimizeToTray)
-        {
-            args.Cancel = true;
-            AppWindow.Hide();
-        }
+        // Tray "Exit" sets IsExiting and runs its own teardown — let that close proceed.
+        if (IsExiting || _shuttingDown) return;
+        _shuttingDown = true;
+
+        // Best-effort cleanup, then HARD-exit so the process can never linger.
+        // (Awaiting host StopAsync here can hang on background services and leave a zombie
+        //  process — the "can't close the app" symptom. Environment.Exit is guaranteed.)
+        try { _settingsService.Save(); } catch { }
+        try { App.GetService<ITrayIconService>().Hide(); } catch { }            // remove tray icon
+        try { (App.GetService<ISensorService>() as IDisposable)?.Dispose(); } catch { } // release LHM/PawnIO driver
+        Environment.Exit(0);
     }
 
     private void InitializeElevationState()
