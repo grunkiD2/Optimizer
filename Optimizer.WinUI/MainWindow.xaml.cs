@@ -106,7 +106,8 @@ public sealed partial class MainWindow : Window
         var elevationService = App.GetService<IElevationService>();
         if (elevationService.IsElevated)
         {
-            ElevatedInfoBar.Visibility = Visibility.Visible;
+            // Running elevated is the expected/quiet state — don't show a banner for it.
+            ElevatedInfoBar.Visibility = Visibility.Collapsed;
             ElevationInfoBar.Visibility = Visibility.Collapsed;
         }
         else
