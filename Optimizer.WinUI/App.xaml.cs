@@ -390,8 +390,20 @@ public partial class App : Application
                 settings.Save();
             }
 
-            // Start embedded REST API if the user has opted in
-            if (settings.Settings.ApiEnabled)
+            // Start embedded REST API if the user has opted in. In DEBUG builds we auto-start it
+            // regardless so local dev/smoke-testing can hit the API without flipping a setting —
+            // crucially WITHOUT persisting ApiEnabled=true, so Release builds stay opt-in (the
+            // listener exposes mutating endpoints and the token lives in plaintext settings).
+            var startApi = settings.Settings.ApiEnabled;
+#if DEBUG
+            if (!startApi)
+            {
+                startApi = true;
+                EngineLog.Write($"[DEBUG] Auto-starting REST API on port {settings.Settings.ApiPort} " +
+                                "(ApiEnabled remains false on disk; Release builds stay opt-in).");
+            }
+#endif
+            if (startApi)
             {
                 _ = GetService<IApiHostService>().StartAsync(
                     settings.Settings.ApiPort,
