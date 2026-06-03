@@ -1,7 +1,9 @@
+using System.Linq;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Commands;
 using Optimizer.WinUI.Views;
 
 namespace Optimizer.WinUI;
@@ -53,6 +55,19 @@ public sealed partial class MainWindow : Window
         _navigationService = navigationService;
         _settingsService = settingsService;
         _navigationService.Frame = ContentFrame;
+
+        // Wire the assistant's navigate_to_page command to real shell navigation.
+        var navigator = (PageNavigator)App.GetService<IPageNavigator>();
+        navigator.Configure(
+            PageMap.Keys.ToList(),
+            tag =>
+            {
+                var match = PageMap.Keys.FirstOrDefault(k => string.Equals(k, tag, StringComparison.OrdinalIgnoreCase));
+                if (match is null) return false;
+                var pageType = PageMap[match];
+                DispatcherQueue.TryEnqueue(() => _navigationService.NavigateTo(pageType));
+                return true;
+            });
 
         Title = "Optimizer";
         AppWindow.Resize(new Windows.Graphics.SizeInt32(
