@@ -41,6 +41,7 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" Padding="10,6,10,2"/>
             <ListView Grid.Row="1" ItemsSource="{x:Bind AssistantVM.Messages}" SelectionMode="None" Padding="6,0"
                       HorizontalContentAlignment="Stretch"
+                      PointerWheelChanged="List_PointerWheelChanged"
                       ScrollViewer.VerticalScrollMode="Enabled"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollMode="Disabled"
@@ -92,6 +93,7 @@
             <ListView Grid.Row="1" ItemsSource="{x:Bind ConsoleVM.Lines}" x:Name="ActivityList"
                       FontFamily="Consolas" SelectionMode="None" Padding="6,0"
                       HorizontalContentAlignment="Stretch"
+                      PointerWheelChanged="List_PointerWheelChanged"
                       ScrollViewer.VerticalScrollMode="Enabled"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollMode="Disabled"
