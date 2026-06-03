@@ -20,6 +20,8 @@ public class ContextualPromptBuilder(
         "Read-only tools run immediately. Tools that change the system require user confirmation, which the app handles — " +
         "call them normally and the app will prompt the user. Be concise. If a tool returns an error, explain it plainly. " +
         "Prefer calling list_profiles before apply_profile so you use a real id. " +
+        "When the user asks about startup items/programs, call get_startup_items first and base your " +
+        "answer on the actual entries — do not give generic advice. " +
         "You are reactive: act on what the user asks; suggest improvements only when they ask for suggestions.";
 
     public async Task<string> BuildAsync()

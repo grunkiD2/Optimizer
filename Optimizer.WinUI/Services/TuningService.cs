@@ -47,6 +47,10 @@ public class TuningService : ITuningService
         tuning.MaxProcessorState = Math.Clamp(tuning.MaxProcessorState, 20, 100);
         tuning.BoostPolicy       = Math.Clamp(tuning.BoostPolicy, 0, 100);
 
+        EngineLog.Write($"CPU tuning: applying min={tuning.MinProcessorState}% " +
+                        $"max={tuning.MaxProcessorState}% boostMode={tuning.BoostMode} " +
+                        $"boostPolicy={tuning.BoostPolicy}%");
+
         var commands = new[]
         {
             $"/setacvalueindex SCHEME_CURRENT {ProcessorSubGroup} {MinStateGuid} {tuning.MinProcessorState}",
@@ -60,8 +64,15 @@ public class TuningService : ITuningService
 
         foreach (var cmd in commands)
         {
-            if (await RunPowerCfgAsync(cmd) == null) return false;
+            EngineLog.Write($"powercfg {cmd}");
+            if (await RunPowerCfgAsync(cmd) == null)
+            {
+                EngineLog.Write($"CPU tuning: command failed — powercfg {cmd}");
+                return false;
+            }
         }
+
+        EngineLog.Write("CPU tuning: applied successfully");
         return true;
     }
 
@@ -206,10 +217,16 @@ public class TuningService : ITuningService
     ];
 
     public async Task<bool> ApplyPresetAsync(TuningPreset preset)
-        => await ApplyCpuTuningAsync(preset.Cpu);
+    {
+        EngineLog.Write($"Tuning preset: applying '{preset.Name}'");
+        return await ApplyCpuTuningAsync(preset.Cpu);
+    }
 
     public async Task<bool> RevertToDefaultsAsync()
-        => await ApplyPresetAsync(GetPresets().First(p => p.Id == "stock"));
+    {
+        EngineLog.Write("Tuning: reverting to Stock defaults");
+        return await ApplyPresetAsync(GetPresets().First(p => p.Id == "stock"));
+    }
 
     // ── GPU vendor tool detection ─────────────────────────────────────────────
 
