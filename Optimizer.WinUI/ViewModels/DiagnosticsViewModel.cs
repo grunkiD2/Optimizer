@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Events;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -13,6 +14,7 @@ public partial class DiagnosticsViewModel : ObservableObject
     private readonly IBottleneckDetectorService _bottleneckDetector;
     private readonly NavigationService _navigation;
     private readonly IPredictiveMaintenanceService? _predictive;
+    private readonly IEventBus? _eventBus;
     private List<DiagnosticFinding> _allFindings = [];
 
     // ── Findings ────────────────────────────────────────────────────────────
@@ -64,13 +66,34 @@ public partial class DiagnosticsViewModel : ObservableObject
         IDriverDiagnosticsService driverDiagnostics,
         IBottleneckDetectorService bottleneckDetector,
         NavigationService navigation,
-        IPredictiveMaintenanceService? predictive = null)
+        IPredictiveMaintenanceService? predictive = null,
+        IEventBus? eventBus = null)
     {
         _diagnostics        = diagnostics;
         _driverDiagnostics  = driverDiagnostics;
         _bottleneckDetector = bottleneckDetector;
         _navigation         = navigation;
         _predictive         = predictive;
+        _eventBus           = eventBus;
+    }
+
+    /// <summary>Publish a DiagnosticCompleted event so the Activity console reflects the scan.</summary>
+    private void PublishScanCompleted(string scanKind)
+    {
+        var detail = _allFindings.Count == 0
+            ? "no issues found"
+            : $"{CriticalCount} critical, {WarningCount} warning, {InfoCount} info";
+        _eventBus?.Publish(OptimizerEvent.Create(
+            OptimizerEventType.DiagnosticCompleted,
+            $"{scanKind} scan completed",
+            detail,
+            new Dictionary<string, string>
+            {
+                ["findings"] = _allFindings.Count.ToString(),
+                ["critical"] = CriticalCount.ToString(),
+                ["warning"]  = WarningCount.ToString(),
+                ["info"]     = InfoCount.ToString(),
+            }));
     }
 
     // ── Quick / Full scan ────────────────────────────────────────────────────
@@ -86,6 +109,7 @@ public partial class DiagnosticsViewModel : ObservableObject
             LastScanTime = DateTime.Now;
             UpdateCounts();
             ApplyFilters();
+            PublishScanCompleted("Quick");
         }
         finally
         {
@@ -105,6 +129,7 @@ public partial class DiagnosticsViewModel : ObservableObject
             LastScanTime = DateTime.Now;
             UpdateCounts();
             ApplyFilters();
+            PublishScanCompleted("Full");
         }
         finally
         {
