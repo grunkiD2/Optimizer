@@ -131,6 +131,13 @@ public sealed partial class SettingsPage : Page
         ApiKeyBox.Password = "";
     }
 
+    private async void GetApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        // Anthropic doesn't sell keys via an embeddable flow — keys + billing are set up
+        // in the Console. Open the API-keys page in the user's default browser.
+        await Windows.System.Launcher.LaunchUriAsync(new Uri("https://console.anthropic.com/settings/keys"));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static bool TryParseHexColor(string? hex, out Color color)

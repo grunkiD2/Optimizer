@@ -348,6 +348,16 @@
                 </StackPanel>
             </settingsControls:SettingsCard>
 
+            <settingsControls:SettingsCard Header="Don't have an API key?"
+                                           Description="Create a key and set up billing in the Anthropic Console, then paste it above. Usage is billed by Anthropic directly to your own account — Optimizer never sees your payment details.">
+                <Button Click="GetApiKey_Click" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE8A7;" FontSize="14"/>
+                        <TextBlock Text="Get an API key"/>
+                    </StackPanel>
+                </Button>
+            </settingsControls:SettingsCard>
+
         </StackPanel>
     </ScrollViewer>
 </Page>
