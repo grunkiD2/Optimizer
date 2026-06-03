@@ -17,6 +17,12 @@ public class SystemDataBus : ISystemDataBus, IHostedService, IDisposable
     private bool _latencyActive;
     private bool _disposed;
 
+    // Sensors (LibreHardwareMonitor) always sample at a slow background heartbeat so temperature
+    // data is fresh for background thermal alerts and metric enrichment even with no UI open;
+    // a page that shows live sensors bumps the cadence up via SetSensorsActive(true).
+    private static readonly TimeSpan SensorHeartbeat = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan SensorActiveInterval = TimeSpan.FromSeconds(2);
+
     public event Action<SystemResource>? MetricsUpdated;
     public event Action<HardwareSnapshot>? SensorsUpdated;
     public event Action<double>? LatencyUpdated;
@@ -36,6 +42,9 @@ public class SystemDataBus : ISystemDataBus, IHostedService, IDisposable
     public Task StartAsync(CancellationToken ct = default)
     {
         _metricsTimer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        // Start the slow sensor heartbeat (only does work if LHM initialized successfully).
+        _sensorTimer ??= new System.Threading.Timer(OnSensorTick, null, Timeout.Infinite, Timeout.Infinite);
+        _sensorTimer.Change(TimeSpan.Zero, SensorHeartbeat);
         return Task.CompletedTask;
     }
 
@@ -58,15 +67,10 @@ public class SystemDataBus : ISystemDataBus, IHostedService, IDisposable
     {
         if (_sensorsActive == active) return;
         _sensorsActive = active;
-        if (active)
-        {
-            _sensorTimer ??= new System.Threading.Timer(OnSensorTick, null, Timeout.Infinite, Timeout.Infinite);
-            _sensorTimer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(2));
-        }
-        else
-        {
-            _sensorTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-        }
+        _sensorTimer ??= new System.Threading.Timer(OnSensorTick, null, Timeout.Infinite, Timeout.Infinite);
+        // Active → fast cadence for live UI; inactive → fall back to the background heartbeat
+        // (not fully off) so LatestSensors never goes stale.
+        _sensorTimer.Change(TimeSpan.Zero, active ? SensorActiveInterval : SensorHeartbeat);
     }
 
     public void SetLatencyActive(bool active)
@@ -91,6 +95,14 @@ public class SystemDataBus : ISystemDataBus, IHostedService, IDisposable
         try
         {
             var snap = _monitor.CollectSnapshot();
+            // Enrich with temperatures from the latest LHM sample. SystemMonitorService no longer
+            // reads temps (WMI Win32_TemperatureProbe is empty on consumer desktops); reading the
+            // cached snapshot here keeps SystemDataBus the single LHM owner (no concurrent Update()).
+            if (LatestSensors is { } sensors)
+            {
+                if (sensors.CpuPackageTemperatureC is { } cpuTemp) snap.CpuTemperature = cpuTemp;
+                if (sensors.GpuTemperatureC is { } gpuTemp) snap.GpuTemperature = gpuTemp;
+            }
             LatestMetrics = snap;
             MetricsUpdated?.Invoke(snap);
         }

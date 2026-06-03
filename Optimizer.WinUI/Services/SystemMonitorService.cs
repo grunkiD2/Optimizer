@@ -37,6 +37,18 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
     private List<PerformanceCounter>? _netSentCounters;
     private List<PerformanceCounter>? _coreCounters;
 
+    // GPU usage/memory come from enumerating many per-process "GPU Engine" / "GPU Process Memory"
+    // instances — comparatively expensive to read every sample. Cache and recompute at most
+    // ~every 1.8s; the metrics loop ticks at 1 Hz so this still refreshes roughly every other tick.
+    private readonly object _gpuGate = new();
+    private double _cachedGpuUsage;
+    private long _cachedGpuMemory;
+    private DateTime _lastGpuSampleUtc = DateTime.MinValue;
+    // "GPU Engine\Utilization Percentage" is a time-based counter: a freshly-opened counter
+    // reads 0 the first time and only yields a real value on the next read. So we keep the
+    // per-instance counters alive across samples (keyed by instance name) instead of recreating.
+    private readonly Dictionary<string, PerformanceCounter> _gpuEngineCounters = new();
+
     public TimeSpan SampleInterval { get; set; } = TimeSpan.FromSeconds(1);
 
     public int CurrentHistorySize => _history.Count;
@@ -174,6 +186,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         try
         {
             EnsureRateCounters();
+            var (gpuUsage, gpuMemory) = GetGpuMetrics();
             return new SystemResource
             {
                 Timestamp = DateTime.Now,
@@ -184,10 +197,12 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
                 AvailablePhysicalMemory = GetAvailableMemory(),
                 TotalVirtualMemory = GetTotalVirtualMemorySize(),
                 AvailableVirtualMemory = GetAvailableVirtualMemory(),
-                GpuUsagePercentage = GetGpuUsage(),
-                GpuMemoryUsage = GetGpuMemoryUsage(),
-                CpuTemperature = GetCpuTemperature(),
-                GpuTemperature = GetGpuTemperature(),
+                GpuUsagePercentage = gpuUsage,
+                GpuMemoryUsage = gpuMemory,
+                // Temperatures are enriched from LibreHardwareMonitor by SystemDataBus; the WMI
+                // Win32_TemperatureProbe class is empty on virtually all consumer desktops.
+                CpuTemperature = 0,
+                GpuTemperature = 0,
                 DiskReadSpeed = ReadCounter(_diskReadCounter),
                 DiskWriteSpeed = ReadCounter(_diskWriteCounter),
                 NetworkInSpeed = SumCounters(_netRecvCounters),
@@ -376,20 +391,19 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
     {
         try
         {
-            var wmiQuery = new System.Management.SelectQuery("SELECT MaximumSize FROM Win32_PageFileUsage");
+            // Win32_OperatingSystem.TotalVirtualMemorySize is reported in KB. (The old query
+            // selected Win32_PageFileUsage.MaximumSize, which isn't a property of that class —
+            // WMI rejected it as an "Invalid query".)
+            var wmiQuery = new System.Management.SelectQuery("SELECT TotalVirtualMemorySize FROM Win32_OperatingSystem");
             using (var searcher = new System.Management.ManagementObjectSearcher(wmiQuery))
             {
-                var collection = searcher.Get();
-                long total = 0;
-                foreach (var obj in collection)
+                foreach (var obj in searcher.Get())
                 {
-                    if (obj["MaximumSize"] != null)
-                    {
-                        total += Convert.ToInt64(obj["MaximumSize"]) * 1024 * 1024;
-                    }
+                    if (obj["TotalVirtualMemorySize"] != null)
+                        return Convert.ToInt64(obj["TotalVirtualMemorySize"]) * 1024L; // KB → bytes
                 }
-                return total;
             }
+            return 0;
         }
         catch (Exception ex)
         {
@@ -415,14 +429,67 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
     }
 
-    private double GetGpuUsage()
+    /// <summary>
+    /// GPU usage (%) and dedicated GPU memory (bytes), throttled to ~1.8s. Neither the
+    /// "GPU Engine" nor the "GPU Process Memory" category exposes a "_Total" instance, so both
+    /// are computed by summing every per-process instance (the old "_Total" reads always threw).
+    /// </summary>
+    private (double usage, long memory) GetGpuMetrics()
+    {
+        lock (_gpuGate)
+        {
+            if ((DateTime.UtcNow - _lastGpuSampleUtc).TotalMilliseconds < 1800)
+                return (_cachedGpuUsage, _cachedGpuMemory);
+
+            _cachedGpuUsage = ReadGpuUsage();
+            _cachedGpuMemory = ReadGpuDedicatedMemory();
+            _lastGpuSampleUtc = DateTime.UtcNow;
+            return (_cachedGpuUsage, _cachedGpuMemory);
+        }
+    }
+
+    private double ReadGpuUsage()
     {
         try
         {
-            using (var gpuCounter = new PerformanceCounter("GPU Engine", "Utilization Percentage", "_Total", true))
+            if (!PerformanceCounterCategory.Exists("GPU Engine"))
             {
-                return Math.Round(gpuCounter.NextValue(), 2);
+                LogOnce("GPU usage unavailable: 'GPU Engine' performance counter category is not present.");
+                return 0.0;
             }
+            // Sum "Utilization Percentage" across all engine instances. Idle engines (copy, video,
+            // JPEG, …) read ~0, so the sum tracks the active 3D engine in practice; clamp to 100.
+            var category = new PerformanceCounterCategory("GPU Engine");
+            var current = category.GetInstanceNames();
+            var live = new HashSet<string>(current, StringComparer.Ordinal);
+
+            // Retire counters whose instance (a process/engine) has gone away.
+            foreach (var stale in _gpuEngineCounters.Keys.Where(k => !live.Contains(k)).ToList())
+            {
+                _gpuEngineCounters[stale].Dispose();
+                _gpuEngineCounters.Remove(stale);
+            }
+
+            double sum = 0;
+            foreach (var instance in current)
+            {
+                try
+                {
+                    if (!_gpuEngineCounters.TryGetValue(instance, out var c))
+                    {
+                        c = new PerformanceCounter("GPU Engine", "Utilization Percentage", instance, true);
+                        _gpuEngineCounters[instance] = c;
+                        c.NextValue(); // prime — a freshly-opened time-based counter reads 0 first
+                    }
+                    sum += c.NextValue();
+                }
+                catch
+                {
+                    // Instance vanished mid-read — drop its counter so we don't keep retrying it.
+                    if (_gpuEngineCounters.Remove(instance, out var dead)) dead.Dispose();
+                }
+            }
+            return Math.Min(100.0, Math.Round(sum, 2));
         }
         catch (Exception ex)
         {
@@ -431,69 +498,32 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
     }
 
-    private long GetGpuMemoryUsage()
+    private long ReadGpuDedicatedMemory()
     {
         try
         {
-            using (var gpuMemCounter = new PerformanceCounter("GPU Memory", "Used Non-Shared Memory", "_Total", true))
+            if (!PerformanceCounterCategory.Exists("GPU Process Memory"))
             {
-                return (long)gpuMemCounter.NextValue();
+                LogOnce("GPU memory unavailable: 'GPU Process Memory' performance counter category is not present.");
+                return 0;
             }
+            var category = new PerformanceCounterCategory("GPU Process Memory");
+            double sum = 0;
+            foreach (var instance in category.GetInstanceNames())
+            {
+                try
+                {
+                    using var c = new PerformanceCounter("GPU Process Memory", "Dedicated Usage", instance, true);
+                    sum += c.NextValue();
+                }
+                catch { /* instance vanished between enumerate and read — skip */ }
+            }
+            return (long)sum;
         }
         catch (Exception ex)
         {
             LogOnce($"Error getting GPU memory usage: {ex.Message}");
             return 0;
-        }
-    }
-
-    private double GetCpuTemperature()
-    {
-        try
-        {
-            var wmiQuery = new System.Management.SelectQuery("SELECT CurrentTemperature FROM Win32_TemperatureProbe WHERE SystemName IS NOT NULL");
-            using (var searcher = new System.Management.ManagementObjectSearcher(wmiQuery))
-            {
-                var collection = searcher.Get();
-                foreach (var obj in collection)
-                {
-                    if (obj["CurrentTemperature"] != null)
-                    {
-                        return Convert.ToDouble(obj["CurrentTemperature"]) / 10.0;
-                    }
-                }
-            }
-            return 0.0;
-        }
-        catch (Exception ex)
-        {
-            LogOnce($"Error getting CPU temperature: {ex.Message}");
-            return 0.0;
-        }
-    }
-
-    private double GetGpuTemperature()
-    {
-        try
-        {
-            var wmiQuery = new System.Management.SelectQuery("SELECT CurrentTemperature FROM Win32_TemperatureProbe WHERE Description LIKE '%GPU%'");
-            using (var searcher = new System.Management.ManagementObjectSearcher(wmiQuery))
-            {
-                var collection = searcher.Get();
-                foreach (var obj in collection)
-                {
-                    if (obj["CurrentTemperature"] != null)
-                    {
-                        return Convert.ToDouble(obj["CurrentTemperature"]) / 10.0;
-                    }
-                }
-            }
-            return 0.0;
-        }
-        catch (Exception ex)
-        {
-            LogOnce($"Error getting GPU temperature: {ex.Message}");
-            return 0.0;
         }
     }
 
@@ -511,6 +541,11 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
                 _netRecvCounters?.ForEach(c => c.Dispose());
                 _netSentCounters?.ForEach(c => c.Dispose());
                 _coreCounters?.ForEach(c => c.Dispose());
+            }
+            lock (_gpuGate)
+            {
+                foreach (var c in _gpuEngineCounters.Values) c.Dispose();
+                _gpuEngineCounters.Clear();
             }
         }
     }
