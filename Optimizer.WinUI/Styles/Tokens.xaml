@@ -11,18 +11,22 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ResourceDictionary.ThemeDictionaries>
-        <!-- DARK (design target) -->
+        <!-- DARK (design target) — frosted "holo glass" surfaces -->
         <ResourceDictionary x:Key="Default">
-            <SolidColorBrush x:Key="HudSurfaceBrush"     Color="#CC121724" />
-            <SolidColorBrush x:Key="HudSurfaceAltBrush"  Color="#E60E121C" />
+            <AcrylicBrush x:Key="HudSurfaceBrush" TintColor="#121A2C" TintOpacity="0.5"
+                          TintLuminosityOpacity="0.34" FallbackColor="#D9121A2C" />
+            <AcrylicBrush x:Key="HudSurfaceAltBrush" TintColor="#0B1018" TintOpacity="0.6"
+                          TintLuminosityOpacity="0.4" FallbackColor="#E60B1018" />
             <SolidColorBrush x:Key="HudHairlineBrush"    Color="#1FFFFFFF" />
-            <SolidColorBrush x:Key="HudGridLineBrush"    Color="#0DFFFFFF" />
-            <SolidColorBrush x:Key="HudTextPrimaryBrush" Color="#FFE5E9F0" />
+            <SolidColorBrush x:Key="HudGridLineBrush"    Color="#12FFFFFF" />
+            <SolidColorBrush x:Key="HudTextPrimaryBrush" Color="#FFEAF0FA" />
         </ResourceDictionary>
         <!-- LIGHT (fallback) -->
         <ResourceDictionary x:Key="Light">
-            <SolidColorBrush x:Key="HudSurfaceBrush"     Color="#F2FFFFFF" />
-            <SolidColorBrush x:Key="HudSurfaceAltBrush"  Color="#FFF3F5F9" />
+            <AcrylicBrush x:Key="HudSurfaceBrush" TintColor="#FFFFFF" TintOpacity="0.4"
+                          TintLuminosityOpacity="0.72" FallbackColor="#F2FFFFFF" />
+            <AcrylicBrush x:Key="HudSurfaceAltBrush" TintColor="#F3F5F9" TintOpacity="0.5"
+                          TintLuminosityOpacity="0.8" FallbackColor="#FFF3F5F9" />
             <SolidColorBrush x:Key="HudHairlineBrush"    Color="#14000000" />
             <SolidColorBrush x:Key="HudGridLineBrush"    Color="#0A000000" />
             <SolidColorBrush x:Key="HudTextPrimaryBrush" Color="#FF0B0F17" />
@@ -38,6 +42,31 @@
     <SolidColorBrush x:Key="OnAccentBrush"         Color="#FF06121A" />
     <Color x:Key="AccentCyanColor">#FF38BDF8</Color>
     <Color x:Key="AccentCyanDeepColor">#FF0EA5E9</Color>
+
+    <!-- Secondary accent (violet) for the holo cyan→violet sheen -->
+    <SolidColorBrush x:Key="VioletBrush"     Color="#FFA78BFA" />
+    <SolidColorBrush x:Key="VioletSoftBrush" Color="#26A78BFA" />
+    <Color x:Key="VioletColor">#FFA78BFA</Color>
+
+    <!-- Glowing glass edge: cyan → violet → cyan diagonal -->
+    <LinearGradientBrush x:Key="HudGlassBorderBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#7038BDF8" Offset="0.0" />
+        <GradientStop Color="#33A78BFA" Offset="0.5" />
+        <GradientStop Color="#5A38BDF8" Offset="1.0" />
+    </LinearGradientBrush>
+
+    <!-- Top sheen overlay for glass surfaces (subtle light from above) -->
+    <LinearGradientBrush x:Key="HudSheenBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#14FFFFFF" Offset="0.0" />
+        <GradientStop Color="#00FFFFFF" Offset="0.45" />
+    </LinearGradientBrush>
+
+    <!-- Deep page background gradient (gives the acrylic something to refract) -->
+    <LinearGradientBrush x:Key="HudPageBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FF070B14" Offset="0.0" />
+        <GradientStop Color="#FF0A1020" Offset="0.5" />
+        <GradientStop Color="#FF0B0816" Offset="1.0" />
+    </LinearGradientBrush>
 
     <!-- ── Semantic status — top-level ────────────────────────────────────── -->
     <SolidColorBrush x:Key="SuccessBrush"     Color="#FF34D399" />
@@ -64,8 +93,8 @@
     <Thickness x:Key="PillPadding">8,3</Thickness>
 
     <!-- ── Geometry ───────────────────────────────────────────────────────── -->
-    <CornerRadius x:Key="CardCornerRadius">10</CornerRadius>
-    <CornerRadius x:Key="InnerCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="CardCornerRadius">16</CornerRadius>
+    <CornerRadius x:Key="InnerCornerRadius">10</CornerRadius>
     <CornerRadius x:Key="PillCornerRadius">999</CornerRadius>
 
     <!-- ── Typography ─────────────────────────────────────────────────────── -->

@@ -5,13 +5,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid Width="172" Height="172">
-        <!-- Glow halo behind the ring -->
-        <Ellipse Margin="6">
+        <!-- Holo glow halo: cyan core fading to a violet outer bloom -->
+        <Ellipse Margin="-8">
             <Ellipse.Fill>
                 <RadialGradientBrush>
                     <GradientStop Color="#0038BDF8" Offset="0.0"/>
-                    <GradientStop Color="#5938BDF8" Offset="0.62"/>
-                    <GradientStop Color="#0038BDF8" Offset="0.82"/>
+                    <GradientStop Color="#4D38BDF8" Offset="0.56"/>
+                    <GradientStop Color="#45A78BFA" Offset="0.78"/>
+                    <GradientStop Color="#00A78BFA" Offset="1.0"/>
                 </RadialGradientBrush>
             </Ellipse.Fill>
         </Ellipse>
