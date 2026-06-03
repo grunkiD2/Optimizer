@@ -25,7 +25,7 @@ public sealed partial class ConsolePanel : UserControl
 
     public void FocusAssistant()
     {
-        Tabs.SelectedItem = AssistantTab;
+        // Both panes are always visible now; just focus the chat input.
         InputBox.Focus(FocusState.Programmatic);
     }
 
