@@ -365,6 +365,8 @@ public partial class App : Application
 
             _window = GetService<MainWindow>();
             _window.Activate();
+            // Maximize after activation so it reliably sticks (constructor-time maximize doesn't).
+            (_window as MainWindow)?.ApplyStartupWindowState();
 
             var themeService = GetService<IThemeService>();
             themeService.Initialize(_window);

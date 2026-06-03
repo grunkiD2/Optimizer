@@ -22,15 +22,17 @@ public sealed partial class ConsolePanel : UserControl
     {
         InitializeComponent();
         AssistantVM.ConfirmHandler = ConfirmAsync;
+    }
 
-        // Register wheel handlers with handledEventsToo:true. WinUI 3's inner ListView
-        // ScrollViewer marks PointerWheelChanged as handled even when it fails to scroll
-        // (the dock/secondary-window wheel bug), so a normal XAML handler never fires.
-        // handledEventsToo lets ours run regardless and drive the ScrollViewer directly.
-        AssistantList.AddHandler(UIElement.PointerWheelChangedEvent,
-            new PointerEventHandler(List_PointerWheelChanged), handledEventsToo: true);
-        ActivityList.AddHandler(UIElement.PointerWheelChangedEvent,
-            new PointerEventHandler(List_PointerWheelChanged), handledEventsToo: true);
+    /// <summary>
+    /// WinUI routes the mouse wheel to the FOCUSED scrollable element, not the one under the
+    /// cursor — so the console lists only scroll once they have focus. Give the hovered list
+    /// focus so wheeling over it scrolls it (matching what users expect).
+    /// </summary>
+    private void List_PointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Control list)
+            list.Focus(FocusState.Pointer);
     }
 
     public void FocusAssistant()
@@ -64,33 +66,4 @@ public sealed partial class ConsolePanel : UserControl
 
     private void PopOut_Click(object sender, RoutedEventArgs e) => PopOutRequested?.Invoke(this, EventArgs.Empty);
     private void Collapse_Click(object sender, RoutedEventArgs e) => CollapseRequested?.Invoke(this, EventArgs.Empty);
-
-    /// <summary>
-    /// Manually drive the list's ScrollViewer on mouse wheel. WinUI 3 does not reliably route
-    /// wheel input to ScrollViewers hosted in the dock/secondary console window, so the built-in
-    /// scrolling appears dead even though the ScrollViewer itself works. This restores it.
-    /// </summary>
-    private void List_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
-    {
-        if (sender is not UIElement element) return;
-        var scrollViewer = FindScrollViewer(element);
-        if (scrollViewer is null) return;
-
-        var delta = e.GetCurrentPoint(element).Properties.MouseWheelDelta;
-        // Wheel up (positive delta) scrolls content up → decrease the vertical offset.
-        scrollViewer.ChangeView(null, scrollViewer.VerticalOffset - delta, null, disableAnimation: true);
-        e.Handled = true;
-    }
-
-    private static ScrollViewer? FindScrollViewer(DependencyObject root)
-    {
-        if (root is ScrollViewer sv) return sv;
-        var count = VisualTreeHelper.GetChildrenCount(root);
-        for (var i = 0; i < count; i++)
-        {
-            var found = FindScrollViewer(VisualTreeHelper.GetChild(root, i));
-            if (found is not null) return found;
-        }
-        return null;
-    }
 }
