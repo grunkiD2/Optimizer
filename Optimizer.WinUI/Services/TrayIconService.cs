@@ -86,6 +86,8 @@ public class TrayIconService : ITrayIconService
     private const uint MF_POPUP = 0x0010;
     private const uint TPM_RETURNCMD = 0x0100;
     private const uint TPM_RIGHTBUTTON = 0x0002;
+    private const uint TPM_BOTTOMALIGN = 0x0020;   // expand upward from the cursor (above the tray)
+    private const uint TPM_RIGHTALIGN = 0x0008;    // expand leftward from the cursor
     private const uint WM_NULL = 0x0000;
 
     private void ShowTrayContextMenu()
@@ -126,7 +128,12 @@ public class TrayIconService : ITrayIconService
 
             // The owner window must be foreground for the menu to dismiss on outside-click.
             SetForegroundWindow(hwnd);
-            var cmd = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.X, pt.Y, hwnd, IntPtr.Zero);
+            // Bottom/right align so the menu rises above the tray and toward the screen,
+            // matching how the standard Windows tray menus open (instead of covering the icons).
+            var cmd = TrackPopupMenuEx(
+                menu,
+                TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN | TPM_RIGHTALIGN,
+                pt.X, pt.Y, hwnd, IntPtr.Zero);
             PostMessage(hwnd, WM_NULL, IntPtr.Zero, IntPtr.Zero); // classic dismiss fix
 
             switch (cmd)
