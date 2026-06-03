@@ -45,4 +45,10 @@ public class AppSettings
     // Default is FALSE — strictly opt-in. When enabled, only differentially-private
     // aggregated statistics are shared. Raw preferences or system data are NEVER uploaded.
     public bool FederatedLearningEnabled { get; set; } = false;
+
+    // AI Assistant (Claude API — opt-in, bring-your-own-key; the key itself is stored
+    // separately, encrypted via DPAPI, never in this settings file).
+    public bool AssistantEnabled { get; set; } = false;
+    public bool AssistantAllowActions { get; set; } = true;
+    public string AssistantModel { get; set; } = "claude-sonnet-4-6";
 }

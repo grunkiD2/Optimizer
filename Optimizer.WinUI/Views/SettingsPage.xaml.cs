@@ -112,6 +112,25 @@ public sealed partial class SettingsPage : Page
             await ViewModel.RegenerateTokenCommand.ExecuteAsync(null);
     }
 
+    // ── AI Assistant handlers ──────────────────────────────────────────────────
+
+    private void ApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ApiKeyInput = ApiKeyBox.Password;
+    }
+
+    private void SaveApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.SaveApiKeyCommand.Execute(null);
+        ApiKeyBox.Password = "";
+    }
+
+    private void ClearApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ClearApiKeyCommand.Execute(null);
+        ApiKeyBox.Password = "";
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static bool TryParseHexColor(string? hex, out Color color)

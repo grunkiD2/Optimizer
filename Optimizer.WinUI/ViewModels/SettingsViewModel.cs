@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Assistant;
 using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.ViewModels;
@@ -16,6 +17,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly IApiHostService _apiHost;
     private readonly IOptimizerCloudClient _cloudClient;
     private readonly ICloudSyncOrchestrator _syncOrchestrator;
+    private readonly IApiKeyStore _apiKeyStore;
 
     // Flag to suppress partial-method saves while bulk-loading
     private bool _isLoading;
@@ -57,6 +59,16 @@ public partial class SettingsViewModel : ObservableObject
     // Privacy-Preserving Community Insights (Federated Learning scaffold, opt-in)
     [ObservableProperty] private bool federatedLearningEnabled;
 
+    // AI Assistant (Claude API, opt-in, bring-your-own-key)
+    [ObservableProperty] private bool assistantEnabled;
+    [ObservableProperty] private bool assistantAllowActions = true;
+    [ObservableProperty] private string assistantModel = "claude-sonnet-4-6";
+    [ObservableProperty] private string apiKeyInput = "";
+    [ObservableProperty] private bool hasApiKey;
+
+    public List<string> AssistantModelOptions { get; } =
+        ["claude-sonnet-4-6", "claude-haiku-4-5-20251001", "claude-opus-4-8"];
+
     public string CategoryName => "Settings";
     public string CategoryIcon => ""; // Settings gear icon
 
@@ -73,7 +85,8 @@ public partial class SettingsViewModel : ObservableObject
         IThemeService themeService,
         IApiHostService apiHost,
         IOptimizerCloudClient cloudClient,
-        ICloudSyncOrchestrator syncOrchestrator)
+        ICloudSyncOrchestrator syncOrchestrator,
+        IApiKeyStore apiKeyStore)
     {
         _settingsService = settingsService;
         _historyService = historyService;
@@ -81,6 +94,7 @@ public partial class SettingsViewModel : ObservableObject
         _apiHost = apiHost;
         _cloudClient = cloudClient;
         _syncOrchestrator = syncOrchestrator;
+        _apiKeyStore = apiKeyStore;
     }
 
     public void Load()
@@ -125,6 +139,12 @@ public partial class SettingsViewModel : ObservableObject
 
             // Federated learning (opt-in, default OFF)
             FederatedLearningEnabled = s.FederatedLearningEnabled;
+
+            // AI Assistant
+            AssistantEnabled = s.AssistantEnabled;
+            AssistantAllowActions = s.AssistantAllowActions;
+            AssistantModel = string.IsNullOrWhiteSpace(s.AssistantModel) ? "claude-sonnet-4-6" : s.AssistantModel;
+            HasApiKey = _apiKeyStore.HasKey;
 
             // Reflect actual registry state rather than just saved preference
             StartWithWindows = IsAppRegisteredInStartup();
@@ -400,6 +420,44 @@ public partial class SettingsViewModel : ObservableObject
         if (_isLoading) return;
         _settingsService.Settings.FederatedLearningEnabled = value;
         _settingsService.Save();
+    }
+
+    // ── AI Assistant ──────────────────────────────────────────────────────────
+
+    partial void OnAssistantEnabledChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.AssistantEnabled = value;
+        _settingsService.Save();
+    }
+
+    partial void OnAssistantAllowActionsChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.AssistantAllowActions = value;
+        _settingsService.Save();
+    }
+
+    partial void OnAssistantModelChanged(string value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.AssistantModel = value;
+        _settingsService.Save();
+    }
+
+    [RelayCommand]
+    public void SaveApiKey()
+    {
+        _apiKeyStore.SetKey(ApiKeyInput);
+        ApiKeyInput = "";
+        HasApiKey = _apiKeyStore.HasKey;
+    }
+
+    [RelayCommand]
+    public void ClearApiKey()
+    {
+        _apiKeyStore.Clear();
+        HasApiKey = _apiKeyStore.HasKey;
     }
 
     private void RefreshCloudSyncStatus()

@@ -312,6 +312,42 @@
                 </StackPanel>
             </settingsControls:SettingsCard>
 
+            <!-- ── AI ASSISTANT ─────────────────────────────────────────────── -->
+            <TextBlock Text="AI ASSISTANT"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Margin="0,8,0,0"/>
+
+            <settingsControls:SettingsCard Header="Enable AI Assistant"
+                                           Description="Chat with Claude to control and inspect your PC (opt-in; uses your Anthropic API key).">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.AssistantEnabled, Mode=TwoWay}"
+                              OnContent="" OffContent="" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Allow the assistant to perform actions"
+                                           Description="When off, the assistant can only answer questions and navigate — it cannot change the system.">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.AssistantAllowActions, Mode=TwoWay}"
+                              OnContent="" OffContent="" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Model" Description="Claude model used for the assistant.">
+                <ComboBox ItemsSource="{x:Bind ViewModel.AssistantModelOptions}"
+                          SelectedItem="{x:Bind ViewModel.AssistantModel, Mode=TwoWay}"
+                          MinWidth="220" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Anthropic API key"
+                                           Description="Stored encrypted on this PC (Windows DPAPI). Your messages and a short system-metrics summary are sent to Anthropic.">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <PasswordBox x:Name="ApiKeyBox" PlaceholderText="sk-ant-…" MinWidth="240"
+                                 PasswordChanged="ApiKeyBox_PasswordChanged"/>
+                    <Button Content="Save" Click="SaveApiKey_Click"/>
+                    <Button Content="Clear" Click="ClearApiKey_Click"/>
+                    <FontIcon Glyph="&#xE73E;" Foreground="#22C55E"
+                              Visibility="{x:Bind ViewModel.HasApiKey, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
+                </StackPanel>
+            </settingsControls:SettingsCard>
+
         </StackPanel>
     </ScrollViewer>
 </Page>
