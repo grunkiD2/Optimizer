@@ -179,6 +179,9 @@ public partial class App : Application
                 // Database infrastructure
                 services.AddSingleton<DatabaseService>();
 
+                // Phase 4: Granular change sets with before/after snapshots
+                services.AddSingleton<IChangeSetService, ChangeSetService>();
+
                 // Assistant learning services
                 services.AddSingleton<IAssistantActionLogger, AssistantActionLogger>();
                 services.AddSingleton<ISessionPersistence, SessionPersistence>();

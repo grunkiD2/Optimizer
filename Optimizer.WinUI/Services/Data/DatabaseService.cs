@@ -37,6 +37,23 @@ public class DatabaseService : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync();
         }
 
+        // Run idempotent column migrations for databases from an older schema.
+        // "duplicate column name" means the column already exists — safe to ignore.
+        foreach (var sql in DatabaseSchema.Migrations)
+        {
+            try
+            {
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException ex)
+                when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+            {
+                // Column already present — expected on fresh installs.
+            }
+        }
+
         // Insert initial data
         foreach (var sql in DatabaseSchema.InitialData)
         {

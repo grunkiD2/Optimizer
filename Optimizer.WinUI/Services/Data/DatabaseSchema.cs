@@ -230,10 +230,13 @@ public static class DatabaseSchema
             Id INTEGER PRIMARY KEY AUTOINCREMENT,
             OptimizationId TEXT NOT NULL,
             Title TEXT,
+            GroupId TEXT,
             BeforeState TEXT,
             AfterState TEXT,
             AppliedAtUtc TEXT NOT NULL,
             Reversible INTEGER NOT NULL,
+            IsUndone INTEGER NOT NULL DEFAULT 0,
+            DetectedContext TEXT,
             CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
         )
         """,
@@ -337,6 +340,18 @@ public static class DatabaseSchema
             UpdatedAt TEXT DEFAULT CURRENT_TIMESTAMP
         )
         """
+    };
+
+    /// <summary>
+    /// Idempotent ALTER statements for upgrading databases created by an earlier schema.
+    /// Each runs inside a try/catch that swallows "duplicate column" errors, so adding a
+    /// column already present (e.g. on a fresh install) is a no-op.
+    /// </summary>
+    public static readonly string[] Migrations = new[]
+    {
+        "ALTER TABLE UndoStack ADD COLUMN GroupId TEXT",
+        "ALTER TABLE UndoStack ADD COLUMN IsUndone INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE UndoStack ADD COLUMN DetectedContext TEXT",
     };
 
     /// <summary>Insert default contexts and metadata.</summary>
