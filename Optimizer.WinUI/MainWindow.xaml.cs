@@ -106,13 +106,32 @@ public sealed partial class MainWindow : Window
         if (IsExiting || _shuttingDown) return;
         _shuttingDown = true;
 
-        // Best-effort cleanup, then HARD-exit so the process can never linger.
-        // (Awaiting host StopAsync here can hang on background services and leave a zombie
-        //  process — the "can't close the app" symptom. Environment.Exit is guaranteed.)
-        try { _settingsService.Save(); } catch { }
-        try { App.GetService<ITrayIconService>().Hide(); } catch { }            // remove tray icon
-        try { (App.GetService<ISensorService>() as IDisposable)?.Dispose(); } catch { } // release LHM/PawnIO driver
-        Environment.Exit(0);
+        // Graceful shutdown with timeout to prevent zombie processes.
+        // Services may not respond to StopAsync, so we use a 5-second hard deadline.
+        try
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _settingsService.Save();
+                    App.GetService<ITrayIconService>().Hide();
+                    (App.GetService<ISensorService>() as IDisposable)?.Dispose();
+
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await App.GetHost().StopAsync(cts.Token);
+                }
+                catch { }
+                finally
+                {
+                    Environment.Exit(0);
+                }
+            });
+        }
+        catch
+        {
+            Environment.Exit(0);
+        }
     }
 
     private void InitializeElevationState()

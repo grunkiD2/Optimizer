@@ -47,7 +47,10 @@ public sealed class ClaudeClient(IApiKeyStore keyStore) : IClaudeClient
                     onText(text.Text);
             }
 
-            // Re-issue non-streaming to get the structured final message (tool_use blocks + stop_reason).
+            // Re-issue non-streaming to get the complete message (stop_reason + tool_use blocks).
+            // NOTE: This creates a second API call with the same parameters. To avoid double tool execution:
+            // - The model should be deterministic, but streaming + non-streaming are separate calls
+            // - Future: consider switching to non-streaming-only if tools are registered, or implement request deduplication at the service layer
             var final = await client.Messages.Create(parameters, ct);
             var collected = new List<ClaudeBlock>();
             foreach (var block in final.Content)

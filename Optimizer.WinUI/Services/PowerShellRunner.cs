@@ -19,7 +19,7 @@ public class PowerShellRunner : IPowerShellRunner
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{scriptPath}\"",
+                    Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File \"{scriptPath}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -41,7 +41,12 @@ public class PowerShellRunner : IPowerShellRunner
                 }
                 catch (OperationCanceledException)
                 {
-                    try { proc.Kill(); } catch { }
+                    try
+                    {
+                        proc.Kill(entireProcessTree: true);
+                        proc.WaitForExit(5000);
+                    }
+                    catch { }
                     return null;
                 }
             }

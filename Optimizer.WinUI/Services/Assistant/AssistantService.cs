@@ -6,7 +6,9 @@ namespace Optimizer.WinUI.Services.Assistant;
 public sealed class AssistantService(
     IClaudeClient claude,
     ICommandRegistry registry,
-    IAssistantSettings settings) : IAssistantService
+    IAssistantSettings settings,
+    IAssistantActionLogger actionLogger,
+    IContextDetectionService contextDetection) : IAssistantService
 {
     private const int MaxToolRounds = 8;
 
@@ -65,14 +67,38 @@ public sealed class AssistantService(
                 }
 
                 cb.OnStatus($"Running {cmd.Id}…");
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var context = await contextDetection.DetectContextAsync();
+
                 try
                 {
                     var r = await cmd.ExecuteAsync(use.ToolInput, ct);
+                    sw.Stop();
+
+                    // Log action success
+                    _ = actionLogger.LogActionAsync(
+                        cmd.Id,
+                        RenderArgs(use.ToolInput),
+                        r.Success,
+                        detectedContext: context,
+                        executionTimeMs: (int)sw.ElapsedMilliseconds);
+
                     toolResults.Add(new ClaudeBlock(ClaudeBlockKind.ToolResult,
                         ToolUseId: use.ToolUseId!, ToolResultContent: r.Summary, ToolResultIsError: !r.Success));
                 }
                 catch (Exception ex)
                 {
+                    sw.Stop();
+
+                    // Log action failure
+                    _ = actionLogger.LogActionAsync(
+                        cmd.Id,
+                        RenderArgs(use.ToolInput),
+                        false,
+                        ex.Message,
+                        detectedContext: context,
+                        executionTimeMs: (int)sw.ElapsedMilliseconds);
+
                     toolResults.Add(ToolError(use.ToolUseId!, $"Command threw: {ex.Message}"));
                 }
             }

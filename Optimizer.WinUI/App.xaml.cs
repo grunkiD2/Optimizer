@@ -4,7 +4,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Assistant;
 using Optimizer.WinUI.Services.Cloud;
+using Optimizer.WinUI.Services.Data;
 using Optimizer.WinUI.Services.Diagnostics;
 using Optimizer.WinUI.Services.Plugins;
 using Optimizer.WinUI.Services.Optimizations;
@@ -173,6 +175,15 @@ public partial class App : Application
                 // Federated learning scaffold (opt-in, DP-protected)
                 services.AddSingleton<IFederatedClient, FederatedClient>();
 
+                // ── Phase 1: SQLite Database + Learning Foundation ──
+                // Database infrastructure
+                services.AddSingleton<DatabaseService>();
+
+                // Assistant learning services
+                services.AddSingleton<IAssistantActionLogger, AssistantActionLogger>();
+                services.AddSingleton<ISessionPersistence, SessionPersistence>();
+                services.AddSingleton<IContextDetectionService, ContextDetectionService>();
+
                 // REST API host
                 services.AddSingleton<IApiHostService>(sp =>
                     new ApiHostService(sp));
@@ -254,6 +265,7 @@ public partial class App : Application
                 services.AddSingleton(sp => new Optimizer.WinUI.ViewModels.AssistantViewModel(
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IAssistantService>(),
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IApiKeyStore>(),
+                    sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.ISessionPersistence>(),
                     OnUi));
 
                 // MainWindow (registered as singleton so DI can inject it)
@@ -287,6 +299,10 @@ public partial class App : Application
 
             var settings = GetService<ISettingsService>();
             settings.Load();
+
+            // Initialize SQLite database (Phase 1)
+            var dbService = GetService<DatabaseService>();
+            dbService.InitializeAsync().GetAwaiter().GetResult();
 
             var historyService = GetService<IHistoryService>();
             historyService.Load();
