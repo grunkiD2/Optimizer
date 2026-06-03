@@ -76,4 +76,65 @@ public class ApiClient
             return null;
         }
     }
+
+    /// <summary>GET a path and return the raw response body as a string.</summary>
+    public async Task<string?> GetStringAsync(string path)
+    {
+        try
+        {
+            var r = await _http.GetAsync(path);
+            if (!r.IsSuccessStatusCode)
+            {
+                Console.Error.WriteLine($"API error: {r.StatusCode}");
+                return null;
+            }
+            return await r.Content.ReadAsStringAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.Error.WriteLine($"Connection failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>POST a raw JSON string body (Content-Type application/json).</summary>
+    public async Task<JsonDocument?> PostJsonAsync(string path, string json)
+    {
+        try
+        {
+            using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var r = await _http.PostAsync(path, content);
+            if (!r.IsSuccessStatusCode)
+            {
+                Console.Error.WriteLine($"API error: {r.StatusCode}");
+                return null;
+            }
+            return await JsonDocument.ParseAsync(await r.Content.ReadAsStreamAsync());
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.Error.WriteLine($"Connection failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>DELETE a path. Returns true on a success status.</summary>
+    public async Task<bool> DeleteAsync(string path)
+    {
+        try
+        {
+            var r = await _http.DeleteAsync(path);
+            if (!r.IsSuccessStatusCode)
+            {
+                Console.Error.WriteLine($"API error: {r.StatusCode}");
+                return false;
+            }
+            return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.Error.WriteLine($"Connection failed: {ex.Message}");
+            return false;
+        }
+    }
 }

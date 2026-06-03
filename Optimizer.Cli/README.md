@@ -21,9 +21,15 @@ $env:OPTIMIZER_URL   = "http://localhost:8765"   # optional — this is the defa
 |---------|-------------|
 | `optimizer status` | Show CPU, memory, GPU, disk usage and sensor temps |
 | `optimizer profile list` | List all available profiles |
+| `optimizer profile export [file]` | Export saved profiles as JSON (stdout if no file) |
+| `optimizer profile import <file>` | Import profiles from a JSON file |
 | `optimizer apply <profile-id>` | Apply an optimization profile |
+| `optimizer batch --profiles a b --optimizations x y` | Apply several profiles/optimizations in one call |
 | `optimizer scan` | Run a diagnostics scan and show recommendations |
 | `optimizer cleanup` | Clear temporary files |
+| `optimizer schedule list` | List scheduled tasks |
+| `optimizer schedule add --kind profile --target <id> --type DailyAt --value 03:00` | Schedule a task |
+| `optimizer schedule remove <id>` | Remove a scheduled task |
 
 ## Examples
 
@@ -35,12 +41,26 @@ optimizer status
 optimizer profile list
 optimizer apply preset-gaming
 
+# Back up and restore profiles
+optimizer profile export profiles-backup.json
+optimizer profile import profiles-backup.json
+
+# Apply several things at once
+optimizer batch --profiles preset-gaming --optimizations clear-temp-files flush-dns
+
 # Scan for issues
 optimizer scan
 
 # Clean temp files
 optimizer cleanup
+
+# Run cleanup every day at 3am, unattended
+optimizer schedule add --kind optimization --target clear-temp-files --type DailyAt --value 03:00
+optimizer schedule list
 ```
+
+Schedule types: `DailyAt` (value `HH:mm`), `IntervalMinutes` (value = minutes),
+`Once` (value = ISO-8601 timestamp). Schedules run while the GUI is open.
 
 ## Build
 

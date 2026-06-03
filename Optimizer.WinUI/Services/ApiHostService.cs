@@ -218,6 +218,132 @@ public class ApiHostService : IApiHostService
         .WithTags("Diagnostics")
         .WithOpenApi();
 
+        // ── Phase 5: list all optimization ids (not just profiles) ──────────────
+        app.MapGet("/api/optimizations", async () =>
+        {
+            var optimizer = _appServices.GetService<IWindowsOptimizerService>();
+            if (optimizer == null) return Results.StatusCode(503);
+            var ids = await optimizer.GetAvailableOptimizationsAsync();
+            return Results.Ok(ids.Select(id =>
+            {
+                var info = optimizer.GetOptimizationInfo(id);
+                return new { id, title = info?.Title ?? id, summary = info?.Summary ?? "" };
+            }));
+        })
+        .WithName("GetOptimizations")
+        .WithTags("Optimizations")
+        .WithOpenApi();
+
+        // ── Phase 5: profile export / import ────────────────────────────────────
+        app.MapGet("/api/profiles/export", (HttpContext ctx) =>
+        {
+            var profiles = _appServices.GetService<IProfileService>();
+            if (profiles == null) return Results.StatusCode(503);
+            var json = profiles.ExportAll();
+            return Results.Content(json, "application/json");
+        })
+        .WithName("ExportProfiles")
+        .WithTags("Profiles")
+        .WithOpenApi();
+
+        app.MapPost("/api/profiles/import", async (HttpContext ctx) =>
+        {
+            var profiles = _appServices.GetService<IProfileService>();
+            if (profiles == null) return Results.StatusCode(503);
+
+            using var reader = new StreamReader(ctx.Request.Body);
+            var json = await reader.ReadToEndAsync();
+            if (string.IsNullOrWhiteSpace(json))
+                return Results.BadRequest(new { error = "Empty body." });
+
+            try
+            {
+                profiles.ImportFromJson(json);
+                return Results.Ok(new { imported = true });
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        })
+        .WithName("ImportProfiles")
+        .WithTags("Profiles")
+        .WithOpenApi();
+
+        // ── Phase 5: batch apply ────────────────────────────────────────────────
+        app.MapPost("/api/apply/batch", async (List<BatchApplyItem> items) =>
+        {
+            var optimizer = _appServices.GetService<IWindowsOptimizerService>();
+            if (optimizer == null) return Results.StatusCode(503);
+            if (items.Count == 0) return Results.BadRequest(new { error = "No items." });
+
+            var results = new List<object>();
+            foreach (var item in items)
+            {
+                bool success;
+                string reason;
+                try
+                {
+                    if (string.Equals(item.Type, "optimization", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var r = await optimizer.ApplyOptimizationAsync(item.Id);
+                        success = r.Success;
+                        reason = r.Message;
+                    }
+                    else
+                    {
+                        success = await optimizer.ApplyProfileAsync(item.Id);
+                        reason = success ? "applied" : "completed with errors";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    success = false;
+                    reason = ex.Message;
+                }
+                results.Add(new { id = item.Id, type = item.Type, success, reason });
+            }
+            return Results.Ok(results);
+        })
+        .WithName("ApplyBatch")
+        .WithTags("Optimizations")
+        .WithOpenApi();
+
+        // ── Phase 5: schedules ──────────────────────────────────────────────────
+        app.MapGet("/api/schedules", async () =>
+        {
+            var scheduler = _appServices.GetService<IScheduledOptimizationService>();
+            if (scheduler == null) return Results.StatusCode(503);
+            return Results.Ok(await scheduler.GetAllAsync());
+        })
+        .WithName("GetSchedules")
+        .WithTags("Schedules")
+        .WithOpenApi();
+
+        app.MapPost("/api/schedules", async (ScheduledTask task) =>
+        {
+            var scheduler = _appServices.GetService<IScheduledOptimizationService>();
+            if (scheduler == null) return Results.StatusCode(503);
+            if (string.IsNullOrWhiteSpace(task.TargetId))
+                return Results.BadRequest(new { error = "TargetId is required." });
+            var created = await scheduler.CreateAsync(task);
+            return Results.Ok(created);
+        })
+        .WithName("CreateSchedule")
+        .WithTags("Schedules")
+        .WithOpenApi();
+
+        app.MapDelete("/api/schedules/{id}", async (string id) =>
+        {
+            var scheduler = _appServices.GetService<IScheduledOptimizationService>();
+            if (scheduler == null) return Results.StatusCode(503);
+            var ok = await scheduler.DeleteAsync(id);
+            return ok ? Results.Ok(new { deleted = true }) : Results.NotFound();
+        })
+        .WithName("DeleteSchedule")
+        .WithTags("Schedules")
+        .WithOpenApi();
+
         _app = app;
         await _app.StartAsync();
         ListeningUrl = $"http://localhost:{port}";
@@ -233,4 +359,12 @@ public class ApiHostService : IApiHostService
         ListeningUrl = "";
         EngineLog.Write("API server stopped");
     }
+}
+
+/// <summary>Request item for POST /api/apply/batch.</summary>
+public sealed class BatchApplyItem
+{
+    /// <summary>"profile" or "optimization".</summary>
+    public string Type { get; set; } = "profile";
+    public string Id { get; set; } = "";
 }

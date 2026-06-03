@@ -182,6 +182,11 @@ public partial class App : Application
                 // Phase 4: Granular change sets with before/after snapshots
                 services.AddSingleton<IChangeSetService, ChangeSetService>();
 
+                // Phase 5: Scheduled optimizations (hosted background loop)
+                services.AddSingleton<IScheduledOptimizationService, ScheduledOptimizationService>();
+                services.AddHostedService(sp =>
+                    (ScheduledOptimizationService)sp.GetRequiredService<IScheduledOptimizationService>());
+
                 // Assistant learning services
                 services.AddSingleton<IAssistantActionLogger, AssistantActionLogger>();
                 services.AddSingleton<ISessionPersistence, SessionPersistence>();

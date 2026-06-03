@@ -27,5 +27,44 @@ public class ProfileCommand : Command
         });
 
         AddCommand(listCommand);
+
+        // ── export ──────────────────────────────────────────────────────────
+        var fileArg = new Argument<string?>("file", () => null, "Output file (default: stdout)");
+        var exportCommand = new Command("export", "Export all saved profiles as JSON") { fileArg };
+        exportCommand.SetHandler(async (string? file) =>
+        {
+            var api = ApiClient.FromEnv();
+            var json = await api.GetStringAsync("/api/profiles/export");
+            if (json == null) return;
+
+            if (string.IsNullOrEmpty(file))
+            {
+                Console.WriteLine(json);
+            }
+            else
+            {
+                await File.WriteAllTextAsync(file, json);
+                Console.WriteLine($"Exported profiles to {file}");
+            }
+        }, fileArg);
+        AddCommand(exportCommand);
+
+        // ── import ──────────────────────────────────────────────────────────
+        var importFileArg = new Argument<string>("file", "JSON file to import");
+        var importCommand = new Command("import", "Import profiles from a JSON file") { importFileArg };
+        importCommand.SetHandler(async (string file) =>
+        {
+            if (!File.Exists(file))
+            {
+                Console.Error.WriteLine($"File not found: {file}");
+                Environment.Exit(1);
+                return;
+            }
+            var json = await File.ReadAllTextAsync(file);
+            var api = ApiClient.FromEnv();
+            var result = await api.PostJsonAsync("/api/profiles/import", json);
+            Console.WriteLine(result != null ? "Profiles imported." : "Import failed.");
+        }, importFileArg);
+        AddCommand(importCommand);
     }
 }

@@ -331,6 +331,33 @@ public static class DatabaseSchema
         """,
 
         // ────────────────────────────────────────────────────────────────
+        // Scheduled Optimizations (new in Phase 5)
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS ScheduledTasks (
+            Id TEXT PRIMARY KEY,
+            Kind TEXT NOT NULL,           -- 'profile' | 'optimization'
+            TargetId TEXT NOT NULL,
+            ScheduleType TEXT NOT NULL,    -- 'DailyAt' | 'IntervalMinutes' | 'Once'
+            ScheduleValue TEXT NOT NULL,   -- 'HH:mm' | minutes | ISO-8601
+            Enabled INTEGER NOT NULL DEFAULT 1,
+            LastRunUtc TEXT,
+            NextRunUtc TEXT,
+            CreatedAtUtc TEXT NOT NULL
+        )
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS ScheduleExecutions (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            TaskId TEXT NOT NULL,
+            RanAtUtc TEXT NOT NULL,
+            Success INTEGER NOT NULL,
+            Message TEXT
+        )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
         // Metadata (version tracking)
         // ────────────────────────────────────────────────────────────────
         """
