@@ -16,6 +16,7 @@ public sealed partial class MainWindow : Window
 
     private static readonly Dictionary<string, Type> PageMap = new()
     {
+        ["CommandCenter"] = typeof(CommandCenterPage),
         ["Dashboard"] = typeof(DashboardPage),
         ["Performance"] = typeof(PerformancePage),
         ["Network"] = typeof(NetworkPage),

@@ -61,6 +61,11 @@
             Loaded="NavView_Loaded">
 
             <NavigationView.MenuItems>
+                <NavigationViewItem Content="Command Center" Tag="CommandCenter">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9D9;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Dashboard" Tag="Dashboard" Icon="Home"/>
 
                 <NavigationViewItemHeader Content="OPTIMIZE"/>

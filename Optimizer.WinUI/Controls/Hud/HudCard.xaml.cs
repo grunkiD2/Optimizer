@@ -1,0 +1,35 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Markup;
+
+namespace Optimizer.WinUI.Controls.Hud;
+
+/// <summary>Glass surface container with a 1px hairline border, rounded per the token radius,
+/// and an optional micro eyebrow <see cref="Header"/>. Default content property is the body.</summary>
+[ContentProperty(Name = nameof(CardContent))]
+public sealed partial class HudCard : UserControl
+{
+    public HudCard() => InitializeComponent();
+
+    public object CardContent
+    {
+        get => GetValue(CardContentProperty);
+        set => SetValue(CardContentProperty, value);
+    }
+    public static readonly DependencyProperty CardContentProperty =
+        DependencyProperty.Register(nameof(CardContent), typeof(object), typeof(HudCard), new PropertyMetadata(null));
+
+    public string Header
+    {
+        get => (string)GetValue(HeaderProperty);
+        set => SetValue(HeaderProperty, value);
+    }
+    public static readonly DependencyProperty HeaderProperty =
+        DependencyProperty.Register(nameof(Header), typeof(string), typeof(HudCard),
+            new PropertyMetadata("", (d, e) =>
+            {
+                var card = (HudCard)d;
+                card.HeaderText.Visibility = string.IsNullOrWhiteSpace(e.NewValue as string)
+                    ? Visibility.Collapsed : Visibility.Visible;
+            }));
+}

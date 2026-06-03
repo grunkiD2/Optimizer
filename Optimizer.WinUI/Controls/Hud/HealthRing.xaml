@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Optimizer.WinUI.Controls.Hud.HealthRing"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Width="172" Height="172">
+        <!-- Glow halo behind the ring -->
+        <Ellipse Margin="6">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#0038BDF8" Offset="0.0"/>
+                    <GradientStop Color="#5938BDF8" Offset="0.62"/>
+                    <GradientStop Color="#0038BDF8" Offset="0.82"/>
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
+        <!-- Track -->
+        <Ellipse Width="140" Height="140" Stroke="{ThemeResource HudHairlineBrush}" StrokeThickness="10"/>
+
+        <!-- Progress arc (geometry built in code) -->
+        <Path x:Name="Arc" StrokeThickness="10"
+              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+
+        <!-- Center readout -->
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="-2">
+            <TextBlock x:Name="ScoreText" Style="{StaticResource HudDisplayStyle}"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="SYSTEM HEALTH" Style="{StaticResource HudMicroStyle}"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
