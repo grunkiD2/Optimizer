@@ -197,6 +197,29 @@ public sealed partial class MainWindow : Window
         args.Handled = true;
     }
 
+    private async void OmniboxAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        var box = new TextBox { PlaceholderText = "Ask the assistant…", MinWidth = 360 };
+        var dialog = new ContentDialog
+        {
+            Title = "Assistant",
+            Content = box,
+            PrimaryButtonText = "Ask",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = Content.XamlRoot,
+        };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(box.Text))
+        {
+            var text = box.Text;
+            FocusAssistant();
+            var vm = App.GetService<ViewModels.AssistantViewModel>();
+            vm.Input = text;
+            if (vm.SendCommand.CanExecute(null)) vm.SendCommand.Execute(null);
+        }
+    }
+
     private async void RelaunchElevated_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new ContentDialog

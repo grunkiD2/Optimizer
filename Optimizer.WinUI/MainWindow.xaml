@@ -14,6 +14,7 @@
 
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Modifiers="Control" Key="192" Invoked="ConsoleAccel_Invoked"/>
+            <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="OmniboxAccel_Invoked"/>
         </Grid.KeyboardAccelerators>
 
         <InfoBar

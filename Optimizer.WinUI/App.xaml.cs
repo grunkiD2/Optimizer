@@ -200,6 +200,49 @@ public partial class App : Application
                 services.AddTransient<TemplatesViewModel>();
                 services.AddTransient<ComplianceViewModel>();
 
+                // ── AI Assistant: key store, Claude client, settings, orchestration ──
+                services.AddSingleton<Optimizer.WinUI.Services.Assistant.IApiKeyStore,
+                                      Optimizer.WinUI.Services.Assistant.DpapiApiKeyStore>();
+                services.AddSingleton<Optimizer.WinUI.Services.Assistant.IAssistantSettings,
+                                      Optimizer.WinUI.Services.Assistant.AssistantSettings>();
+                services.AddSingleton<Optimizer.WinUI.Services.Assistant.IClaudeClient,
+                                      Optimizer.WinUI.Services.Assistant.ClaudeClient>();
+                services.AddSingleton<Optimizer.WinUI.Services.Assistant.IAssistantService,
+                                      Optimizer.WinUI.Services.Assistant.AssistantService>();
+
+                // ── Command registry + commands (assistant tool surface) ──
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.PageNavigator>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IPageNavigator>(
+                    sp => sp.GetRequiredService<Optimizer.WinUI.Services.Commands.PageNavigator>());
+
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.GetMetricsCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.GetRecommendationsCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.RunDiagnosticsScanCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.GetBottlenecksCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.ListProfilesCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.NavigateToPageCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.ApplyProfileCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.ApplyOptimizationCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.RunCleanupCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.UndoLastCommand>();
+
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.ICommandRegistry>(sp =>
+                {
+                    var reg = new Optimizer.WinUI.Services.Commands.CommandRegistry();
+                    foreach (var c in sp.GetServices<Optimizer.WinUI.Services.Commands.IAppCommand>())
+                        reg.Register(c);
+                    return reg;
+                });
+
+                // ── Console + Assistant ViewModels (UI-thread dispatch helper) ──
+                services.AddSingleton(sp => new Optimizer.WinUI.ViewModels.ConsoleViewModel(
+                    sp.GetRequiredService<Optimizer.WinUI.Services.Events.IEventBus>(),
+                    a => Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread()?.TryEnqueue(() => a())));
+                services.AddSingleton(sp => new Optimizer.WinUI.ViewModels.AssistantViewModel(
+                    sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IAssistantService>(),
+                    sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IApiKeyStore>(),
+                    a => Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread()?.TryEnqueue(() => a())));
+
                 // MainWindow (registered as singleton so DI can inject it)
                 services.AddSingleton<MainWindow>();
             })
