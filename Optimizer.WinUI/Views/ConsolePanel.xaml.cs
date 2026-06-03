@@ -22,6 +22,15 @@ public sealed partial class ConsolePanel : UserControl
     {
         InitializeComponent();
         AssistantVM.ConfirmHandler = ConfirmAsync;
+
+        // Register wheel handlers with handledEventsToo:true. WinUI 3's inner ListView
+        // ScrollViewer marks PointerWheelChanged as handled even when it fails to scroll
+        // (the dock/secondary-window wheel bug), so a normal XAML handler never fires.
+        // handledEventsToo lets ours run regardless and drive the ScrollViewer directly.
+        AssistantList.AddHandler(UIElement.PointerWheelChangedEvent,
+            new PointerEventHandler(List_PointerWheelChanged), handledEventsToo: true);
+        ActivityList.AddHandler(UIElement.PointerWheelChangedEvent,
+            new PointerEventHandler(List_PointerWheelChanged), handledEventsToo: true);
     }
 
     public void FocusAssistant()

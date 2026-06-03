@@ -55,43 +55,97 @@ public class TrayIconService : ITrayIconService
             MenuActivation = H.NotifyIcon.Core.PopupActivationMode.RightClick,
         };
 
-        // Build context menu flyout
-        var menu = new MenuFlyout
-        {
-            // The tray flyout is hosted via the main window's XamlRoot. On a multi-monitor
-            // setup the main window may live on a different screen than the taskbar/cursor;
-            // constraining to root bounds clamps the menu onto the main window's monitor.
-            // Letting it escape the root bounds allows it to appear at the cursor's screen.
-            ShouldConstrainToRootBounds = false,
-        };
-
-        var openItem = new MenuFlyoutItem { Text = "Open Dashboard" };
-        openItem.Click += (_, _) => RestoreWindow();
-        menu.Items.Add(openItem);
-
-        menu.Items.Add(new MenuFlyoutSeparator());
-
-        var cleanupItem = new MenuFlyoutItem { Text = "Run Quick Cleanup" };
-        cleanupItem.Click += (_, _) => RunQuickCleanupAsync();
-        menu.Items.Add(cleanupItem);
-
-        // Profile submenu — populated from built-in presets
-        var profilesMenu = new MenuFlyoutSubItem { Text = "Switch Profile" };
-        PopulateProfilesMenu(profilesMenu);
-        menu.Items.Add(profilesMenu);
-
-        menu.Items.Add(new MenuFlyoutSeparator());
-
-        var exitItem = new MenuFlyoutItem { Text = "Exit" };
-        exitItem.Click += (_, _) => ExitApplication();
-        menu.Items.Add(exitItem);
-
-        _trayIcon.ContextFlyout = menu;
-
-        // Left-click restores the window
+        // Left-click restores the window.
         _trayIcon.LeftClickCommand = new RelayCommand(RestoreWindow);
 
+        // Right-click shows a NATIVE Win32 popup menu at the cursor. The WinUI ContextFlyout
+        // is hosted via the main window's XamlRoot and always renders on that window's monitor,
+        // so on multi-monitor it lands on the wrong screen. TrackPopupMenuEx always appears at
+        // the supplied cursor coordinates, on whichever monitor you right-clicked.
+        _trayIcon.RightClickCommand = new RelayCommand(ShowTrayContextMenu);
+
         _trayIcon.ForceCreate(enablesEfficiencyMode: false);
+    }
+
+    // ── Native popup menu (multi-monitor correct) ────────────────────────────
+
+    [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT lpPoint);
+    [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool AppendMenu(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string? lpNewItem);
+    [DllImport("user32.dll")]
+    private static extern uint TrackPopupMenuEx(IntPtr hMenu, uint uFlags, int x, int y, IntPtr hwnd, IntPtr lptpm);
+    [DllImport("user32.dll")] private static extern bool DestroyMenu(IntPtr hMenu);
+    [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
+
+    private const uint MF_STRING = 0x0000;
+    private const uint MF_SEPARATOR = 0x0800;
+    private const uint MF_POPUP = 0x0010;
+    private const uint TPM_RETURNCMD = 0x0100;
+    private const uint TPM_RIGHTBUTTON = 0x0002;
+    private const uint WM_NULL = 0x0000;
+
+    private void ShowTrayContextMenu()
+    {
+        if (_window is null) return;
+        if (!GetCursorPos(out var pt)) return;
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
+        var menu = CreatePopupMenu();
+        if (menu == IntPtr.Zero) return;
+        var submenu = IntPtr.Zero;
+
+        const uint idOpen = 1, idCleanup = 2, idExit = 3, presetBase = 100;
+        var presetMap = new Dictionary<uint, string>();
+
+        try
+        {
+            AppendMenu(menu, MF_STRING, (UIntPtr)idOpen, "Open Dashboard");
+            AppendMenu(menu, MF_SEPARATOR, UIntPtr.Zero, null);
+            AppendMenu(menu, MF_STRING, (UIntPtr)idCleanup, "Run Quick Cleanup");
+
+            var presets = _profileService.BuiltInPresets;
+            if (presets.Count > 0)
+            {
+                submenu = CreatePopupMenu();
+                var id = presetBase;
+                foreach (var preset in presets)
+                {
+                    AppendMenu(submenu, MF_STRING, (UIntPtr)id, preset.Name);
+                    presetMap[id] = preset.Id;
+                    id++;
+                }
+                AppendMenu(menu, MF_POPUP, (UIntPtr)(ulong)submenu.ToInt64(), "Switch Profile");
+            }
+
+            AppendMenu(menu, MF_SEPARATOR, UIntPtr.Zero, null);
+            AppendMenu(menu, MF_STRING, (UIntPtr)idExit, "Exit");
+
+            // The owner window must be foreground for the menu to dismiss on outside-click.
+            SetForegroundWindow(hwnd);
+            var cmd = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.X, pt.Y, hwnd, IntPtr.Zero);
+            PostMessage(hwnd, WM_NULL, IntPtr.Zero, IntPtr.Zero); // classic dismiss fix
+
+            switch (cmd)
+            {
+                case 0: break;                       // cancelled
+                case idOpen: RestoreWindow(); break;
+                case idCleanup: RunQuickCleanupAsync(); break;
+                case idExit: ExitApplication(); break;
+                default:
+                    if (presetMap.TryGetValue(cmd, out var pid))
+                        _ = _profileService.ApplyPresetAsync(pid);
+                    break;
+            }
+        }
+        finally
+        {
+            if (submenu != IntPtr.Zero) DestroyMenu(submenu);
+            DestroyMenu(menu);
+        }
     }
 
     public void Show()
@@ -119,28 +173,6 @@ public class TrayIconService : ITrayIconService
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
         ShowWindow(hwnd, SW_RESTORE);
         SetForegroundWindow(hwnd);
-    }
-
-    private void PopulateProfilesMenu(MenuFlyoutSubItem menu)
-    {
-        var presets = _profileService.BuiltInPresets;
-        if (presets.Count == 0)
-        {
-            menu.Items.Add(new MenuFlyoutItem { Text = "(No profiles)", IsEnabled = false });
-            return;
-        }
-
-        foreach (var preset in presets)
-        {
-            var item = new MenuFlyoutItem { Text = preset.Name };
-            var profileId = preset.Id; // capture for closure
-            item.Click += async (_, _) =>
-            {
-                try { await _profileService.ApplyPresetAsync(profileId); }
-                catch { /* non-fatal */ }
-            };
-            menu.Items.Add(item);
-        }
     }
 
     private async void RunQuickCleanupAsync()
