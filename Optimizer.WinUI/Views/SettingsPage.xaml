@@ -189,6 +189,13 @@
                               VerticalAlignment="Center"/>
             </settingsControls:SettingsCard>
 
+            <settingsControls:SettingsCard Header="Verbose Console Output"
+                                           Description="Mirror all engine activity to the Activity console, not just optimization events. On by default.">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.VerboseConsole, Mode=TwoWay}"
+                              OnContent="" OffContent=""
+                              VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
             <settingsControls:SettingsCard Header="Clear Change History"
                                            Description="Permanently remove all recorded optimization events">
                 <Button Content="Clear History"

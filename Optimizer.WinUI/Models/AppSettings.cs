@@ -32,6 +32,10 @@ public class AppSettings
     // Localization
     public string Language { get; set; } = "en-US";
 
+    // Console: when true, the Activity console mirrors all engine log output
+    // (not just optimization/event-bus events). Defaults ON so the console shows everything.
+    public bool VerboseConsole { get; set; } = true;
+
     // Remote API
     public bool ApiEnabled { get; set; } = false;
     public int ApiPort { get; set; } = 8765;

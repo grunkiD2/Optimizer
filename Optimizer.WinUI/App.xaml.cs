@@ -303,7 +303,8 @@ public partial class App : Application
                 }
                 services.AddSingleton(sp => new Optimizer.WinUI.ViewModels.ConsoleViewModel(
                     sp.GetRequiredService<Optimizer.WinUI.Services.Events.IEventBus>(),
-                    OnUi));
+                    OnUi,
+                    sp.GetRequiredService<ISettingsService>()));
                 services.AddSingleton(sp => new Optimizer.WinUI.ViewModels.AssistantViewModel(
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IAssistantService>(),
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IApiKeyStore>(),

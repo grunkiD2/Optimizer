@@ -86,8 +86,6 @@
                 <TextBlock Text="ACTIVITY" FontSize="11" FontWeight="SemiBold"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                    <ToggleSwitch OnContent="Verbose" OffContent="Verbose"
-                                  IsOn="{x:Bind ConsoleVM.ShowVerboseLogs, Mode=TwoWay}"/>
                     <Button Content="Clear" Command="{x:Bind ConsoleVM.ClearCommand}"/>
                 </StackPanel>
             </Grid>
