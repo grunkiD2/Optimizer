@@ -13,8 +13,8 @@
     <ResourceDictionary.ThemeDictionaries>
         <!-- DARK (design target) — frosted "holo glass" surfaces -->
         <ResourceDictionary x:Key="Default">
-            <AcrylicBrush x:Key="HudSurfaceBrush" TintColor="#121A2C" TintOpacity="0.5"
-                          TintLuminosityOpacity="0.34" FallbackColor="#D9121A2C" />
+            <AcrylicBrush x:Key="HudSurfaceBrush" TintColor="#18233D" TintOpacity="0.42"
+                          TintLuminosityOpacity="0.5" FallbackColor="#D918233D" />
             <AcrylicBrush x:Key="HudSurfaceAltBrush" TintColor="#0B1018" TintOpacity="0.6"
                           TintLuminosityOpacity="0.4" FallbackColor="#E60B1018" />
             <SolidColorBrush x:Key="HudHairlineBrush"    Color="#1FFFFFFF" />
@@ -50,9 +50,9 @@
 
     <!-- Glowing glass edge: cyan → violet → cyan diagonal -->
     <LinearGradientBrush x:Key="HudGlassBorderBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#7038BDF8" Offset="0.0" />
-        <GradientStop Color="#33A78BFA" Offset="0.5" />
-        <GradientStop Color="#5A38BDF8" Offset="1.0" />
+        <GradientStop Color="#A638BDF8" Offset="0.0" />
+        <GradientStop Color="#59A78BFA" Offset="0.5" />
+        <GradientStop Color="#8C38BDF8" Offset="1.0" />
     </LinearGradientBrush>
 
     <!-- Top sheen overlay for glass surfaces (subtle light from above) -->

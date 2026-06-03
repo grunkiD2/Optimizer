@@ -8,20 +8,22 @@
 
     <Grid>
         <!-- Color blooms behind the content: the frosted cards refract these -->
-        <Ellipse Width="680" Height="680" HorizontalAlignment="Left" VerticalAlignment="Top"
-                 Margin="-200,-240,0,0" IsHitTestVisible="False">
+        <Ellipse Width="780" Height="780" HorizontalAlignment="Left" VerticalAlignment="Top"
+                 Margin="-220,-260,0,0" IsHitTestVisible="False">
             <Ellipse.Fill>
                 <RadialGradientBrush>
-                    <GradientStop Color="#3838BDF8" Offset="0.0"/>
+                    <GradientStop Color="#5938BDF8" Offset="0.0"/>
+                    <GradientStop Color="#1F38BDF8" Offset="0.55"/>
                     <GradientStop Color="#0038BDF8" Offset="1.0"/>
                 </RadialGradientBrush>
             </Ellipse.Fill>
         </Ellipse>
-        <Ellipse Width="760" Height="760" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                 Margin="0,0,-240,-280" IsHitTestVisible="False">
+        <Ellipse Width="880" Height="880" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                 Margin="0,0,-260,-300" IsHitTestVisible="False">
             <Ellipse.Fill>
                 <RadialGradientBrush>
-                    <GradientStop Color="#30A78BFA" Offset="0.0"/>
+                    <GradientStop Color="#52A78BFA" Offset="0.0"/>
+                    <GradientStop Color="#1FA78BFA" Offset="0.55"/>
                     <GradientStop Color="#00A78BFA" Offset="1.0"/>
                 </RadialGradientBrush>
             </Ellipse.Fill>
