@@ -134,8 +134,8 @@ public sealed partial class SettingsPage : Page
     private async void GetApiKey_Click(object sender, RoutedEventArgs e)
     {
         // Anthropic doesn't sell keys via an embeddable flow — keys + billing are set up
-        // in the Console. Open the API-keys page in the user's default browser.
-        await Windows.System.Launcher.LaunchUriAsync(new Uri("https://console.anthropic.com/settings/keys"));
+        // in the Console. Open the billing page (set up payment / buy credits) in the default browser.
+        await Windows.System.Launcher.LaunchUriAsync(new Uri("https://console.anthropic.com/settings/billing"));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
