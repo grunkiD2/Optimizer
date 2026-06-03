@@ -192,6 +192,14 @@ public partial class App : Application
                 services.AddSingleton<Optimizer.WinUI.Services.Analytics.IAssistantFeedbackService,
                                       Optimizer.WinUI.Services.Analytics.AssistantFeedbackService>();
 
+                // Phase 3: Context-aware profiles & automation learning
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IProfileContextService,
+                                      Optimizer.WinUI.Services.Analytics.ProfileContextService>();
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IRuleSuggestionService,
+                                      Optimizer.WinUI.Services.Analytics.RuleSuggestionService>();
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IRecommendationRanker,
+                                      Optimizer.WinUI.Services.Analytics.RecommendationRanker>();
+
                 // REST API host
                 services.AddSingleton<IApiHostService>(sp =>
                     new ApiHostService(sp));
@@ -411,6 +419,28 @@ public partial class App : Application
                 catch (Exception ex)
                 {
                     WriteCrashLog("Analytics/PatternExtraction", ex);
+                }
+            });
+
+            // Phase 3: Resolve "did the profile stick?" verdicts and (re)generate
+            // automation-rule suggestions from observed behavior. Runs periodically.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(45));
+                    var profileContext = GetService<Optimizer.WinUI.Services.Analytics.IProfileContextService>();
+                    var ruleSuggest = GetService<Optimizer.WinUI.Services.Analytics.IRuleSuggestionService>();
+                    while (true)
+                    {
+                        await profileContext.ResolvePendingAsync(TimeSpan.FromMinutes(30));
+                        await ruleSuggest.GenerateSuggestionsAsync();
+                        await Task.Delay(TimeSpan.FromMinutes(10));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    WriteCrashLog("ProfileContext/RuleSuggestion", ex);
                 }
             });
 

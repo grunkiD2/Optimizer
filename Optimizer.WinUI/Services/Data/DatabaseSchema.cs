@@ -279,6 +279,55 @@ public static class DatabaseSchema
         """,
 
         // ────────────────────────────────────────────────────────────────
+        // Profile ↔ Context Associations (new in Phase 3)
+        // Tracks how often a profile is applied in a context and whether it "stuck".
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS ProfileContextAssociations (
+            ProfileId TEXT NOT NULL,
+            Context TEXT NOT NULL,
+            ApplyCount INTEGER NOT NULL DEFAULT 0,
+            SuccessCount INTEGER NOT NULL DEFAULT 0,
+            LastAppliedUtc TEXT,
+            UpdatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            PRIMARY KEY(ProfileId, Context),
+            CONSTRAINT fk_context_assoc FOREIGN KEY(Context)
+                REFERENCES Contexts(Name)
+        )
+        """,
+
+        // Pending profile applications awaiting a "did it stick?" verdict.
+        """
+        CREATE TABLE IF NOT EXISTS ProfileApplications (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ProfileId TEXT NOT NULL,
+            Context TEXT NOT NULL,
+            AppliedAtUtc TEXT NOT NULL,
+            Resolved INTEGER NOT NULL DEFAULT 0,
+            WasSuccess INTEGER
+        )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
+        // Suggested Automation Rules (new in Phase 3)
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS SuggestedRules (
+            Id TEXT PRIMARY KEY,
+            ProfileId TEXT NOT NULL,
+            ProfileName TEXT,
+            TriggerType TEXT NOT NULL,
+            TriggerValue TEXT,
+            ConfidenceScore REAL NOT NULL DEFAULT 0,
+            ReasoningText TEXT,
+            Status TEXT NOT NULL DEFAULT 'Pending',
+            CreatedAtUtc TEXT NOT NULL,
+            UpdatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
         // Metadata (version tracking)
         // ────────────────────────────────────────────────────────────────
         """

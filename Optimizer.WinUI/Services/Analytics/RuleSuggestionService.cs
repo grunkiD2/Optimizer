@@ -1,0 +1,149 @@
+using Optimizer.WinUI.Services.Data;
+
+namespace Optimizer.WinUI.Services.Analytics;
+
+/// <summary>
+/// Mines <c>ProfileApplications</c> for recurring time-of-day patterns and proposes
+/// TimeRange automation rules. A suggestion is raised when the same profile is applied
+/// within a similar 2-hour window on at least <see cref="MinOccurrences"/> distinct days.
+/// </summary>
+public class RuleSuggestionService(DatabaseService db) : IRuleSuggestionService
+{
+    private const int MinOccurrences = 4;
+
+    public async Task GenerateSuggestionsAsync(int lookbackDays = 30)
+    {
+        var cutoff = DateTime.UtcNow.AddDays(-lookbackDays);
+
+        const string sql = """
+            SELECT ProfileId, Context, AppliedAtUtc
+            FROM ProfileApplications
+            WHERE AppliedAtUtc >= @cutoff
+            ORDER BY AppliedAtUtc ASC
+            """;
+
+        var rows = await db.ExecuteQueryAsync(sql,
+            new Dictionary<string, object> { ["cutoff"] = cutoff.ToString("O") });
+
+        // Bucket applications by (profile, local 2-hour slot), counting distinct days.
+        var buckets = new Dictionary<(string profile, int slot), HashSet<DateOnly>>();
+
+        foreach (var row in rows)
+        {
+            var profileId = row["ProfileId"].ToString()!;
+            var appliedAt = DateTime.Parse(row["AppliedAtUtc"].ToString()!).ToLocalTime();
+            var slot = appliedAt.Hour / 2; // 0..11 (two-hour slots)
+            var day = DateOnly.FromDateTime(appliedAt);
+
+            var key = (profileId, slot);
+            if (!buckets.TryGetValue(key, out var days))
+                buckets[key] = days = new HashSet<DateOnly>();
+            days.Add(day);
+        }
+
+        // Existing pending/rejected suggestions we shouldn't duplicate.
+        var existing = await GetExistingSignaturesAsync();
+
+        foreach (var ((profileId, slot), days) in buckets)
+        {
+            if (days.Count < MinOccurrences) continue;
+
+            var startHour = slot * 2;
+            var endHour = Math.Min(24, startHour + 2);
+            var triggerValue = $"{startHour:00}:00-{endHour % 24:00}:00";
+            var signature = $"{profileId}|TimeRange|{triggerValue}";
+            if (existing.Contains(signature)) continue;
+
+            // Confidence scales with how consistently the pattern recurs.
+            var confidence = Math.Min(1.0, days.Count / (double)Math.Max(MinOccurrences, lookbackDays / 4));
+
+            var suggestion = new SuggestedAutomationRule
+            {
+                ProfileId = profileId,
+                ProfileName = profileId,
+                TriggerType = "TimeRange",
+                TriggerValue = triggerValue,
+                ConfidenceScore = confidence,
+                ReasoningText = $"Applied on {days.Count} days around {startHour:00}:00–{endHour % 24:00}:00."
+            };
+
+            await InsertSuggestionAsync(suggestion);
+        }
+
+        EngineLog.Write("Rule suggestion pass complete");
+    }
+
+    public async Task<List<SuggestedAutomationRule>> GetPendingSuggestionsAsync()
+    {
+        const string sql = """
+            SELECT Id, ProfileId, ProfileName, TriggerType, TriggerValue,
+                   ConfidenceScore, ReasoningText, CreatedAtUtc
+            FROM SuggestedRules
+            WHERE Status = 'Pending'
+            ORDER BY ConfidenceScore DESC, CreatedAtUtc DESC
+            """;
+
+        var rows = await db.ExecuteQueryAsync(sql);
+        return rows.Select(row => new SuggestedAutomationRule
+        {
+            Id = row["Id"].ToString()!,
+            ProfileId = row["ProfileId"].ToString()!,
+            ProfileName = row["ProfileName"]?.ToString() ?? "",
+            TriggerType = row["TriggerType"].ToString()!,
+            TriggerValue = row["TriggerValue"]?.ToString() ?? "",
+            ConfidenceScore = Convert.ToDouble(row["ConfidenceScore"]),
+            ReasoningText = row["ReasoningText"]?.ToString() ?? "",
+            CreatedAtUtc = DateTime.Parse(row["CreatedAtUtc"].ToString()!)
+        }).ToList();
+    }
+
+    public Task AcceptSuggestionAsync(string suggestionId) => SetStatusAsync(suggestionId, "Accepted");
+
+    public Task RejectSuggestionAsync(string suggestionId) => SetStatusAsync(suggestionId, "Rejected");
+
+    private async Task SetStatusAsync(string suggestionId, string status)
+    {
+        await db.ExecuteNonQueryAsync(
+            "UPDATE SuggestedRules SET Status = @status, UpdatedAt = @now WHERE Id = @id",
+            new Dictionary<string, object>
+            {
+                ["status"] = status,
+                ["now"] = DateTime.UtcNow.ToString("O"),
+                ["id"] = suggestionId
+            });
+    }
+
+    private async Task<HashSet<string>> GetExistingSignaturesAsync()
+    {
+        // Any non-pending (accepted/rejected) or already-pending suggestion counts as "seen".
+        const string sql = "SELECT ProfileId, TriggerType, TriggerValue FROM SuggestedRules";
+        var rows = await db.ExecuteQueryAsync(sql);
+        return rows
+            .Select(r => $"{r["ProfileId"]}|{r["TriggerType"]}|{r["TriggerValue"]}")
+            .ToHashSet();
+    }
+
+    private async Task InsertSuggestionAsync(SuggestedAutomationRule s)
+    {
+        const string sql = """
+            INSERT INTO SuggestedRules
+                (Id, ProfileId, ProfileName, TriggerType, TriggerValue,
+                 ConfidenceScore, ReasoningText, Status, CreatedAtUtc, UpdatedAt)
+            VALUES
+                (@id, @profileId, @profileName, @triggerType, @triggerValue,
+                 @confidence, @reasoning, 'Pending', @createdAt, @createdAt)
+            """;
+
+        await db.ExecuteNonQueryAsync(sql, new Dictionary<string, object>
+        {
+            ["id"] = s.Id,
+            ["profileId"] = s.ProfileId,
+            ["profileName"] = s.ProfileName,
+            ["triggerType"] = s.TriggerType,
+            ["triggerValue"] = s.TriggerValue,
+            ["confidence"] = s.ConfidenceScore,
+            ["reasoning"] = s.ReasoningText,
+            ["createdAt"] = s.CreatedAtUtc.ToString("O")
+        });
+    }
+}

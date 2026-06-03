@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Analytics;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -10,6 +11,8 @@ public partial class ProfilesViewModel : ObservableObject
 {
     private readonly IProfileService _profileService;
     private readonly IProfileAutomationService _automationService;
+    private readonly IProfileContextService _profileContext;
+    private readonly IContextDetectionService _contextDetection;
 
     [ObservableProperty] private bool isBusy;
 
@@ -31,10 +34,30 @@ public partial class ProfilesViewModel : ObservableObject
     public bool NoPresets => Presets.Count == 0;
     public int RuleCount => AutomationRules.Count;
 
-    public ProfilesViewModel(IProfileService profileService, IProfileAutomationService automationService)
+    public ProfilesViewModel(
+        IProfileService profileService,
+        IProfileAutomationService automationService,
+        IProfileContextService profileContext,
+        IContextDetectionService contextDetection)
     {
         _profileService = profileService;
         _automationService = automationService;
+        _profileContext = profileContext;
+        _contextDetection = contextDetection;
+    }
+
+    /// <summary>Record a profile application against the detected context for learning.</summary>
+    private async Task RecordApplicationAsync(string profileId)
+    {
+        try
+        {
+            var context = await _contextDetection.DetectContextAsync();
+            await _profileContext.RecordApplicationAsync(profileId, context);
+        }
+        catch (Exception ex)
+        {
+            EngineLog.Error("Failed to record profile application", ex);
+        }
     }
 
     /// <summary>Called by the page on Loaded — reloads both lists from the service.</summary>
@@ -69,6 +92,7 @@ public partial class ProfilesViewModel : ObservableObject
         try
         {
             var ok = await _profileService.ApplyPresetAsync(preset.Id);
+            await RecordApplicationAsync(preset.Id);
             SetStatus(ok
                 ? $"Preset \"{preset.Name}\" applied successfully."
                 : $"Preset \"{preset.Name}\" completed with errors — check the history log.");
@@ -94,6 +118,7 @@ public partial class ProfilesViewModel : ObservableObject
         try
         {
             var ok = await _profileService.RestoreSnapshotAsync(snapshot);
+            await RecordApplicationAsync(snapshot.Id);
             SetStatus(ok
                 ? $"Snapshot \"{snapshot.Name}\" restored."
                 : $"Snapshot \"{snapshot.Name}\" restored with some errors.");

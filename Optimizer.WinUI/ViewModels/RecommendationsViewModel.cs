@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Analytics;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -11,6 +12,8 @@ public partial class RecommendationsViewModel : ObservableObject
     private readonly IRecommendationsService _recommendations;
     private readonly ISmartInsightsService _insights;
     private readonly IIntelligenceService _intelligence;
+    private readonly IRecommendationRanker _ranker;
+    private readonly IContextDetectionService _contextDetection;
 
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private string statusMessage = "";
@@ -34,11 +37,15 @@ public partial class RecommendationsViewModel : ObservableObject
     public RecommendationsViewModel(
         IRecommendationsService recommendations,
         ISmartInsightsService insights,
-        IIntelligenceService intelligence)
+        IIntelligenceService intelligence,
+        IRecommendationRanker ranker,
+        IContextDetectionService contextDetection)
     {
         _recommendations = recommendations;
         _insights = insights;
         _intelligence = intelligence;
+        _ranker = ranker;
+        _contextDetection = contextDetection;
         Recommendations.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
 
@@ -66,6 +73,17 @@ public partial class RecommendationsViewModel : ObservableObject
             var sorted = _intelligence.IsTrained
                 ? recs.OrderByDescending(r => r.MlConfidence ?? 0.5f).ToList()
                 : recs.OrderByDescending(r => (int)r.Severity).ToList();
+
+            // Phase 3: layer context-aware learning (tool success + feedback) on top.
+            try
+            {
+                var context = await _contextDetection.DetectContextAsync();
+                sorted = (await _ranker.RankAsync(sorted, context)).ToList();
+            }
+            catch
+            {
+                // Ranker is best-effort; keep the ML/severity order on failure.
+            }
 
             ApplyFilter(sorted);
 
