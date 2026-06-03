@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Optimizer">
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -13,7 +13,8 @@
         </Grid.RowDefinitions>
 
         <Grid.KeyboardAccelerators>
-            <KeyboardAccelerator Modifiers="Control" Key="192" Invoked="ConsoleAccel_Invoked"/>
+            <!-- Ctrl+` (backtick / OEM_3, VK 192) is added in code-behind: its VirtualKey
+                 has no named XAML member, so a numeric Key="192" fails to parse. -->
             <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="OmniboxAccel_Invoked"/>
         </Grid.KeyboardAccelerators>
 

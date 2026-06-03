@@ -75,6 +75,16 @@ public sealed partial class MainWindow : Window
             (int)_settingsService.Settings.WindowWidth,
             (int)_settingsService.Settings.WindowHeight));
 
+        // Ctrl+` toggles the console dock. VK_OEM_3 (192) has no named VirtualKey member,
+        // so it can't be declared in XAML — register it here with an explicit cast.
+        var consoleAccel = new KeyboardAccelerator
+        {
+            Modifiers = Windows.System.VirtualKeyModifiers.Control,
+            Key = (Windows.System.VirtualKey)192,
+        };
+        consoleAccel.Invoked += ConsoleAccel_Invoked;
+        RootGrid.KeyboardAccelerators.Add(consoleAccel);
+
         // Hook close button — minimize to tray when setting is enabled
         AppWindow.Closing += AppWindow_Closing;
 
