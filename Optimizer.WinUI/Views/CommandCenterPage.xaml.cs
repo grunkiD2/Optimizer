@@ -82,9 +82,27 @@ public sealed partial class CommandCenterPage : Page
             RamTile.Status = Band(memPct, 75, 90);
             RamTile.SetTrend(_ramTrend.ToArray());
 
-            double health = 100.0 - 0.45 * m.CpuUsagePercentage - 0.35 * memPct - 0.20 * m.GpuUsagePercentage;
-            HealthRingControl.Score = Math.Clamp(health, 1, 100);
+            double health = Math.Clamp(100.0 - 0.45 * m.CpuUsagePercentage - 0.35 * memPct - 0.20 * m.GpuUsagePercentage, 1, 100);
+            if (!_ringInitialized) { _ringInitialized = true; _ = SweepRingAsync(health); }
+            else if (!_sweeping) HealthRingControl.Score = health;
         });
+    }
+
+    // Entrance sweep: ease the ring from 0 to the first reading, then track live.
+    private bool _ringInitialized;
+    private bool _sweeping;
+    private async Task SweepRingAsync(double target)
+    {
+        _sweeping = true;
+        const int steps = 28;
+        for (int i = 1; i <= steps; i++)
+        {
+            double t = i / (double)steps;
+            HealthRingControl.Score = target * (1 - Math.Pow(1 - t, 3)); // easeOutCubic
+            await Task.Delay(16);
+        }
+        HealthRingControl.Score = target;
+        _sweeping = false;
     }
 
     private static void Push(Queue<double> q, double v)

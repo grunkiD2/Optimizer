@@ -15,6 +15,7 @@ public sealed partial class StatTile : UserControl
     {
         InitializeComponent();
         ApplyStatus();
+        HoverLift.Attach(this);
     }
 
     public string Label { get => (string)GetValue(LabelProperty); set => SetValue(LabelProperty, value); }

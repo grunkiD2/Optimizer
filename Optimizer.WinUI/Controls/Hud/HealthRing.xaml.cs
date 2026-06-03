@@ -16,6 +16,7 @@ public sealed partial class HealthRing : UserControl
     {
         InitializeComponent();
         UpdateArc();
+        Loaded += (_, _) => GlowPulse.Begin();
     }
 
     public double Score

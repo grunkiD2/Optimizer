@@ -9,8 +9,9 @@
          "Ctrl+K" tooltip that otherwise appeared on hover anywhere in the window. -->
     <Grid x:Name="RootGrid" KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>   <!-- custom title bar (drag region) -->
+            <RowDefinition Height="Auto"/>   <!-- elevation info bar -->
+            <RowDefinition Height="*"/>      <!-- nav + content -->
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -23,9 +24,19 @@
             <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="OmniboxAccel_Invoked"/>
         </Grid.KeyboardAccelerators>
 
+        <!-- Custom title bar: with ExtendsContentIntoTitleBar the top reads as one continuous
+             glass (Mica) surface; the system caption buttons float at the right. -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Grid.ColumnSpan="2" Height="44" Background="Transparent">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="16,0,0,0">
+                <TextBlock Text="&#x25C9;" Foreground="{StaticResource AccentCyanBrush}" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="OPTIMIZER" FontWeight="SemiBold" FontSize="13" CharacterSpacing="120"
+                           Foreground="{ThemeResource HudTextPrimaryBrush}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
         <InfoBar
             x:Name="ElevationInfoBar"
-            Grid.Row="0"
+            Grid.Row="1"
             Grid.ColumnSpan="2"
             IsOpen="True"
             IsClosable="False"
@@ -40,7 +51,7 @@
 
         <InfoBar
             x:Name="ElevatedInfoBar"
-            Grid.Row="0"
+            Grid.Row="1"
             Grid.ColumnSpan="2"
             IsOpen="True"
             IsClosable="True"
@@ -51,7 +62,7 @@
 
         <NavigationView
             x:Name="NavView"
-            Grid.Row="1"
+            Grid.Row="2"
             Grid.Column="0"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="False"
@@ -201,9 +212,10 @@
         </NavigationView>
 
         <!-- Persistent console dock (Assistant + Activity), right side. Toggled with Ctrl+`; can pop out. -->
-        <Border Grid.Row="1" Grid.Column="1" x:Name="ConsoleDockHost" Width="440"
+        <Border Grid.Row="2" Grid.Column="1" x:Name="ConsoleDockHost" Width="440"
+                Background="{ThemeResource HudSurfaceAltBrush}"
                 BorderThickness="1,0,0,0"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderBrush="{StaticResource HudGlassBorderBrush}"
                 Visibility="Collapsed"/>
     </Grid>
 </Window>

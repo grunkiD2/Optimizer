@@ -55,6 +55,11 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Immersive chrome: extend content into the title bar so the top is one glass surface.
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        StyleCaptionButtons();
+
         // Capture the UI-thread dispatcher so background-thread events (event bus) can marshal to UI.
         App.UiDispatcher = DispatcherQueue;
 
@@ -191,6 +196,20 @@ public sealed partial class MainWindow : Window
         }
 
         _navigationService.NavigateTo(PageMap[lastNav]);
+    }
+
+    /// <summary>Make the system caption buttons blend into the glass title bar (transparent bg, cyan hover).</summary>
+    private void StyleCaptionButtons()
+    {
+        if (!AppWindowTitleBar.IsCustomizationSupported()) return;
+        var tb = AppWindow.TitleBar;
+        tb.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+        tb.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+        tb.ButtonForegroundColor = Microsoft.UI.Colors.White;
+        tb.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(0xFF, 0x9C, 0xA3, 0xAF);
+        tb.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(0x33, 0x38, 0xBD, 0xF8);
+        tb.ButtonHoverForegroundColor = Microsoft.UI.Colors.White;
+        tb.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(0x55, 0x38, 0xBD, 0xF8);
     }
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

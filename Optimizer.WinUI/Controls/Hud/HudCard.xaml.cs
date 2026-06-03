@@ -9,7 +9,11 @@ namespace Optimizer.WinUI.Controls.Hud;
 [ContentProperty(Name = nameof(CardContent))]
 public sealed partial class HudCard : UserControl
 {
-    public HudCard() => InitializeComponent();
+    public HudCard()
+    {
+        InitializeComponent();
+        HoverLift.Attach(this, scale: 1.012f, lift: -3f);
+    }
 
     public object CardContent
     {
