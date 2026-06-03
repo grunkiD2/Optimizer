@@ -2,6 +2,7 @@ using System.Linq;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Commands;
 using Optimizer.WinUI.Views;
@@ -151,6 +152,49 @@ public sealed partial class MainWindow : Window
                 _settingsService.Save();
             }
         }
+    }
+
+    // ── Console dock ────────────────────────────────────────────────────────
+
+    private ConsolePanel? _dockPanel;
+    private ConsoleWindow? _popOut;
+
+    private void EnsureDockPanel()
+    {
+        if (_dockPanel != null) return;
+        _dockPanel = new ConsolePanel();
+        _dockPanel.CollapseRequested += (_, _) => SetConsoleVisible(false);
+        _dockPanel.PopOutRequested += (_, _) => PopOutConsole();
+        ConsoleDockHost.Child = _dockPanel;
+    }
+
+    public void SetConsoleVisible(bool visible)
+    {
+        EnsureDockPanel();
+        ConsoleDockHost.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public void ToggleConsole() =>
+        SetConsoleVisible(ConsoleDockHost.Visibility != Visibility.Visible);
+
+    public void FocusAssistant()
+    {
+        SetConsoleVisible(true);
+        _dockPanel?.FocusAssistant();
+    }
+
+    private void PopOutConsole()
+    {
+        SetConsoleVisible(false);
+        _popOut = new ConsoleWindow();
+        _popOut.ReDockRequested += (_, _) => { _popOut = null; SetConsoleVisible(true); };
+        _popOut.Activate();
+    }
+
+    private void ConsoleAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ToggleConsole();
+        args.Handled = true;
     }
 
     private async void RelaunchElevated_Click(object sender, RoutedEventArgs e)

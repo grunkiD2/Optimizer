@@ -9,7 +9,12 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Modifiers="Control" Key="192" Invoked="ConsoleAccel_Invoked"/>
+        </Grid.KeyboardAccelerators>
 
         <InfoBar
             x:Name="ElevationInfoBar"
@@ -174,5 +179,11 @@
 
             <Frame x:Name="ContentFrame"/>
         </NavigationView>
+
+        <!-- Persistent console dock (Activity + Assistant). Toggled with Ctrl+`; can pop out. -->
+        <Border Grid.Row="2" x:Name="ConsoleDockHost" Height="280"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Visibility="Collapsed"/>
     </Grid>
 </Window>
