@@ -33,6 +33,7 @@ public sealed partial class MainWindow : Window
         ["Marketplace"] = typeof(MarketplacePage),
         ["Plugins"]     = typeof(PluginsPage),
         ["History"] = typeof(HistoryPage),
+        ["Learning"] = typeof(LearningPage),
         ["EventLogs"] = typeof(EventLogsPage),
         ["Reports"]      = typeof(ReportsPage),
         ["Settings"]     = typeof(SettingsPage),

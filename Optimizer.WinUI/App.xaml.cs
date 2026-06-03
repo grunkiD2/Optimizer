@@ -237,6 +237,7 @@ public partial class App : Application
                 services.AddTransient<StartupCategoryViewModel>();
                 services.AddTransient<ProfilesViewModel>();
                 services.AddTransient<HistoryViewModel>();
+                services.AddTransient<LearningDashboardViewModel>();
                 services.AddSingleton<HardwareViewModel>();
                 services.AddTransient<ServicesViewModel>();
                 services.AddTransient<DiagnosticsViewModel>();

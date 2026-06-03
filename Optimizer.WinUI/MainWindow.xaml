@@ -152,6 +152,11 @@
                         <FontIcon Glyph="&#xE81C;"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Learning" Tag="Learning">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9D9;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Event Logs" Tag="EventLogs">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE7C3;"/>
