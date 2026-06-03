@@ -357,4 +357,62 @@ public class GpuControlServiceTests
         // ResetToDefault must not throw
         backend.ResetToDefault();
     }
+
+    // ── GPU memory (VRAM) unit handling ───────────────────────────────────────
+
+    [Fact]
+    public void GpuMemoryUsedMb_SmallDataReading_StaysInMb()
+    {
+        // LHM reports "GPU Memory Used" as SmallData (MB). It must not be scaled.
+        var snap = new HardwareSnapshot();
+        snap.GpuMemory.Add(new SensorReading
+        {
+            Name = "GPU Memory Used", HardwareName = "NVIDIA", Value = 4096,
+            Kind = SensorKind.Data, Unit = "MB",
+        });
+
+        Assert.Equal(4096, snap.GpuMemoryUsedMb);
+    }
+
+    [Fact]
+    public void GpuMemoryUsedMb_DataReadingInGb_IsConvertedToMb()
+    {
+        var snap = new HardwareSnapshot();
+        snap.GpuMemory.Add(new SensorReading
+        {
+            Name = "GPU Memory Used", HardwareName = "AMD", Value = 4,
+            Kind = SensorKind.Data, Unit = "GB",
+        });
+
+        Assert.Equal(4096, snap.GpuMemoryUsedMb); // 4 GB → 4096 MB
+    }
+
+    [Fact]
+    public void GpuMemoryUsedMb_NoReading_IsNull()
+    {
+        Assert.Null(new HardwareSnapshot().GpuMemoryUsedMb);
+    }
+
+    [Fact]
+    public void ReadTelemetry_MapsVramUsed_FromSmallDataMb_WithoutInflation()
+    {
+        // Regression: the old consumer assumed GB and multiplied by 1024, inflating SmallData
+        // (MB) GPU memory 1024×. VRAM used should pass through as MB.
+        var snap = new HardwareSnapshot();
+        snap.GpuLoads.Add(new SensorReading { Name = "GPU Core", Value = 50, Kind = SensorKind.Load, Unit = "%" });
+        snap.GpuMemory.Add(new SensorReading
+        {
+            Name = "GPU Memory Used", HardwareName = "NVIDIA GeForce Test", Value = 8192,
+            Kind = SensorKind.Data, Unit = "MB",
+        });
+        var sensors = new Mock<ISensorService>();
+        sensors.Setup(s => s.IsAvailable).Returns(true);
+        sensors.Setup(s => s.GetSnapshot()).Returns(snap);
+        var backend = MakeBackend(GpuVendor.Nvidia, isAvailable: true);
+
+        var result = new GpuControlService(sensors.Object, new[] { backend.Object }).ReadTelemetry();
+
+        Assert.NotEmpty(result);
+        Assert.Equal(8192, result[0].VramUsedMb);
+    }
 }

@@ -62,10 +62,7 @@ public sealed class GpuControlService : IGpuControlService
             LoadPercent  = snap.GpuLoads.FirstOrDefault(s =>
                                s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase))?.Value
                         ?? snap.GpuLoads.FirstOrDefault()?.Value,
-            VramUsedMb   = snap.GpuMemory
-                               .FirstOrDefault(s => s.Name.Contains("Used", StringComparison.OrdinalIgnoreCase))?.Value
-                               // LHM Data sensors are in GB; convert to MB
-                               is double gbVal ? gbVal * 1024 : null,
+            VramUsedMb   = snap.GpuMemoryUsedMb,
         };
 
         // Only return a snapshot if we actually have some data

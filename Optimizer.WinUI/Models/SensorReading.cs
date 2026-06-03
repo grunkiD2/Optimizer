@@ -42,6 +42,17 @@ public class HardwareSnapshot
     public double? GpuMemoryMhz =>
         GpuClocks.FirstOrDefault(s => s.Name.Contains("Memory", StringComparison.OrdinalIgnoreCase))?.Value;
 
+    /// <summary>Dedicated GPU memory in use, normalized to MB regardless of the sensor's native unit.</summary>
+    public double? GpuMemoryUsedMb
+    {
+        get
+        {
+            var r = GpuMemory.FirstOrDefault(s => s.Name.Contains("Used", StringComparison.OrdinalIgnoreCase));
+            if (r?.Value is not double v) return null;
+            return r.Unit == "GB" ? v * 1024 : v; // SmallData is already MB; Data is GB
+        }
+    }
+
     public double? GpuPowerWatts => GpuPowers.FirstOrDefault()?.Value;
 
     public double? CpuPowerWatts =>

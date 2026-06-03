@@ -143,6 +143,7 @@ public class ApiHostService : IApiHostService
                 cpuPower  = snap.CpuPowerWatts,
                 gpuPower  = snap.GpuPowerWatts,
                 gpuCoreMhz = snap.GpuCoreMhz,
+                gpuVramUsedMb = snap.GpuMemoryUsedMb,
                 fans      = snap.FanSpeeds.Select(f => new { name = f.Name, rpm = f.Value })
             });
         })

@@ -84,6 +84,7 @@ public class SensorService : ISensorService
                 SensorType.Load       => (SensorKind.Load, "%"),
                 SensorType.Power      => (SensorKind.Power, "W"),
                 SensorType.Data       => (SensorKind.Data, "GB"),
+                SensorType.SmallData  => (SensorKind.Data, "MB"), // LHM reports SmallData in MB (e.g. GPU memory)
                 _                     => (SensorKind.Data, "")
             };
 
@@ -107,7 +108,9 @@ public class SensorService : ISensorService
                     case SensorType.Clock:       snapshot.GpuClocks.Add(reading); break;
                     case SensorType.Load:        snapshot.GpuLoads.Add(reading); break;
                     case SensorType.Power:       snapshot.GpuPowers.Add(reading); break;
-                    case SensorType.Data:        snapshot.GpuMemory.Add(reading); break;
+                    // GPU memory is reported as SmallData (MB) on most GPUs, occasionally Data (GB).
+                    case SensorType.Data:
+                    case SensorType.SmallData:   snapshot.GpuMemory.Add(reading); break;
                     case SensorType.Fan:         snapshot.FanSpeeds.Add(reading); break;
                 }
             }
