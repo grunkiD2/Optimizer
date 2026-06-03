@@ -457,18 +457,20 @@ public partial class App : Application
             // automation-rule suggestions from observed behavior. Runs periodically.
             _ = Task.Run(async () =>
             {
+                var stop = GetService<Microsoft.Extensions.Hosting.IHostApplicationLifetime>().ApplicationStopping;
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(45));
+                    await Task.Delay(TimeSpan.FromSeconds(45), stop);
                     var profileContext = GetService<Optimizer.WinUI.Services.Analytics.IProfileContextService>();
                     var ruleSuggest = GetService<Optimizer.WinUI.Services.Analytics.IRuleSuggestionService>();
-                    while (true)
+                    while (!stop.IsCancellationRequested)
                     {
                         await profileContext.ResolvePendingAsync(TimeSpan.FromMinutes(30));
                         await ruleSuggest.GenerateSuggestionsAsync();
-                        await Task.Delay(TimeSpan.FromMinutes(10));
+                        await Task.Delay(TimeSpan.FromMinutes(10), stop);
                     }
                 }
+                catch (OperationCanceledException) { /* app shutting down */ }
                 catch (Exception ex)
                 {
                     WriteCrashLog("ProfileContext/RuleSuggestion", ex);
@@ -479,16 +481,17 @@ public partial class App : Application
             // predictive-maintenance alerts. Samples every 2 minutes; alerts hourly.
             _ = Task.Run(async () =>
             {
+                var stop = GetService<Microsoft.Extensions.Hosting.IHostApplicationLifetime>().ApplicationStopping;
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(2));
+                    await Task.Delay(TimeSpan.FromMinutes(2), stop);
                     var detector = GetService<Optimizer.WinUI.Services.Analytics.IAnomalyDetector>();
                     var contextDetect = GetService<IContextDetectionService>();
                     var monitor = GetService<ISystemMonitorService>();
                     var predictive = GetService<Optimizer.WinUI.Services.Analytics.IPredictiveAlertService>();
 
                     var ticks = 0;
-                    while (true)
+                    while (!stop.IsCancellationRequested)
                     {
                         var context = await contextDetect.DetectContextAsync();
                         var snap = monitor.CollectSnapshot();
@@ -510,9 +513,10 @@ public partial class App : Application
                             await predictive.EvaluateAsync();
                         ticks++;
 
-                        await Task.Delay(TimeSpan.FromMinutes(2));
+                        await Task.Delay(TimeSpan.FromMinutes(2), stop);
                     }
                 }
+                catch (OperationCanceledException) { /* app shutting down */ }
                 catch (Exception ex)
                 {
                     WriteCrashLog("AnomalyDetector/PredictiveAlerts", ex);

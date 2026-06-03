@@ -59,7 +59,11 @@ public sealed class DpapiApiKeyStore : IApiKeyStore
                 fileInfo.SetAccessControl(fileSecurity);
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            // Hardening the ACLs is best-effort — the (DPAPI-encrypted) key still works without it.
+            EngineLog.Error("Key store: failed to tighten key-file ACLs", ex);
+        }
     }
 
     public string? GetKey()
@@ -71,11 +75,17 @@ public sealed class DpapiApiKeyStore : IApiKeyStore
             var clear = ProtectedData.Unprotect(protectedBytes, Entropy, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(clear);
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            // Corrupt/undecryptable key file — treat as "no key". (Never logs the key itself.)
+            EngineLog.Error("Key store: failed to read/decrypt the stored API key", ex);
+            return null;
+        }
     }
 
     public void Clear()
     {
-        try { if (File.Exists(_file)) File.Delete(_file); } catch { }
+        try { if (File.Exists(_file)) File.Delete(_file); }
+        catch (Exception ex) { EngineLog.Error("Key store: failed to delete key file", ex); }
     }
 }

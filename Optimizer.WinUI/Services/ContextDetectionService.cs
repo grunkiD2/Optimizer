@@ -5,15 +5,16 @@ namespace Optimizer.WinUI.Services;
 /// <summary>Detects the user's current context (Gaming, Work, Plex, etc.).</summary>
 public interface IContextDetectionService
 {
-    /// <summary>Detect current context based on running processes, time, and active profile.</summary>
+    /// <summary>Detect the current context from running processes and time-of-day.</summary>
     Task<string> DetectContextAsync();
 }
 
-/// <summary>Detects context via process monitoring, time-of-day, and active profile.</summary>
+/// <summary>
+/// Detects context from running processes (primary signal) and time-of-day (fallback).
+/// Active-profile-based detection is a future enhancement and intentionally not wired in yet.
+/// </summary>
 public class ContextDetectionService : IContextDetectionService
 {
-    private readonly IProfileService _profileService;
-
     private static readonly string[] GamingProcesses = new[]
     {
         "obs64.exe", "obs.exe",           // OBS streaming
@@ -42,30 +43,7 @@ public class ContextDetectionService : IContextDetectionService
         "zoom.exe", "skype.exe",           // Conferencing
     };
 
-    public ContextDetectionService(IProfileService profileService)
-    {
-        _profileService = profileService;
-    }
-
-    public async Task<string> DetectContextAsync()
-    {
-        // Priority 1: Check if a profile is currently active
-        var activeProfile = await GetActiveProfileAsync();
-        if (!string.IsNullOrEmpty(activeProfile))
-        {
-            return activeProfile switch
-            {
-                "Gaming" => "Gaming",
-                "Productivity" or "Work" => "Work",
-                "BatterySaver" => "Work",
-                "Performance" => "Work",
-                _ => DetectByProcessesAndTime()
-            };
-        }
-
-        // Priority 2: Detect by running processes and time-of-day
-        return DetectByProcessesAndTime();
-    }
+    public Task<string> DetectContextAsync() => Task.FromResult(DetectByProcessesAndTime());
 
     private string DetectByProcessesAndTime()
     {
@@ -95,13 +73,6 @@ public class ContextDetectionService : IContextDetectionService
             return "Work";
 
         return "Unknown";
-    }
-
-    private Task<string> GetActiveProfileAsync()
-    {
-        // TODO: Check which profile is currently active
-        // This would integrate with IWindowsOptimizerService to see what optimizations are applied
-        return Task.FromResult(string.Empty);
     }
 
     private static List<string> GetRunningProcessNames()

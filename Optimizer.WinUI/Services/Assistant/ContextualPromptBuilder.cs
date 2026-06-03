@@ -47,7 +47,7 @@ public class ContextualPromptBuilder(
                 sb.Append(".\n");
             }
         }
-        catch { /* best-effort */ }
+        catch (Exception ex) { EngineLog.Error("Prompt: reliable-tools section failed (skipped)", ex); }
 
         // Best learned action sequence for this context.
         try
@@ -56,7 +56,7 @@ public class ContextualPromptBuilder(
             if (pattern != null)
                 sb.Append($"A sequence that often succeeds here: {string.Join(" → ", pattern.ActionSequence)}.\n");
         }
-        catch { /* best-effort */ }
+        catch (Exception ex) { EngineLog.Error("Prompt: learned-pattern section failed (skipped)", ex); }
 
         // Tools the user has explicitly liked recently.
         try
@@ -71,7 +71,7 @@ public class ContextualPromptBuilder(
             if (liked.Count > 0)
                 sb.Append($"The user has given positive feedback on: {string.Join(", ", liked)}.\n");
         }
-        catch { /* best-effort */ }
+        catch (Exception ex) { EngineLog.Error("Prompt: liked-tools section failed (skipped)", ex); }
 
         sb.Append("Use these as hints only — always honor the user's explicit request and confirm system changes.");
         return sb.ToString();
