@@ -4,9 +4,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Calm by default: a quiet hairline. The cyan glow-edge is reserved for emphasis
+         (active / selected / significant), applied per-use rather than on every card. -->
     <Border CornerRadius="{StaticResource CardCornerRadius}"
             Background="{ThemeResource HudSurfaceBrush}"
-            BorderBrush="{StaticResource HudGlassBorderBrush}"
+            BorderBrush="{ThemeResource HudHairlineBrush}"
             BorderThickness="1"
             Padding="{StaticResource CardPadding}">
         <StackPanel Spacing="12">

@@ -6,7 +6,7 @@
 
     <Border CornerRadius="{StaticResource CardCornerRadius}"
             Background="{ThemeResource HudSurfaceBrush}"
-            BorderBrush="{StaticResource HudGlassBorderBrush}"
+            BorderBrush="{ThemeResource HudHairlineBrush}"
             BorderThickness="1"
             Padding="{StaticResource CardPaddingTight}">
         <StackPanel Spacing="6">

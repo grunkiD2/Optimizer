@@ -7,22 +7,23 @@
     <!-- Shared HUD page backdrop: deep gradient base + cyan/violet color blooms for the
          frosted-glass surfaces to refract. Page content goes in the default Content slot. -->
     <Grid Background="{StaticResource HudPageBackgroundBrush}">
-        <Ellipse Width="780" Height="780" HorizontalAlignment="Left" VerticalAlignment="Top"
-                 Margin="-240,-280,0,0" IsHitTestVisible="False">
+        <!-- Calm: the blooms only tint the background faintly (they "fade into the background"). -->
+        <Ellipse Width="820" Height="820" HorizontalAlignment="Left" VerticalAlignment="Top"
+                 Margin="-260,-300,0,0" IsHitTestVisible="False">
             <Ellipse.Fill>
                 <RadialGradientBrush>
-                    <GradientStop Color="#4A38BDF8" Offset="0.0"/>
-                    <GradientStop Color="#1A38BDF8" Offset="0.55"/>
+                    <GradientStop Color="#2138BDF8" Offset="0.0"/>
+                    <GradientStop Color="#0B38BDF8" Offset="0.5"/>
                     <GradientStop Color="#0038BDF8" Offset="1.0"/>
                 </RadialGradientBrush>
             </Ellipse.Fill>
         </Ellipse>
-        <Ellipse Width="880" Height="880" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                 Margin="0,0,-280,-320" IsHitTestVisible="False">
+        <Ellipse Width="900" Height="900" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                 Margin="0,0,-300,-340" IsHitTestVisible="False">
             <Ellipse.Fill>
                 <RadialGradientBrush>
-                    <GradientStop Color="#42A78BFA" Offset="0.0"/>
-                    <GradientStop Color="#18A78BFA" Offset="0.55"/>
+                    <GradientStop Color="#1EA78BFA" Offset="0.0"/>
+                    <GradientStop Color="#0AA78BFA" Offset="0.5"/>
                     <GradientStop Color="#00A78BFA" Offset="1.0"/>
                 </RadialGradientBrush>
             </Ellipse.Fill>

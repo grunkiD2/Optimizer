@@ -13,8 +13,8 @@
     <ResourceDictionary.ThemeDictionaries>
         <!-- DARK (design target) — frosted "holo glass" surfaces -->
         <ResourceDictionary x:Key="Default">
-            <AcrylicBrush x:Key="HudSurfaceBrush" TintColor="#18233D" TintOpacity="0.42"
-                          TintLuminosityOpacity="0.5" FallbackColor="#D918233D" />
+            <AcrylicBrush x:Key="HudSurfaceBrush" TintColor="#141B2E" TintOpacity="0.5"
+                          TintLuminosityOpacity="0.42" FallbackColor="#E0141B2E" />
             <AcrylicBrush x:Key="HudSurfaceAltBrush" TintColor="#0B1018" TintOpacity="0.6"
                           TintLuminosityOpacity="0.4" FallbackColor="#E60B1018" />
             <SolidColorBrush x:Key="HudHairlineBrush"    Color="#1FFFFFFF" />

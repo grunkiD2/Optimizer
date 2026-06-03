@@ -13,7 +13,7 @@
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
             <Border Width="48" Height="48" CornerRadius="{StaticResource InnerCornerRadius}"
                     Background="{StaticResource AccentSoftBrush}"
-                    BorderBrush="{StaticResource HudGlassBorderBrush}" BorderThickness="1">
+                    BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                 <TextBlock Text="{x:Bind Icon, Mode=OneWay}" FontSize="24"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
