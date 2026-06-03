@@ -107,17 +107,22 @@ this registry in a later cleanup — out of scope here, noted as follow-up.)
 
 ### 2. Claude client (`IClaudeClient`)
 
-Thin `HttpClient` wrapper over the **Messages API** (`POST https://api.anthropic.com/v1/messages`,
-`x-api-key` header, `anthropic-version: 2023-06-01`). **No third-party SDK dependency** — we control
-the surface and mock the `HttpMessageHandler` in tests.
+The **official Anthropic .NET SDK** (`Anthropic` NuGet package, `AnthropicClient`) wrapped behind a
+project-owned `IClaudeClient` interface so orchestration depends on our own DTOs, not SDK types
+(keeps the orchestration unit-testable with a fake `IClaudeClient`). Per the `claude-api` skill,
+C# code calls Claude through the official SDK rather than raw HTTP.
 
-- **SSE streaming** for token-by-token UI output.
-- **Tool-use**: tool definitions generated from the registry; handles `stop_reason: tool_use`.
-- **Prompt caching**: system prompt + tool definitions marked with `cache_control` so repeated
-  turns are cheaper/faster. (Exact cache-block placement per the `claude-api` skill at build time.)
-- **Models**: default `claude-sonnet-4-6`; `claude-haiku-4-5-20251001` selectable in settings.
+- **SSE streaming** (`AnthropicClient.Messages.CreateStreaming`) for token-by-token UI output.
+- **Tool-use**: tool definitions generated from the registry; manual loop so we can gate
+  confirmation (handles `stop_reason == tool_use`).
+- **Prompt caching**: system prompt + tool definitions marked with `CacheControlEphemeral` so
+  repeated turns are cheaper/faster.
+- **Models**: default `claude-sonnet-4-6`; `claude-haiku-4-5-20251001` and `claude-opus-4-8`
+  selectable in settings.
 - **Errors** mapped to friendly results: 401 (invalid key), 429 (rate limit → backoff message),
   network failure. The API key is never written to logs (redacted in `EngineLog`).
+- **Pure mapping** (our DTOs ↔ SDK types) is factored into a static `ClaudeMapper` that is
+  unit-tested directly; the thin network glue in `ClaudeClient` is not unit-tested.
 
 ### 3. Orchestration (`IAssistantService`)
 
