@@ -14,6 +14,10 @@ public sealed class AssistantCallbacks
     /// Args summary is human-readable (command id + arguments).
     /// </summary>
     public Func<string, string, Task<bool>> ConfirmAsync { get; init; } = (_, _) => Task.FromResult(false);
+
+    /// <summary>Called after each tool finishes, with the tool id and whether it succeeded.
+    /// Lets the UI attribute user feedback to the specific tools a turn used.</summary>
+    public Action<string, bool> OnToolExecuted { get; init; } = (_, _) => { };
 }
 
 public interface IAssistantService

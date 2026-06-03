@@ -184,6 +184,14 @@ public partial class App : Application
                 services.AddSingleton<ISessionPersistence, SessionPersistence>();
                 services.AddSingleton<IContextDetectionService, ContextDetectionService>();
 
+                // Phase 2: Analytics, pattern recognition, feedback
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IActionAnalyticsService,
+                                      Optimizer.WinUI.Services.Analytics.ActionAnalyticsService>();
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IPatternExtractionService,
+                                      Optimizer.WinUI.Services.Analytics.PatternExtractionService>();
+                services.AddSingleton<Optimizer.WinUI.Services.Analytics.IAssistantFeedbackService,
+                                      Optimizer.WinUI.Services.Analytics.AssistantFeedbackService>();
+
                 // REST API host
                 services.AddSingleton<IApiHostService>(sp =>
                     new ApiHostService(sp));
@@ -266,6 +274,7 @@ public partial class App : Application
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IAssistantService>(),
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.IApiKeyStore>(),
                     sp.GetRequiredService<Optimizer.WinUI.Services.Assistant.ISessionPersistence>(),
+                    sp.GetRequiredService<Optimizer.WinUI.Services.Analytics.IAssistantFeedbackService>(),
                     OnUi));
 
                 // MainWindow (registered as singleton so DI can inject it)
@@ -384,6 +393,24 @@ public partial class App : Application
                 catch (Exception ex)
                 {
                     WriteCrashLog("FederatedClient.SyncAsync", ex);
+                }
+            });
+
+            // Phase 2: Recalculate analytics + re-mine learned patterns from the
+            // action log after the app settles. Cheap, local, fire-and-forget.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+                    await GetService<Optimizer.WinUI.Services.Analytics.IActionAnalyticsService>()
+                        .RecalculateMetricsAsync();
+                    await GetService<Optimizer.WinUI.Services.Analytics.IPatternExtractionService>()
+                        .ExtractPatternsAsync();
+                }
+                catch (Exception ex)
+                {
+                    WriteCrashLog("Analytics/PatternExtraction", ex);
                 }
             });
 

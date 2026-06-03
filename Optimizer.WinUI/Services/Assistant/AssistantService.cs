@@ -83,6 +83,8 @@ public sealed class AssistantService(
                         detectedContext: context,
                         executionTimeMs: (int)sw.ElapsedMilliseconds);
 
+                    cb.OnToolExecuted(cmd.Id, r.Success);
+
                     toolResults.Add(new ClaudeBlock(ClaudeBlockKind.ToolResult,
                         ToolUseId: use.ToolUseId!, ToolResultContent: r.Summary, ToolResultIsError: !r.Success));
                 }
@@ -98,6 +100,8 @@ public sealed class AssistantService(
                         ex.Message,
                         detectedContext: context,
                         executionTimeMs: (int)sw.ElapsedMilliseconds);
+
+                    cb.OnToolExecuted(cmd.Id, false);
 
                     toolResults.Add(ToolError(use.ToolUseId!, $"Command threw: {ex.Message}"));
                 }

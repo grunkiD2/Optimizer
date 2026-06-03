@@ -3,7 +3,11 @@
     x:Class="Optimizer.WinUI.Views.ConsolePanel"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
     xmlns:m="using:Optimizer.WinUI.Models">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -31,6 +35,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="ASSISTANT" FontSize="11" FontWeight="SemiBold"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" Padding="10,6,10,2"/>
@@ -41,7 +46,19 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            <Grid Grid.Row="2" Padding="8">
+
+            <!-- Feedback bar: appears after a turn that ran tools -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" Padding="10,2"
+                        Visibility="{x:Bind AssistantVM.CanRateLastTurn, Mode=OneWay}">
+                <TextBlock Text="Was that helpful?" VerticalAlignment="Center" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                <Button Content="👍" Padding="6,2" Command="{x:Bind AssistantVM.RateUpCommand}"
+                        ToolTipService.ToolTip="Yes, helpful"/>
+                <Button Content="👎" Padding="6,2" Command="{x:Bind AssistantVM.RateDownCommand}"
+                        ToolTipService.ToolTip="No, not helpful"/>
+            </StackPanel>
+
+            <Grid Grid.Row="3" Padding="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>

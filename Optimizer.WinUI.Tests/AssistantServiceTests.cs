@@ -44,6 +44,22 @@ public class AssistantServiceTests
         public string Model { get; set; } = "claude-sonnet-4-6";
     }
 
+    private sealed class NoopActionLogger : IAssistantActionLogger
+    {
+        public Task LogActionAsync(string toolId, string? arguments, bool success,
+            string? errorMessage = null, int executionTimeMs = 0, string? detectedContext = null)
+            => Task.CompletedTask;
+        public Task<ToolActionMetrics?> GetMetricsAsync(string toolId, string? context = null)
+            => Task.FromResult<ToolActionMetrics?>(null);
+        public Task<List<AssistantActionLog>> GetRecentActionsAsync(int dayCount = 30)
+            => Task.FromResult(new List<AssistantActionLog>());
+    }
+
+    private sealed class FakeContextDetection : Optimizer.WinUI.Services.IContextDetectionService
+    {
+        public Task<string> DetectContextAsync() => Task.FromResult("Unknown");
+    }
+
     private static ClaudeResult Text(string s) =>
         new(new ClaudeTurn("end_turn", [new ClaudeBlock(ClaudeBlockKind.Text, Text: s)]), ClaudeErrorKind.None, null);
 
@@ -60,7 +76,7 @@ public class AssistantServiceTests
         reg.Register(cmd);
         var claude = new ScriptedClaude(script);
         var settings = new FakeAssistantSettings { AllowActions = allowActions };
-        return (new AssistantService(claude, reg, settings), claude, cmd);
+        return (new AssistantService(claude, reg, settings, new NoopActionLogger(), new FakeContextDetection()), claude, cmd);
     }
 
     [Fact]
