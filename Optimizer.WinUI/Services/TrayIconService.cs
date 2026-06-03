@@ -56,7 +56,14 @@ public class TrayIconService : ITrayIconService
         };
 
         // Build context menu flyout
-        var menu = new MenuFlyout();
+        var menu = new MenuFlyout
+        {
+            // The tray flyout is hosted via the main window's XamlRoot. On a multi-monitor
+            // setup the main window may live on a different screen than the taskbar/cursor;
+            // constraining to root bounds clamps the menu onto the main window's monitor.
+            // Letting it escape the root bounds allows it to appear at the cursor's screen.
+            ShouldConstrainToRootBounds = false,
+        };
 
         var openItem = new MenuFlyoutItem { Text = "Open Dashboard" };
         openItem.Click += (_, _) => RestoreWindow();
