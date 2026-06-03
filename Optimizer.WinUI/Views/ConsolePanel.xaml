@@ -42,7 +42,7 @@
             <ListView Grid.Row="1" x:Name="AssistantList" ItemsSource="{x:Bind AssistantVM.Messages}" SelectionMode="None" Padding="6,0"
                       HorizontalContentAlignment="Stretch"
                       ScrollViewer.VerticalScrollMode="Enabled"
-                      ScrollViewer.VerticalScrollBarVisibility="Visible"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollMode="Disabled"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListView.ItemTemplate>
@@ -93,7 +93,7 @@
                       FontFamily="Consolas" SelectionMode="None" Padding="6,0"
                       HorizontalContentAlignment="Stretch"
                       ScrollViewer.VerticalScrollMode="Enabled"
-                      ScrollViewer.VerticalScrollBarVisibility="Visible"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollMode="Disabled"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListView.ItemTemplate>

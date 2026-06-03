@@ -100,10 +100,6 @@ public sealed partial class MainWindow : Window
         // Console dock is open by default on the right — no Ctrl+` needed.
         EnsureDockPanel();
         SetConsoleVisible(true);
-
-        // Make the mouse wheel scroll whatever ScrollViewer is under the cursor, across every
-        // page and the console dock (corrects WinUI's focus-based + offset wheel routing).
-        Optimizer.WinUI.Helpers.WheelScrollRouter.Attach(this);
     }
 
     /// <summary>Maximize on launch if configured. Called after Activate() so it sticks reliably.</summary>
