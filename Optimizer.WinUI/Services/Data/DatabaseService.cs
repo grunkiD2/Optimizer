@@ -16,10 +16,14 @@ public class DatabaseService : IAsyncDisposable
         _connectionString = $"Data Source={dbPath};Cache=Shared";
     }
 
-    /// <summary>Test-only: point the service at a specific database file (e.g. a temp path).</summary>
+    /// <summary>
+    /// Test-only: point the service at a specific database file (e.g. a temp path). Pooling is
+    /// disabled so each connection closes deterministically — parallel test classes can't clash on
+    /// a shared connection pool, and the temp file is releasable for deletion right after a test.
+    /// </summary>
     internal DatabaseService(string dbFilePath)
     {
-        _connectionString = $"Data Source={dbFilePath};Cache=Shared";
+        _connectionString = $"Data Source={dbFilePath};Cache=Shared;Pooling=False";
     }
 
     /// <summary>Initialize database: create tables, run migrations.</summary>
