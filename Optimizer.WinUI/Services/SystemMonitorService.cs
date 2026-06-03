@@ -19,6 +19,15 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
     private int _sampleCount;
     private CancellationTokenSource? _monitorCancellation;
 
+    // Counter/WMI failures are environmental and stable, so they'd otherwise repeat every
+    // sample (~1s) and flood the activity log. Log each distinct message only once.
+    private readonly ConcurrentDictionary<string, byte> _loggedOnce = new();
+    private void LogOnce(string message)
+    {
+        if (_loggedOnce.TryAdd(message, 0))
+            EngineLog.Write(message);
+    }
+
     // Persistent rate counters (disk/network need to live across samples to report a rate).
     private readonly object _counterGate = new();
     private PerformanceCounter? _cpuCounter;
@@ -296,7 +305,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting CPU usage: {ex.Message}");
+            LogOnce($"Error getting CPU usage: {ex.Message}");
             return 0.0;
         }
     }
@@ -317,7 +326,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting processor frequency: {ex.Message}");
+            LogOnce($"Error getting processor frequency: {ex.Message}");
             return 0;
         }
     }
@@ -342,7 +351,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting total physical memory: {ex.Message}");
+            LogOnce($"Error getting total physical memory: {ex.Message}");
             return GC.GetTotalMemory(false);
         }
     }
@@ -358,7 +367,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting available memory: {ex.Message}");
+            LogOnce($"Error getting available memory: {ex.Message}");
             return 0;
         }
     }
@@ -384,7 +393,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting total virtual memory: {ex.Message}");
+            LogOnce($"Error getting total virtual memory: {ex.Message}");
             return 0;
         }
     }
@@ -401,7 +410,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting available virtual memory: {ex.Message}");
+            LogOnce($"Error getting available virtual memory: {ex.Message}");
             return 0;
         }
     }
@@ -417,7 +426,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting GPU usage: {ex.Message}");
+            LogOnce($"Error getting GPU usage: {ex.Message}");
             return 0.0;
         }
     }
@@ -433,7 +442,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting GPU memory usage: {ex.Message}");
+            LogOnce($"Error getting GPU memory usage: {ex.Message}");
             return 0;
         }
     }
@@ -458,7 +467,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting CPU temperature: {ex.Message}");
+            LogOnce($"Error getting CPU temperature: {ex.Message}");
             return 0.0;
         }
     }
@@ -483,7 +492,7 @@ public class SystemMonitorService : ISystemMonitorService, IDisposable
         }
         catch (Exception ex)
         {
-            EngineLog.Write($"Error getting GPU temperature: {ex.Message}");
+            LogOnce($"Error getting GPU temperature: {ex.Message}");
             return 0.0;
         }
     }
