@@ -24,17 +24,6 @@ public sealed partial class ConsolePanel : UserControl
         AssistantVM.ConfirmHandler = ConfirmAsync;
     }
 
-    /// <summary>
-    /// WinUI routes the mouse wheel to the FOCUSED scrollable element, not the one under the
-    /// cursor — so the console lists only scroll once they have focus. Give the hovered list
-    /// focus so wheeling over it scrolls it (matching what users expect).
-    /// </summary>
-    private void List_PointerEntered(object sender, PointerRoutedEventArgs e)
-    {
-        if (sender is Control list)
-            list.Focus(FocusState.Pointer);
-    }
-
     public void FocusAssistant()
     {
         // Both panes are always visible now; just focus the chat input.

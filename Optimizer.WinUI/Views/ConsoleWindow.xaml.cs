@@ -14,5 +14,8 @@ public sealed partial class ConsoleWindow : Window
         panel.CollapseRequested += (_, _) => Close();
         HostGrid.Children.Add(panel);
         Closed += (_, _) => ReDockRequested?.Invoke(this, EventArgs.Empty);
+
+        // Wheel follows the cursor in the popped-out console window too.
+        Optimizer.WinUI.Helpers.WheelScrollRouter.Attach(this);
     }
 }
