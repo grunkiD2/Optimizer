@@ -212,7 +212,20 @@ public class ApiHostService : IApiHostService
         {
             var recs = _appServices.GetService<IRecommendationsService>();
             if (recs == null) return Results.StatusCode(503);
-            return Results.Ok(await recs.GenerateAsync());
+            var generated = await recs.GenerateAsync();
+            // Project to a DTO: the Recommendation model carries a QuickAction delegate
+            // (Func<Task<bool>>) that System.Text.Json cannot serialize — returning the raw
+            // model 500s whenever a recommendation with a QuickAction is present.
+            return Results.Ok(generated.Select(r => new
+            {
+                id          = r.Id,
+                title       = r.Title,
+                description = r.Description,
+                actionLabel = r.ActionLabel,
+                severity    = r.Severity.ToString(),
+                category    = r.Category.ToString(),
+                mlConfidence = r.MlConfidence
+            }));
         })
         .WithName("GetRecommendations")
         .WithTags("Diagnostics")
