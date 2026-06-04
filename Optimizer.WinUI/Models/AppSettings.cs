@@ -59,6 +59,13 @@ public class AppSettings
     public bool AssistantAllowActions { get; set; } = true;
     public string AssistantModel { get; set; } = "claude-sonnet-4-6";
 
+    // When the app is running elevated, skip the per-tool-call confirmation dialog the
+    // assistant raises before running mutating commands. Reasoning: the user already
+    // granted admin rights to the whole process at launch (UAC); a second prompt per
+    // command is friction without a security benefit. Defaults ON to match user
+    // expectation; flip off in Settings if you want per-item confirmations.
+    public bool AssistantAutoConfirmWhenElevated { get; set; } = true;
+
     // ── Phase 7: Autonomous automation (all opt-in, all reversible) ──
     // Master kill switch — when true, ALL automation is paused regardless of the toggles below.
     public bool AutomationPaused { get; set; } = false;

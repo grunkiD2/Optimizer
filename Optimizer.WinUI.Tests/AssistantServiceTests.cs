@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Assistant;
 using Optimizer.WinUI.Services.Commands;
 using Xunit;
@@ -42,6 +43,13 @@ public class AssistantServiceTests
     {
         public bool AllowActions { get; set; } = true;
         public string Model { get; set; } = "claude-sonnet-4-6";
+        public bool AutoConfirmWhenElevated { get; set; } = false;
+    }
+
+    private sealed class FakeElevation : IElevationService
+    {
+        public bool IsElevated { get; set; }
+        public bool TryRelaunchElevated() => false;
     }
 
     private sealed class NoopActionLogger : IAssistantActionLogger
@@ -82,7 +90,7 @@ public class AssistantServiceTests
         reg.Register(cmd);
         var claude = new ScriptedClaude(script);
         var settings = new FakeAssistantSettings { AllowActions = allowActions };
-        return (new AssistantService(claude, reg, settings, new NoopActionLogger(), new FakeContextDetection(), new FakePromptBuilder()), claude, cmd);
+        return (new AssistantService(claude, reg, settings, new NoopActionLogger(), new FakeContextDetection(), new FakePromptBuilder(), new FakeElevation()), claude, cmd);
     }
 
     [Fact]

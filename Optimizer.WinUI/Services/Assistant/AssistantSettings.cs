@@ -9,4 +9,6 @@ public sealed class AssistantSettings(ISettingsService settings) : IAssistantSet
     public string Model => string.IsNullOrWhiteSpace(settings.Settings.AssistantModel)
         ? "claude-sonnet-4-6"
         : settings.Settings.AssistantModel;
+
+    public bool AutoConfirmWhenElevated => settings.Settings.AssistantAutoConfirmWhenElevated;
 }
