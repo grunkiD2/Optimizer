@@ -17,7 +17,7 @@ public static class SyncEndpoints
             if (userId == null) return Results.Unauthorized();
             var resp = await sync.PullAsync(userId.Value, since);
             return Results.Ok(resp);
-        }).WithName("SyncPull").WithOpenApi()
+        }).WithName("SyncPull")
           .RequireAuthorization($"scope:{ApiScopes.SyncRead}");
 
         group.MapPost("", async ([FromBody] SyncPushRequest req, ISyncService sync, HttpContext ctx) =>
@@ -33,7 +33,7 @@ public static class SyncEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_request", ex.Message));
             }
-        }).WithName("SyncPush").WithOpenApi()
+        }).WithName("SyncPush")
           .RequireAuthorization($"scope:{ApiScopes.SyncWrite}");
     }
 

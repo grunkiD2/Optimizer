@@ -22,19 +22,19 @@ public static class MarketplaceEndpoints
         {
             var resp = await svc.BrowseAsync(category, search, sort ?? "downloads", page > 0 ? page.Value : 1, pageSize > 0 ? pageSize.Value : 20);
             return Results.Ok(resp);
-        }).WithName("BrowseMarketplace").WithOpenApi();
+        }).WithName("BrowseMarketplace");
 
         anonymousGroup.MapGet("/{publicId}", async (string publicId, IMarketplaceService svc) =>
         {
             var listing = await svc.GetByPublicIdAsync(publicId);
             return listing == null ? Results.NotFound() : Results.Ok(listing);
-        }).WithName("GetMarketplaceListing").WithOpenApi();
+        }).WithName("GetMarketplaceListing");
 
         anonymousGroup.MapPost("/{publicId}/download", async (string publicId, IMarketplaceService svc) =>
         {
             var ok = await svc.IncrementDownloadAsync(publicId);
             return ok ? Results.NoContent() : Results.NotFound();
-        }).WithName("IncrementDownload").WithOpenApi();
+        }).WithName("IncrementDownload");
 
         authGroup.MapPost("/submit", async ([FromBody] SubmitListingRequest req, IMarketplaceService svc, HttpContext ctx) =>
         {
@@ -49,7 +49,7 @@ public static class MarketplaceEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_submission", ex.Message));
             }
-        }).WithName("SubmitListing").WithOpenApi();
+        }).WithName("SubmitListing");
 
         authGroup.MapPost("/{publicId}/rate", async (string publicId, [FromBody] SubmitRatingRequest req, IMarketplaceService svc, HttpContext ctx) =>
         {
@@ -64,7 +64,7 @@ public static class MarketplaceEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_rating", ex.Message));
             }
-        }).WithName("RateListing").WithOpenApi();
+        }).WithName("RateListing");
 
         authGroup.MapPost("/{publicId}/report", async (string publicId, [FromBody] ReportListingRequest req, IMarketplaceService svc, HttpContext ctx) =>
         {
@@ -72,7 +72,7 @@ public static class MarketplaceEndpoints
             if (userId == null) return Results.Unauthorized();
             var ok = await svc.ReportAsync(publicId, userId.Value, req);
             return ok ? Results.NoContent() : Results.NotFound();
-        }).WithName("ReportListing").WithOpenApi();
+        }).WithName("ReportListing");
     }
 
     private static Guid? GetUserId(HttpContext ctx)

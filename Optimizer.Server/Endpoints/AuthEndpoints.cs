@@ -18,7 +18,7 @@ public static class AuthEndpoints
             await auth.RequestMagicLinkAsync(dto.Email, clientBase, ip);
             // Always return 202 to prevent email enumeration
             return Results.Accepted("/api/auth/check-email", new { message = "If the email is valid, a magic link has been sent." });
-        }).WithName("RequestMagicLink").WithOpenApi();
+        }).WithName("RequestMagicLink");
 
         group.MapPost("/verify", async ([FromBody] VerifyMagicLinkDto dto, [FromQuery] string? device, IAuthService auth, HttpContext ctx) =>
         {
@@ -26,7 +26,7 @@ public static class AuthEndpoints
             var result = await auth.VerifyMagicLinkAsync(dto.Token, device ?? "Unknown Device", ip);
             if (result == null) return Results.BadRequest(new ApiError("invalid_token", "Token is invalid, expired, or already used."));
             return Results.Ok(result);
-        }).WithName("VerifyMagicLink").WithOpenApi();
+        }).WithName("VerifyMagicLink");
 
         group.MapPost("/refresh", async ([FromBody] RefreshTokenDto dto, IAuthService auth, HttpContext ctx) =>
         {
@@ -34,12 +34,12 @@ public static class AuthEndpoints
             var result = await auth.RefreshAsync(dto.RefreshToken, ip);
             if (result == null) return Results.Unauthorized();
             return Results.Ok(result);
-        }).WithName("Refresh").WithOpenApi();
+        }).WithName("Refresh");
 
         group.MapPost("/logout", async ([FromBody] RefreshTokenDto dto, IAuthService auth) =>
         {
             await auth.RevokeSessionAsync(dto.RefreshToken);
             return Results.NoContent();
-        }).WithName("Logout").WithOpenApi();
+        }).WithName("Logout");
     }
 }

@@ -30,7 +30,7 @@ public static class WebhookEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_request", ex.Message));
             }
-        }).WithName("CreateWebhook").WithOpenApi();
+        }).WithName("CreateWebhook");
 
         webhooks.MapGet("", async (IWebhookService svc, HttpContext ctx) =>
         {
@@ -39,7 +39,7 @@ public static class WebhookEndpoints
 
             var list = await svc.ListAsync(userId.Value);
             return Results.Ok(list);
-        }).WithName("ListWebhooks").WithOpenApi();
+        }).WithName("ListWebhooks");
 
         webhooks.MapDelete("{id:guid}", async (
             Guid id,
@@ -51,7 +51,7 @@ public static class WebhookEndpoints
 
             var deleted = await svc.DeleteAsync(userId.Value, id);
             return deleted ? Results.NoContent() : Results.NotFound();
-        }).WithName("DeleteWebhook").WithOpenApi();
+        }).WithName("DeleteWebhook");
 
         // ── Event ingest ──────────────────────────────────────────────────────
 
@@ -91,7 +91,7 @@ public static class WebhookEndpoints
 
             return Results.Accepted();
         }).WithTags("Events").RequireAuthorization()
-          .WithName("IngestEvent").WithOpenApi();
+          .WithName("IngestEvent");
     }
 
     private static Guid? GetUserId(HttpContext ctx)

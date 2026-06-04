@@ -228,7 +228,7 @@ app.MapGet("/api/me", (HttpContext ctx) =>
     var sub  = ctx.User.FindFirst("sub")?.Value;
     var email = ctx.User.FindFirst("email")?.Value;
     return Results.Ok(new { id = sub, email });
-}).RequireAuthorization().WithTags("Account").WithOpenApi();
+}).RequireAuthorization().WithTags("Account");
 
 app.Run();
 

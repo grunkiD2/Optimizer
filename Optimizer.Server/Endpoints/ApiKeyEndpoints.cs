@@ -14,8 +14,7 @@ public static class ApiKeyEndpoints
         app.MapGet("/api/scopes", () =>
             Results.Ok(ApiScopes.All))
             .WithTags("ApiKeys")
-            .WithName("ListScopes")
-            .WithOpenApi();
+            .WithName("ListScopes");
 
         // JWT-only group — you cannot mint keys with a key
         var jwtGroup = app.MapGroup("/api/keys")
@@ -39,7 +38,7 @@ public static class ApiKeyEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_request", ex.Message));
             }
-        }).WithName("CreateApiKey").WithOpenApi();
+        }).WithName("CreateApiKey");
 
         jwtGroup.MapGet("", async (IApiKeyService apiKeyService, HttpContext ctx) =>
         {
@@ -48,7 +47,7 @@ public static class ApiKeyEndpoints
 
             var keys = await apiKeyService.ListAsync(userId.Value);
             return Results.Ok(keys);
-        }).WithName("ListApiKeys").WithOpenApi();
+        }).WithName("ListApiKeys");
 
         jwtGroup.MapDelete("/{id:guid}", async (Guid id, IApiKeyService apiKeyService, HttpContext ctx) =>
         {
@@ -57,7 +56,7 @@ public static class ApiKeyEndpoints
 
             var revoked = await apiKeyService.RevokeAsync(userId.Value, id);
             return revoked ? Results.NoContent() : Results.NotFound();
-        }).WithName("RevokeApiKey").WithOpenApi();
+        }).WithName("RevokeApiKey");
     }
 
     private static Guid? GetUserId(HttpContext ctx)

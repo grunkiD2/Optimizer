@@ -25,26 +25,26 @@ public static class PluginEndpoints
                 page > 0 ? page.Value : 1,
                 pageSize > 0 ? pageSize.Value : 20);
             return Results.Ok(resp);
-        }).WithName("BrowsePlugins").WithOpenApi();
+        }).WithName("BrowsePlugins");
 
         anonymousGroup.MapGet("/public-key", (IPluginSigningService signing) =>
         {
             return Results.Ok(new PublicKeyResponse(
                 signing.PublicKeyBase64 ?? "",
                 signing.IsConfigured));
-        }).WithName("GetPluginPublicKey").WithOpenApi();
+        }).WithName("GetPluginPublicKey");
 
         anonymousGroup.MapGet("/{pluginId}", async (string pluginId, IPluginMarketplaceService svc) =>
         {
             var detail = await svc.GetByPluginIdAsync(pluginId);
             return detail == null ? Results.NotFound() : Results.Ok(detail);
-        }).WithName("GetPlugin").WithOpenApi();
+        }).WithName("GetPlugin");
 
         anonymousGroup.MapPost("/{pluginId}/download", async (string pluginId, IPluginMarketplaceService svc) =>
         {
             var ok = await svc.IncrementDownloadAsync(pluginId);
             return ok ? Results.NoContent() : Results.NotFound();
-        }).WithName("IncrementPluginDownload").WithOpenApi();
+        }).WithName("IncrementPluginDownload");
 
         authGroup.MapPost("/submit", async (
             [FromBody] SubmitPluginRequest req,
@@ -62,7 +62,7 @@ public static class PluginEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_submission", ex.Message));
             }
-        }).WithName("SubmitPlugin").WithOpenApi()
+        }).WithName("SubmitPlugin")
           .RequireAuthorization($"scope:{ApiScopes.PluginsManage}");
 
         authGroup.MapPost("/{pluginId}/rate", async (
@@ -82,7 +82,7 @@ public static class PluginEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_rating", ex.Message));
             }
-        }).WithName("RatePlugin").WithOpenApi();
+        }).WithName("RatePlugin");
     }
 
     private static Guid? GetUserId(HttpContext ctx)

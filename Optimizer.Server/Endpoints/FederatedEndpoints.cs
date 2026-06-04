@@ -59,7 +59,7 @@ public static class FederatedEndpoints
             {
                 return Results.BadRequest(new ApiError("invalid_contribution", ex.Message));
             }
-        }).WithName("FederatedContribute").WithOpenApi();
+        }).WithName("FederatedContribute");
 
         // GET /api/federated/baselines
         // Returns community-aggregated baselines.
@@ -77,7 +77,7 @@ public static class FederatedEndpoints
                 .ToList();
 
             return Results.Ok(new FederatedBaselinesResponse(dtos));
-        }).WithName("FederatedBaselines").WithOpenApi();
+        }).WithName("FederatedBaselines");
     }
 
     private static Guid? GetUserId(HttpContext ctx)
