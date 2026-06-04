@@ -43,11 +43,15 @@ public class ProfileService : IProfileService
 
     /// <summary>Apply a built-in preset by its profile ID.</summary>
     public Task<bool> ApplyPresetAsync(string profileId)
-        => _optimizer.ApplyProfileAsync(profileId);
+    {
+        EngineLog.Write($"[ProfileService] Applying preset '{profileId}'");
+        return _optimizer.ApplyProfileAsync(profileId);
+    }
 
     /// <summary>Capture the currently-applied optimizations as a named snapshot.</summary>
     public async Task SaveSnapshotAsync(string name)
     {
+        EngineLog.Write($"[ProfileService] Saving snapshot '{name}'");
         var availableIds = await _optimizer.GetAvailableOptimizationsAsync();
         var activeIds = availableIds
             .Where(id => _optimizer.IsOptimizationApplied(id) == true)
@@ -70,6 +74,7 @@ public class ProfileService : IProfileService
     /// <summary>Re-apply all optimizations stored in a snapshot.</summary>
     public async Task<bool> RestoreSnapshotAsync(SettingsProfile snapshot)
     {
+        EngineLog.Write($"[ProfileService] Restoring snapshot '{snapshot.Name}' ({snapshot.Optimizations.Count} optimizations)");
         var allSucceeded = true;
         foreach (var id in snapshot.Optimizations)
         {
@@ -78,6 +83,7 @@ public class ProfileService : IProfileService
         }
         snapshot.LastAppliedAt = DateTime.UtcNow;
         SaveSnapshots();
+        EngineLog.Write($"[ProfileService] Snapshot '{snapshot.Name}' restored ({(allSucceeded ? "all succeeded" : "some failed")})");
         return allSucceeded;
     }
 

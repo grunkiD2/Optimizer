@@ -141,6 +141,7 @@ public class PrivacyService : IPrivacyService
         var def = _defs.FirstOrDefault(d => d.Id == id);
         if (def == null) return Task.FromResult(false);
 
+        EngineLog.Write($"[PrivacyService] Set '{def.Name}' privacy={enableForPrivacy}");
         try
         {
             using var baseKey = RegistryKey.OpenBaseKey(def.Hive, RegistryView.Registry64);
@@ -149,7 +150,7 @@ public class PrivacyService : IPrivacyService
             subKey.SetValue(def.Value, enableForPrivacy ? def.PrivacyValue : def.OffValue, def.Kind);
             return Task.FromResult(true);
         }
-        catch { return Task.FromResult(false); }
+        catch (Exception ex) { EngineLog.Error($"[PrivacyService] Set '{def.Name}' failed", ex); return Task.FromResult(false); }
     }
 
     private object? ReadCurrentValue(SettingDef def)

@@ -6,6 +6,7 @@ public class CleanupService : ICleanupService
 {
     public async Task<IReadOnlyList<CleanupCategory>> ScanCleanupCategoriesAsync(IProgress<string>? progress = null)
     {
+        EngineLog.Write("[CleanupService] Scanning cleanup categories");
         var categories = new List<CleanupCategory>();
 
         progress?.Report("Scanning temp files...");
@@ -149,7 +150,8 @@ public class CleanupService : ICleanupService
 
     public async Task<long> CleanCategoryAsync(string categoryId)
     {
-        return await Task.Run(() =>
+        EngineLog.Write($"[CleanupService] Cleaning category: {categoryId}");
+        var bytesDeleted = await Task.Run(() =>
         {
             if (categoryId == "recycle-bin")
             {
@@ -204,6 +206,8 @@ public class CleanupService : ICleanupService
             catch { }
             return bytesDeleted;
         });
+        EngineLog.Write($"[CleanupService] Cleaned '{categoryId}': {bytesDeleted / 1024 / 1024} MB freed");
+        return bytesDeleted;
     }
 
     public async Task<IReadOnlyList<LargeFile>> FindLargeFilesAsync(
@@ -211,6 +215,7 @@ public class CleanupService : ICleanupService
         long minSizeBytes = 100_000_000,
         IProgress<string>? progress = null)
     {
+        EngineLog.Write($"[CleanupService] Finding large files (>{minSizeBytes / 1024 / 1024} MB) under {rootPath}");
         return await Task.Run(() =>
         {
             var results = new List<LargeFile>();

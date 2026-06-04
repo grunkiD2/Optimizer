@@ -21,6 +21,7 @@ public class ComplianceService : IComplianceService
 
     public async Task<IReadOnlyList<ComplianceCheck>> RunFrameworkAsync(string framework)
     {
+        EngineLog.Write($"[ComplianceService] Running compliance framework: {framework}");
         var checks = new List<ComplianceCheck>();
 
         // Fetch data from existing services in parallel

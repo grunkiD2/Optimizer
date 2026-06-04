@@ -28,18 +28,21 @@ public class NetworkConfigService : INetworkConfigService
 
     public async Task<bool> SetDnsAsync(string primary, string secondary)
     {
+        EngineLog.Write($"[NetworkConfigService] Setting DNS → primary={primary} secondary={secondary}");
         var script = $@"Get-NetAdapter | Where-Object {{$_.Status -eq 'Up'}} | ForEach-Object {{ Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ServerAddresses ('{primary}','{secondary}') }}";
         return await _psRunner.RunAsync(script) != null;
     }
 
     public async Task<bool> ResetDnsToAutomaticAsync()
     {
+        EngineLog.Write("[NetworkConfigService] Resetting DNS to automatic");
         var script = @"Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ResetServerAddresses }";
         return await _psRunner.RunAsync(script) != null;
     }
 
     public async Task<bool> FlushDnsAsync()
     {
+        EngineLog.Write("[NetworkConfigService] Flushing DNS cache");
         return await _psRunner.RunAsync("Clear-DnsClientCache") != null;
     }
 }

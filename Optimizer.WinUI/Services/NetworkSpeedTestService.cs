@@ -71,12 +71,14 @@ public class NetworkSpeedTestService : INetworkSpeedTestService
 
     public async Task<SpeedTestResult> RunFullTestAsync(IProgress<string>? phaseProgress = null)
     {
+        EngineLog.Write("[NetworkSpeedTestService] Starting full speed test (ping → download → upload)");
         phaseProgress?.Report("Measuring ping…");
         var (ping, jitter) = await MeasurePingAsync();
         phaseProgress?.Report("Testing download…");
         var dl = await MeasureDownloadMbpsAsync();
         phaseProgress?.Report("Testing upload…");
         var ul = await MeasureUploadMbpsAsync();
+        EngineLog.Write($"[NetworkSpeedTestService] Speed test complete: {dl:F1} Mbps down, {ul:F1} Mbps up, {ping:F0} ms ping");
         return new SpeedTestResult
         {
             DownloadMbps = dl,

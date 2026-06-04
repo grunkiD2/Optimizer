@@ -30,11 +30,13 @@ public class PowerService : IPowerService
 
     public async Task<bool> SetActivePowerPlanAsync(Guid guid)
     {
+        EngineLog.Write($"[PowerService] Switching active power plan to {guid}");
         return await RunPowerCfgAsync($"/setactive {guid}") != null;
     }
 
     public async Task<bool> CreateUltimatePerformancePlanAsync()
     {
+        EngineLog.Write("[PowerService] Creating Ultimate Performance power plan");
         // Ultimate Performance plan template GUID
         return await RunPowerCfgAsync("/duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61") != null;
     }
@@ -54,6 +56,7 @@ public class PowerService : IPowerService
 
     public Task<bool> SetGameModeAsync(bool enabled)
     {
+        EngineLog.Write($"[PowerService] Game Mode → {(enabled ? "ON" : "OFF")}");
         try
         {
             Microsoft.Win32.Registry.SetValue(
