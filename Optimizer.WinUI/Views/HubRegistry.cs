@@ -26,8 +26,9 @@ public static class HubRegistry
 
     public static readonly HubConfig Optimize = new("Optimize", "Optimize", new HubSection[]
     {
+        // "CPU & Power" merges what used to be Performance + Tuning into one page
+        // (PerformancePage hosts both ViewModels and an in-page Segmented switcher).
         new("CPU & Power", typeof(PerformancePage)),
-        new("Tuning", typeof(TuningPage)),
         new("Privacy & System", typeof(SystemPage)),
         new("Network", typeof(NetworkPage)),
         new("Storage", typeof(StoragePage)),

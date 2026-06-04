@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Helpers;
@@ -8,9 +9,18 @@ using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
 
+/// <summary>
+/// "CPU &amp; Power" — the merged Performance + Tuning destination from the Optimize hub.
+/// Hosts two view-models: <see cref="ViewModel"/> (PerformanceCategoryViewModel) drives the
+/// optimizations + power-plan + processes panel; <see cref="TuningVM"/> drives the advanced
+/// tuning panel (CPU sliders, presets, stress test, GPU OC, memory diagnostics).
+/// The in-page <c>Segmented</c> switches between the two panels.
+/// </summary>
 public sealed partial class PerformancePage : Page
 {
     public PerformanceCategoryViewModel ViewModel { get; }
+    public TuningViewModel TuningVM { get; }
+    private readonly ISystemRepairService _repair;
     private readonly Dictionary<string, EventHandler<bool>> _toggleHandlers = [];
 
     private readonly ISystemDataBus _bus;
@@ -18,10 +28,15 @@ public sealed partial class PerformancePage : Page
     private readonly Queue<double> _cpuTrend = new();
     private readonly Queue<double> _memTrend = new();
 
+    // Guard against re-entrant SelectionChanged while loading
+    private bool _suppressBoostModeChange;
+
     public PerformancePage()
     {
         ViewModel = App.GetService<PerformanceCategoryViewModel>();
-        _bus = App.GetService<ISystemDataBus>();
+        TuningVM  = App.GetService<TuningViewModel>();
+        _bus      = App.GetService<ISystemDataBus>();
+        _repair   = App.GetService<ISystemRepairService>();
         InitializeComponent();
         Unloaded += (_, _) => _bus.MetricsUpdated -= OnMetrics;
     }
@@ -33,7 +48,27 @@ public sealed partial class PerformancePage : Page
 
         _bus.MetricsUpdated += OnMetrics;
         if (_bus.LatestMetrics is { } seed) OnMetrics(seed);
+
+        // Tuning lazy-loads on demand. Init dispatcher now so cross-thread updates work
+        // even if the user immediately switches to the Tuning panel.
+        TuningVM.InitDispatcher(DispatcherQueue.GetForCurrentThread());
+        await TuningVM.LoadAsync();
+        SyncBoostModeCombo();
     }
+
+    // ── Section switcher (Optimizations & Power | Advanced Tuning) ───────────
+
+    private void Section_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        // Guard: panels may not yet be named during InitializeComponent.
+        if (PanelOptimizations is null) return;
+
+        var i = SectionSeg.SelectedIndex;
+        PanelOptimizations.Visibility = i == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PanelTuning.Visibility        = i == 1 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ── Live metrics → shared StatTiles ──────────────────────────────────────
 
     private void OnMetrics(SystemResource m)
     {
@@ -63,10 +98,10 @@ public sealed partial class PerformancePage : Page
         while (q.Count > TrendLength) q.Dequeue();
     }
 
+    // ── Panel A: Optimizations & Power ───────────────────────────────────────
+
     private void OptimizationCard_Loaded(object sender, RoutedEventArgs e)
         => CategoryPageHelper.OnCardLoaded(sender, XamlRoot, ViewModel, _toggleHandlers);
-
-    // ── Power plan handlers ──────────────────────────────────────────────────
 
     private async void PowerPlan_Click(object sender, RoutedEventArgs e)
     {
@@ -81,21 +116,15 @@ public sealed partial class PerformancePage : Page
     private async void UltimatePerf_Click(object sender, RoutedEventArgs e)
         => await ViewModel.CreateUltimatePlanCommand.ExecuteAsync(null);
 
-    // ── Process priority handler ─────────────────────────────────────────────
-
     private void Priority_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (sender is not ComboBox cb) return;
-
-        // Tag is bound as Guid (from PowerPlan.Guid) for the power plan repeater
-        // but here it's bound as Pid (int). The ComboBox is inside the process ListView template.
         if (cb.Tag is not int pid) return;
         if (cb.SelectedItem is not ComboBoxItem item) return;
 
         var priorityStr = item.Content?.ToString();
         if (string.IsNullOrEmpty(priorityStr)) return;
 
-        // Map display strings to ProcessPriorityClass enum values
         var priority = priorityStr switch
         {
             "High" => ProcessPriorityClass.High,
@@ -110,8 +139,6 @@ public sealed partial class PerformancePage : Page
             ViewModel.SetProcessPriority(pid, priority.Value);
     }
 
-    // ── Per-core affinity handler ────────────────────────────────────────────
-
     private async void Affinity_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button btn) return;
@@ -121,7 +148,6 @@ public sealed partial class PerformancePage : Page
         var currentMask = ViewModel.GetAffinity(pid);
         var currentCores = AffinityMask.ToCores(currentMask);
 
-        // Build the dialog content: one CheckBox per logical core
         var panel = new StackPanel { Spacing = 4 };
         panel.Children.Add(new TextBlock
         {
@@ -131,7 +157,6 @@ public sealed partial class PerformancePage : Page
         });
 
         var checkBoxes = new CheckBox[coreCount];
-        // Lay them out in a wrap panel — 4 per row
         var wrapGrid = new VariableSizedWrapGrid
         {
             Orientation = Orientation.Horizontal,
@@ -162,7 +187,6 @@ public sealed partial class PerformancePage : Page
         };
         panel.Children.Add(applyButton);
 
-        // Validation: disable Apply when no core is checked
         void UpdateApply()
         {
             applyButton.IsEnabled = checkBoxes.Any(c => c.IsChecked == true);
@@ -182,7 +206,6 @@ public sealed partial class PerformancePage : Page
             XamlRoot        = XamlRoot,
         };
 
-        // Wire Apply inside the dialog (closes it on success)
         applyButton.Click += async (_, _) =>
         {
             var selected = checkBoxes
@@ -193,15 +216,11 @@ public sealed partial class PerformancePage : Page
             var mask = AffinityMask.FromCores(selected, coreCount);
 
             if (!AffinityMask.IsValid(mask, coreCount))
-            {
-                // Should not reach here due to the Apply guard, but defend anyway
                 return;
-            }
 
             var ok = ViewModel.SetAffinity(pid, mask);
             if (!ok)
             {
-                // Show brief error inside the same dialog
                 var errBar = new InfoBar
                 {
                     Severity  = InfoBarSeverity.Error,
@@ -219,5 +238,132 @@ public sealed partial class PerformancePage : Page
         };
 
         await dialog.ShowAsync();
+    }
+
+    // ── Panel B: Advanced Tuning ─────────────────────────────────────────────
+
+    private void SyncBoostModeCombo()
+    {
+        if (BoostModeCombo is null) return;
+        _suppressBoostModeChange = true;
+        try
+        {
+            var targetIndex = (int)TuningVM.CurrentCpu.BoostMode;
+            if (targetIndex >= 0 && targetIndex < BoostModeCombo.Items.Count)
+                BoostModeCombo.SelectedIndex = targetIndex;
+        }
+        finally
+        {
+            _suppressBoostModeChange = false;
+        }
+    }
+
+    private void BoostModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressBoostModeChange) return;
+
+        if (BoostModeCombo.SelectedItem is ComboBoxItem item &&
+            item.Tag is string tagStr &&
+            int.TryParse(tagStr, out var modeIndex))
+        {
+            TuningVM.CurrentCpu.BoostMode = (BoostMode)modeIndex;
+        }
+    }
+
+    private async void ApplyPreset_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(async () =>
+        {
+            if (sender is Button btn && btn.Tag is string id)
+            {
+                var preset = TuningVM.Presets.FirstOrDefault(p => p.Id == id);
+                if (preset != null)
+                {
+                    await TuningVM.ApplyPresetCommand.ExecuteAsync(preset);
+                    SyncBoostModeCombo();
+                }
+            }
+        }, XamlRoot, "Apply preset");
+
+    private async void ApplyCpu_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(async () =>
+        {
+            await TuningVM.ApplyCurrentCpuCommand.ExecuteAsync(null);
+            SyncBoostModeCombo();
+        }, XamlRoot, "Apply CPU settings");
+
+    private async void Revert_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(async () =>
+        {
+            await TuningVM.RevertCommand.ExecuteAsync(null);
+            SyncBoostModeCombo();
+        }, XamlRoot, "Revert CPU settings");
+
+    private async void LaunchTool_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(async () =>
+        {
+            if (sender is Button btn && btn.Tag is string name)
+            {
+                var tool = TuningVM.GpuTools.FirstOrDefault(t => t.Name == name);
+                if (tool != null)
+                    await TuningVM.LaunchToolCommand.ExecuteAsync(tool);
+            }
+        }, XamlRoot, "Launch GPU tool");
+
+    private async void MemoryTest_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => _repair.LaunchMemoryTestAsync(),
+            XamlRoot, "Memory test");
+
+    private async void RunBuiltIn_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => TuningVM.RunBuiltInStressCommand.ExecuteAsync(null),
+            XamlRoot, "Stress test");
+
+    private void StopStress_Click(object sender, RoutedEventArgs e)
+        => TuningVM.StopStressCommand.Execute(null);
+
+    private async void LaunchPrime95_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => TuningVM.LaunchPrime95Command.ExecuteAsync(null),
+            XamlRoot, "Launch Prime95");
+
+    private async void LaunchCinebench_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => TuningVM.LaunchCinebenchCommand.ExecuteAsync(null),
+            XamlRoot, "Launch Cinebench");
+
+    private void ApplyGpuOc_Click(object sender, RoutedEventArgs e)
+        => TuningVM.ApplyGpuOcCommand.Execute(null);
+
+    private async void ApplyGpuOcWatchdog_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => TuningVM.ApplyGpuOcWithWatchdogCommand.ExecuteAsync(null),
+            XamlRoot, "GPU OC watchdog test");
+
+    private void ResetGpuOc_Click(object sender, RoutedEventArgs e)
+        => TuningVM.ResetGpuToDefaultCommand.Execute(null);
+
+    private void StopGpuWatchdog_Click(object sender, RoutedEventArgs e)
+        => TuningVM.StopGpuWatchdogCommand.Execute(null);
+
+    private async void OpenGpuVendorTool_Click(object sender, RoutedEventArgs e)
+        => await PageExceptionHelper.SafeAsync(
+            () => TuningVM.OpenGpuVendorToolCommand.ExecuteAsync(null),
+            XamlRoot, "Open GPU vendor tool");
+
+    private void LaunchXtu_Click(object sender, RoutedEventArgs e)
+    {
+        var path = TuningViewModel.DetectXtuPathPublic();
+        if (!string.IsNullOrEmpty(path))
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                { FileName = path, UseShellExecute = true });
+    }
+
+    private void LaunchRyzenMaster_Click(object sender, RoutedEventArgs e)
+    {
+        var path = TuningViewModel.DetectRyzenMasterPathPublic();
+        if (!string.IsNullOrEmpty(path))
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                { FileName = path, UseShellExecute = true });
     }
 }
