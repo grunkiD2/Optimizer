@@ -227,12 +227,18 @@ public sealed partial class CommandCenterPage : Page
         pageNav.NavigateTo(CategoryTag(r.Category));
     }
 
+    // FindingCategory has 8 values — keep this switch exhaustive so a Hardware or Network
+    // recommendation doesn't silently land in the Automate hub's Recommendations section.
     private static string CategoryTag(FindingCategory cat) => cat switch
     {
-        FindingCategory.Storage     => "Storage",       // Optimize hub
-        FindingCategory.Privacy     => "System",        // Optimize hub → "Privacy & System"
-        FindingCategory.Security    => "Security",      // Protect hub
-        FindingCategory.Performance => "Performance",   // Optimize hub → "CPU & Power"
+        FindingCategory.Storage     => "Storage",       // Optimize → Storage
+        FindingCategory.Privacy     => "System",        // Optimize → Privacy & System
+        FindingCategory.Security    => "Security",      // Protect  → Security
+        FindingCategory.Performance => "Performance",   // Optimize → CPU & Power
+        FindingCategory.Network     => "Network",       // Optimize → Network
+        FindingCategory.Hardware    => "Hardware",      // Monitor  → Sensors & Inventory
+        FindingCategory.Stability   => "Diagnostics",   // Protect  → Diagnostics
+        FindingCategory.Maintenance => "Storage",       // Optimize → Storage (cleanup lives there)
         _                           => "Recommendations",
     };
 
