@@ -14,4 +14,11 @@ public static class OptimizationIds
     public const string DisableTelemetry = "DisableTelemetry";
     public const string DisableConsumerFeatures = "DisableConsumerFeatures";
     public const string DisableHibernation = "DisableHibernation";
+
+    // ── Added 2026-06-04 from BACKLOG.md (item #2, Windows-Settings registry tweaks) ────
+    public const string DisableAutoplay = "DisableAutoplay";
+    public const string DisableTransparencyEffects = "DisableTransparencyEffects";
+    public const string EnableAccentTitleBars = "EnableAccentTitleBars";
+    public const string ConfigureWindowsUpdateUX = "ConfigureWindowsUpdateUX";
+    public const string DisableUsbNotifications = "DisableUsbNotifications";
 }

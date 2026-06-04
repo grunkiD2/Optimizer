@@ -90,6 +90,12 @@ public partial class App : Application
                 services.AddTransient<IOptimizationHandler, DisableConsumerFeaturesHandler>();
                 services.AddTransient<IOptimizationHandler, DisableHibernationHandler>();
                 services.AddTransient<IOptimizationHandler, DisableStartupProgramsHandler>();
+                // BACKLOG.md item #2 (2026-06-04) — registry tweaks from the Windows Settings reference
+                services.AddTransient<IOptimizationHandler, DisableAutoplayHandler>();
+                services.AddTransient<IOptimizationHandler, DisableTransparencyEffectsHandler>();
+                services.AddTransient<IOptimizationHandler, EnableAccentTitleBarsHandler>();
+                services.AddTransient<IOptimizationHandler, ConfigureWindowsUpdateUxHandler>();
+                services.AddTransient<IOptimizationHandler, DisableUsbNotificationsHandler>();
 
                 services.AddSingleton<IWindowsOptimizerService, WindowsOptimizerService>();
 
