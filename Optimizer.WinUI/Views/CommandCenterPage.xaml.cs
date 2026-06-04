@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Optimizer.WinUI.Controls.Hud;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Commands;
 
 namespace Optimizer.WinUI.Views;
 
@@ -218,17 +219,21 @@ public sealed partial class CommandCenterPage : Page
             await LoadAttentionAsync();
             return;
         }
-        // No inline fix — take the user to the page where they can address it.
-        _nav.NavigateTo(CategoryPage(r.Category));
+        // No inline fix — take the user to the right section using hub-aware navigation
+        // (IPageNavigator) so the slim rail highlights the parent hub and the page lands
+        // inside its Segmented sub-nav. Direct navigation via NavigationService would
+        // dump the user on a "standalone" page outside its hub structure (Bug C).
+        var pageNav = App.GetService<IPageNavigator>();
+        pageNav.NavigateTo(CategoryTag(r.Category));
     }
 
-    private static Type CategoryPage(FindingCategory cat) => cat switch
+    private static string CategoryTag(FindingCategory cat) => cat switch
     {
-        FindingCategory.Storage => typeof(StoragePage),
-        FindingCategory.Privacy => typeof(SystemPage),
-        FindingCategory.Security => typeof(SecurityPage),
-        FindingCategory.Performance => typeof(PerformancePage),
-        _ => typeof(RecommendationsPage),
+        FindingCategory.Storage     => "Storage",       // Optimize hub
+        FindingCategory.Privacy     => "System",        // Optimize hub → "Privacy & System"
+        FindingCategory.Security    => "Security",      // Protect hub
+        FindingCategory.Performance => "Performance",   // Optimize hub → "CPU & Power"
+        _                           => "Recommendations",
     };
 
     // ── Quick actions ─────────────────────────────────────────────────────────

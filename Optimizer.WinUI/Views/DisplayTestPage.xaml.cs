@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Commands;
 using Windows.UI;
 
 namespace Optimizer.WinUI.Views;
@@ -42,9 +43,13 @@ public sealed partial class DisplayTestPage : Page
     {
         var nav = App.GetService<NavigationService>();
         if (nav.CanGoBack)
+        {
             nav.GoBack();
-        else
-            nav.NavigateTo(typeof(DiagnosticsPage));
+            return;
+        }
+        // Fallback: route through the hub-aware navigator so DiagnosticsPage opens
+        // inside the Protect hub (with the slim rail in sync) rather than alone.
+        App.GetService<IPageNavigator>().NavigateTo("Diagnostics");
     }
 
     private void ShowColor(string colorName)
