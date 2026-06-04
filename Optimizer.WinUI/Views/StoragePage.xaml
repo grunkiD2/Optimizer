@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Optimizer.WinUI.Controls"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
     xmlns:svc="using:Optimizer.WinUI.Services"
     xmlns:models="using:Optimizer.WinUI.Models"
@@ -17,6 +18,7 @@
         <converters:BytesToStringConverter x:Key="BytesToString"/>
     </Page.Resources>
 
+    <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
             <StackPanel.ChildrenTransitions>
@@ -40,7 +42,7 @@
                         <TextBlock Text="{x:Bind ViewModel.CategoryName}"
                                    Style="{StaticResource TitleTextBlockStyle}"/>
                         <TextBlock FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                   Foreground="{StaticResource MutedBrush}">
                             <Run Text="{x:Bind ViewModel.ActiveCount, Mode=OneWay}"/>
                             <Run Text=" of "/>
                             <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
@@ -68,18 +70,18 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Temp Folder Size -->
-                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Temp Folder" FontSize="12" Foreground="#F59E0B"/>
                         <TextBlock Text="{x:Bind ViewModel.DiskUsageText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
                         <TextBlock Text="reclaimable space" FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Optimizations Active -->
-                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Optimizations" FontSize="12" Foreground="#A78BFA"/>
                         <TextBlock FontSize="22" FontWeight="Bold" FontFamily="Consolas">
@@ -88,18 +90,18 @@
                             <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
                         </TextBlock>
                         <TextBlock Text="active" FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Total Recoverable -->
-                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Recoverable" FontSize="12" Foreground="#34D399"/>
                         <TextBlock Text="{x:Bind ViewModel.TotalRecoverableText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
                         <TextBlock Text="cleanup selected" FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -115,7 +117,7 @@
                 <TextBlock Grid.Column="0"
                            Text="SMART CLEANUP"
                            FontSize="11" FontWeight="SemiBold" CharacterSpacing="100"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Foreground="{StaticResource MutedBrush}"
                            VerticalAlignment="Center"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                     <Button Content="Scan"
@@ -133,7 +135,7 @@
                          Visibility="{x:Bind ViewModel.IsScanningCleanup, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
             <TextBlock Text="{x:Bind ViewModel.CleanupProgress, Mode=OneWay}"
                        FontSize="12"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Visibility="{x:Bind ViewModel.HasCleanupProgress, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
             <!-- Cleanup category list -->
@@ -143,9 +145,9 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="svc:CleanupCategory">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="8" Padding="14,10"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -160,11 +162,11 @@
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontSize="13"/>
                                     <TextBlock Text="{x:Bind Description}" FontSize="11"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                               Foreground="{StaticResource MutedBrush}"/>
                                 </StackPanel>
 
                                 <Border Grid.Column="2" CornerRadius="4" Padding="10,4" VerticalAlignment="Center"
-                                        Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                        Background="{ThemeResource HudSurfaceAltBrush}">
                                     <TextBlock FontSize="13" FontWeight="SemiBold" FontFamily="Consolas"
                                                Text="{x:Bind SizeBytes, Converter={StaticResource BytesToString}}"/>
                                 </Border>
@@ -185,7 +187,7 @@
                 <TextBlock Grid.Column="0"
                            Text="LARGE FILES FINDER"
                            FontSize="11" FontWeight="SemiBold" CharacterSpacing="100"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Foreground="{StaticResource MutedBrush}"
                            VerticalAlignment="Center"/>
                 <Button Grid.Column="1"
                         Content="Scan System Drive"
@@ -198,7 +200,7 @@
                          Visibility="{x:Bind ViewModel.IsScanningLargeFiles, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
             <TextBlock Text="{x:Bind ViewModel.LargeFilesProgress, Mode=OneWay}"
                        FontSize="12"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Visibility="{x:Bind ViewModel.HasLargeFilesProgress, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
             <!-- Large files list -->
@@ -209,9 +211,9 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="svc:LargeFile">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="8" Padding="14,10"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -224,13 +226,13 @@
                                                TextTrimming="CharacterEllipsis"
                                                ToolTipService.ToolTip="{x:Bind FileName}"/>
                                     <TextBlock Text="{x:Bind FullPath}" FontSize="11"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               Foreground="{StaticResource MutedBrush}"
                                                TextTrimming="CharacterEllipsis"
                                                ToolTipService.ToolTip="{x:Bind FullPath}"/>
                                 </StackPanel>
 
                                 <Border Grid.Column="1" CornerRadius="4" Padding="10,4" VerticalAlignment="Center"
-                                        Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                        Background="{ThemeResource HudSurfaceAltBrush}">
                                     <TextBlock FontSize="13" FontWeight="SemiBold" FontFamily="Consolas"
                                                Text="{x:Bind SizeBytes, Converter={StaticResource BytesToString}}"/>
                                 </Border>
@@ -248,7 +250,7 @@
 
             <!-- ── Disk Health ──────────────────────────────────────────── -->
             <TextBlock Text="DISK HEALTH" FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,16,0,8"/>
+                       Foreground="{StaticResource MutedBrush}" Margin="0,16,0,8"/>
 
             <ProgressRing IsActive="{x:Bind ViewModel.IsLoadingDisks, Mode=OneWay}"
                           Width="32" Height="32"
@@ -261,9 +263,9 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="models:DiskHealthInfo">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="8" Padding="14,12"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                             <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -274,20 +276,20 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Text="{x:Bind Model}" FontWeight="SemiBold"/>
-                                    <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                    <TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}">
                                         <Run Text="{x:Bind BusType}"/><Run Text=" · "/><Run Text="{x:Bind MediaType}"/><Run Text=" · "/><Run Text="{x:Bind SizeText}"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" MinWidth="80">
-                                    <TextBlock Text="Temperature" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="Temperature" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
                                     <TextBlock Text="{x:Bind TemperatureText}" FontWeight="SemiBold"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" MinWidth="120">
-                                    <TextBlock Text="Life Remaining" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="Life Remaining" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
                                     <TextBlock Text="{x:Bind WearText}" FontWeight="SemiBold"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="3" MinWidth="100">
-                                    <TextBlock Text="Power-On" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="Power-On" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
                                     <TextBlock Text="{x:Bind PowerOnText}" FontWeight="SemiBold"/>
                                 </StackPanel>
                                 <Border Grid.Column="4" CornerRadius="4" Padding="8,3" VerticalAlignment="Center"
@@ -302,11 +304,11 @@
 
             <!-- ── Disk Repair ─────────────────────────────────────────── -->
             <TextBlock Text="DISK REPAIR" FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,16,0,8"/>
+                       Foreground="{StaticResource MutedBrush}" Margin="0,16,0,8"/>
 
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
                     CornerRadius="8" Padding="14"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                 <Grid ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -317,7 +319,7 @@
                         <TextBlock Text="CHKDSK" FontWeight="SemiBold"/>
                         <TextBlock Text="Check and repair file system errors. Will schedule for next boot."
                                    FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                     <ComboBox Grid.Column="1" x:Name="DriveSelector" MinWidth="80"
                               VerticalAlignment="Center">
@@ -352,4 +354,5 @@
 
         </StackPanel>
     </ScrollViewer>
+    </hud:HudBackdrop>
 </Page>

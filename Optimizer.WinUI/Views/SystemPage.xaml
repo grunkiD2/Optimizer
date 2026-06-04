@@ -4,11 +4,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Optimizer.WinUI.Controls"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
     xmlns:services="using:Optimizer.WinUI.Services"
     Background="Transparent"
     Loaded="Page_Loaded">
 
+    <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
 
@@ -27,7 +29,7 @@
                         <TextBlock Text="{x:Bind ViewModel.CategoryName}"
                                    Style="{StaticResource TitleTextBlockStyle}"/>
                         <TextBlock FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                   Foreground="{StaticResource MutedBrush}">
                             <Run Text="{x:Bind ViewModel.ActiveCount, Mode=OneWay}"/>
                             <Run Text=" of "/>
                             <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
@@ -55,18 +57,18 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Telemetry Status -->
-                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Border Grid.Column="0" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Telemetry" FontSize="12" Foreground="#F87171"/>
                         <TextBlock Text="{x:Bind ViewModel.TelemetryStatus, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
                         <TextBlock Text="data collection" FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Optimizations Active -->
-                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Border Grid.Column="1" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Optimizations" FontSize="12" Foreground="#A78BFA"/>
                         <TextBlock FontSize="22" FontWeight="Bold" FontFamily="Consolas">
@@ -75,17 +77,17 @@
                             <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
                         </TextBlock>
                         <TextBlock Text="active" FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Hibernation placeholder -->
-                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Hibernation" FontSize="12" Foreground="#34D399"/>
                         <TextBlock Text="Sleep" FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
                         <TextBlock Text="power state" FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -112,12 +114,12 @@
             <!-- ── System Integrity ────────────────────────────────────── -->
             <TextBlock Text="SYSTEM INTEGRITY"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,16,0,8"/>
 
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
                     CornerRadius="8" Padding="14"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
                     <!-- SFC -->
                     <Grid ColumnSpacing="12">
@@ -129,7 +131,7 @@
                             <TextBlock Text="System File Checker (SFC)" FontWeight="SemiBold"/>
                             <TextBlock Text="Scans and repairs corrupted Windows system files (5-10 min)"
                                        FontSize="11"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{StaticResource MutedBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1" Content="Run SFC"
                                 Click="RunSfc_Click" VerticalAlignment="Center"/>
@@ -144,14 +146,14 @@
                             <TextBlock Text="DISM Repair Image" FontWeight="SemiBold"/>
                             <TextBlock Text="Repairs Windows component store (run before SFC for best results)"
                                        FontSize="11"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{StaticResource MutedBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1" Content="Run DISM"
                                 Click="RunDism_Click" VerticalAlignment="Center"/>
                     </Grid>
                     <!-- Progress output -->
                     <TextBlock x:Name="RepairProgressText"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Foreground="{StaticResource MutedBrush}"
                                FontSize="11" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
@@ -159,7 +161,7 @@
             <!-- ── Privacy Dashboard ────────────────────────────────────── -->
             <TextBlock Text="PRIVACY DASHBOARD"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,16,0,8"/>
 
             <Grid Margin="0,0,0,12" ColumnSpacing="12">
@@ -167,19 +169,19 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                <Border Background="{ThemeResource HudSurfaceAltBrush}"
                         CornerRadius="8" Padding="20" MinWidth="140"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="Privacy Score" FontSize="11"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                         <TextBlock Text="{x:Bind ViewModel.PrivacyScoreText, Mode=OneWay}"
                                    FontSize="32" FontWeight="Bold" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
                            Text="Toggle each setting to enable privacy-friendly mode. ON = privacy enabled."
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                           Foreground="{StaticResource MutedBrush}"/>
             </Grid>
 
             <ItemsRepeater ItemsSource="{x:Bind ViewModel.PrivacySettings, Mode=OneWay}">
@@ -188,9 +190,9 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="services:PrivacySetting">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="8" Padding="14,10"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -199,7 +201,7 @@
                                 <StackPanel>
                                     <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
                                     <TextBlock Text="{x:Bind Description}" FontSize="11"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               Foreground="{StaticResource MutedBrush}"
                                                TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <ToggleSwitch Grid.Column="1" IsOn="{x:Bind IsPrivacyFriendly, Mode=OneWay}"
@@ -213,4 +215,5 @@
 
         </StackPanel>
     </ScrollViewer>
+    </hud:HudBackdrop>
 </Page>

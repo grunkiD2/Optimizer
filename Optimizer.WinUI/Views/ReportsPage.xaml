@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent">
 
@@ -11,6 +12,7 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
     </Page.Resources>
 
+    <hud:HudBackdrop>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -36,7 +38,7 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock Text="Generate exportable system reports"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Foreground="{StaticResource MutedBrush}"
                            FontSize="13"/>
             </StackPanel>
 
@@ -79,7 +81,7 @@
                                            TextWrapping="NoWrap"/>
                                 <TextBlock Text="{x:Bind Description}"
                                            FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Foreground="{StaticResource MutedBrush}"
                                            TextWrapping="Wrap"
                                            MaxWidth="160"/>
                             </StackPanel>
@@ -101,15 +103,15 @@
                               Width="36" Height="36"
                               Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
                 <TextBlock Text="Select a report type above then click Generate"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Foreground="{StaticResource MutedBrush}"
                            HorizontalAlignment="Center"
                            Visibility="{x:Bind ViewModel.IsNotBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
             </StackPanel>
 
             <!-- Content -->
             <Border CornerRadius="8"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    Background="{ThemeResource HudSurfaceAltBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1"
                     Visibility="{x:Bind ViewModel.HasContent, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
@@ -134,7 +136,7 @@
 
             <TextBlock Grid.Column="0"
                        Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis"/>
 
@@ -154,4 +156,5 @@
         </Grid>
 
     </Grid>
+    </hud:HudBackdrop>
 </Page>

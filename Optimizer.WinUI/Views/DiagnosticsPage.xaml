@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="using:Optimizer.WinUI.Models"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:converters="using:Optimizer.WinUI.Converters"
     xmlns:local="using:Optimizer.WinUI.Converters"
     xmlns:svc="using:Optimizer.WinUI.Services"
@@ -15,6 +16,7 @@
     </Page.Resources>
 
 
+    <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Padding="24,16,24,24" Spacing="16">
 
@@ -35,7 +37,7 @@
                                    VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBlock Text="System health analysis"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Foreground="{StaticResource MutedBrush}"
                                FontSize="13"/>
                 </StackPanel>
 
@@ -55,7 +57,7 @@
             <ProgressBar IsIndeterminate="True"
                          Visibility="{x:Bind ViewModel.IsScanning, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
             <TextBlock Text="{x:Bind ViewModel.ProgressText, Mode=OneWay}"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        FontSize="12"
                        Visibility="{x:Bind ViewModel.IsScanning, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
@@ -119,7 +121,7 @@
             <!-- ── No findings empty state ──────────────────────────────── -->
             <Border CornerRadius="8" Padding="32"
                     Visibility="{x:Bind ViewModel.IsFindingsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                    Background="{ThemeResource LayerFillColorDefaultBrush}">
+                    Background="{ThemeResource HudSurfaceAltBrush}">
                 <StackPanel HorizontalAlignment="Center" Spacing="12">
                     <TextBlock Text="&#x2705;" FontSize="48" HorizontalAlignment="Center" Opacity="0.8"/>
                     <TextBlock Text="No issues found"
@@ -127,7 +129,7 @@
                                HorizontalAlignment="Center"/>
                     <TextBlock Text="Your system is healthy! Run a full scan periodically to stay on top of any changes."
                                FontSize="12" HorizontalAlignment="Center"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Foreground="{StaticResource MutedBrush}"
                                TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center"/>
                 </StackPanel>
             </Border>
@@ -140,9 +142,9 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="models:DiagnosticFinding">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="8" Padding="16"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderBrush="{ThemeResource HudHairlineBrush}"
                                 BorderThickness="1">
                             <StackPanel Spacing="8">
                                 <!-- Title row -->
@@ -180,15 +182,15 @@
                                 <TextBlock Text="{x:Bind Description, Mode=OneWay}"
                                            TextWrapping="Wrap"
                                            FontSize="13"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
 
                                 <!-- Recommendation -->
-                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                <Border Background="{ThemeResource HudSurfaceBrush}"
                                         CornerRadius="4" Padding="10,8">
                                     <StackPanel Spacing="3">
                                         <TextBlock Text="RECOMMENDATION"
                                                    FontSize="10" FontWeight="Bold"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                   Foreground="{StaticResource MutedBrush}"/>
                                         <TextBlock Text="{x:Bind Recommendation, Mode=OneWay}"
                                                    TextWrapping="Wrap" FontSize="12"/>
                                     </StackPanel>
@@ -202,9 +204,9 @@
             <!-- ══════════════════════════════════════════════════════════════ -->
             <!-- ── Driver Conflicts section ──────────────────────────────── -->
             <!-- ══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
                     CornerRadius="8" Padding="20"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1">
                 <StackPanel Spacing="12">
                     <Grid>
@@ -216,7 +218,7 @@
                             <TextBlock Text="🔌 Driver Conflicts" FontSize="16" FontWeight="SemiBold"/>
                             <TextBlock Text="Scan Device Manager for problem devices and outdated drivers."
                                        FontSize="12"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{StaticResource MutedBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1"
                                 Content="Scan Drivers"
@@ -229,7 +231,7 @@
 
                     <TextBlock Text="{x:Bind ViewModel.DriverScanStatus, Mode=OneWay}"
                                FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                               Foreground="{StaticResource MutedBrush}"/>
 
                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.DriverIssues, Mode=OneWay}">
                         <ItemsRepeater.Layout>
@@ -237,7 +239,7 @@
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="models:DriverIssue">
-                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                <Border Background="{ThemeResource HudSurfaceBrush}"
                                         CornerRadius="6" Padding="12">
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
@@ -246,14 +248,14 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Spacing="2">
                                             <TextBlock Text="{x:Bind DeviceName}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"/>
-                                            <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}">
                                                 <Run Text="{x:Bind DeviceClass}"/>
                                                 <Run Text=" · "/>
                                                 <Run Text="{x:Bind ErrorMessage}"/>
                                             </TextBlock>
                                             <TextBlock Text="{x:Bind DriverDateDisplay}"
                                                        FontSize="11"
-                                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                                       Foreground="{StaticResource MutedBrush}"/>
                                         </StackPanel>
                                         <Border Grid.Column="1"
                                                 CornerRadius="4" Padding="8,3"
@@ -274,9 +276,9 @@
             <!-- ══════════════════════════════════════════════════════════════ -->
             <!-- ── Performance Bottleneck section ───────────────────────── -->
             <!-- ══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
                     CornerRadius="8" Padding="20"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1">
                 <StackPanel Spacing="12">
                     <Grid>
@@ -288,7 +290,7 @@
                             <TextBlock Text="⚡ Performance Bottlenecks" FontSize="16" FontWeight="SemiBold"/>
                             <TextBlock Text="Detect memory leaks, high-CPU and memory-hungry processes (30 s sample)."
                                        FontSize="12"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{StaticResource MutedBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1"
                                 Content="Detect Bottlenecks"
@@ -301,7 +303,7 @@
 
                     <TextBlock Text="{x:Bind ViewModel.BottleneckStatus, Mode=OneWay}"
                                FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                               Foreground="{StaticResource MutedBrush}"/>
 
                     <TextBlock Text="{x:Bind ViewModel.BottleneckSummary, Mode=OneWay}"
                                FontSize="13" FontWeight="SemiBold"/>
@@ -312,7 +314,7 @@
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="models:ProcessBottleneck">
-                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                <Border Background="{ThemeResource HudSurfaceBrush}"
                                         CornerRadius="6" Padding="12">
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
@@ -322,7 +324,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Spacing="2">
                                             <TextBlock Text="{x:Bind ProcessName}" FontWeight="SemiBold" FontSize="13"/>
-                                            <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}">
                                                 <Run Text="PID "/>
                                                 <Run Text="{x:Bind Pid}"/>
                                                 <Run Text=" · "/>
@@ -352,9 +354,9 @@
             <!-- ══════════════════════════════════════════════════════════════ -->
             <!-- ── Network Deep Diagnostics section ──────────────────────── -->
             <!-- ══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
                     CornerRadius="8" Padding="20"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1">
                 <StackPanel Spacing="12">
                     <Grid>
@@ -366,7 +368,7 @@
                             <TextBlock Text="🌐 Network Deep Diagnostics" FontSize="16" FontWeight="SemiBold"/>
                             <TextBlock Text="Traceroute, MTU discovery, and 100-ping packet loss test to 1.1.1.1."
                                        FontSize="12"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{StaticResource MutedBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1"
                                 Content="Run Network Test"
@@ -379,7 +381,7 @@
 
                     <TextBlock Text="{x:Bind ViewModel.NetworkDeepStatus, Mode=OneWay}"
                                FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                               Foreground="{StaticResource MutedBrush}"/>
 
                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.NetworkDiagnostics, Mode=OneWay}">
                         <ItemsRepeater.Layout>
@@ -387,7 +389,7 @@
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="models:NetworkDiagnostic">
-                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                <Border Background="{ThemeResource HudSurfaceBrush}"
                                         CornerRadius="6" Padding="12">
                                     <StackPanel Spacing="6">
                                         <Grid ColumnSpacing="12">
@@ -402,7 +404,7 @@
                                                        VerticalAlignment="Center"/>
                                             <StackPanel Grid.Column="1" Spacing="1">
                                                 <TextBlock Text="{x:Bind Type}" FontWeight="SemiBold" FontSize="13"/>
-                                                <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                                <TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}">
                                                     <Run Text="Target: "/>
                                                     <Run Text="{x:Bind Target}"/>
                                                 </TextBlock>
@@ -427,9 +429,9 @@
             <!-- ══════════════════════════════════════════════════════════════ -->
             <!-- ── PREDICTIONS section ───────────────────────────────────── -->
             <!-- ══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
                     CornerRadius="8" Padding="20"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1">
                 <StackPanel Spacing="12">
 
@@ -443,7 +445,7 @@
                             <TextBlock Text="&#x1F52E; Predictions" FontSize="16" FontWeight="SemiBold"/>
                             <TextBlock Text="Drive-space exhaustion forecast and disk-health risk assessment."
                                        FontSize="12"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{StaticResource MutedBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1"
                                 Content="Refresh Forecasts"
@@ -456,7 +458,7 @@
 
                     <TextBlock Text="{x:Bind ViewModel.PredictionStatus, Mode=OneWay}"
                                FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                               Foreground="{StaticResource MutedBrush}"/>
 
                     <!-- Drive-space forecasts -->
                     <TextBlock Text="Drive Space Forecasts"
@@ -468,7 +470,7 @@
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="svc:DriveSpaceForecast">
-                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                <Border Background="{ThemeResource HudSurfaceBrush}"
                                         CornerRadius="6" Padding="12">
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
@@ -497,7 +499,7 @@
                                             </TextBlock>
                                             <TextBlock Text="{x:Bind GbPerDayText}"
                                                        FontSize="11"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                       Foreground="{StaticResource MutedBrush}"/>
                                         </StackPanel>
 
                                         <!-- Days-until-full badge -->
@@ -508,7 +510,7 @@
                                                        HorizontalAlignment="Right"/>
                                             <TextBlock Text="until full"
                                                        FontSize="10"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       Foreground="{StaticResource MutedBrush}"
                                                        HorizontalAlignment="Right"/>
                                         </StackPanel>
                                     </Grid>
@@ -529,7 +531,7 @@
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="svc:DiskFailureForecast">
                                 <Border CornerRadius="6" Padding="12"
-                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                        Background="{ThemeResource HudSurfaceBrush}">
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -541,7 +543,7 @@
                                                        TextWrapping="Wrap"/>
                                             <TextBlock Text="{x:Bind Reason}"
                                                        FontSize="11" TextWrapping="Wrap"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                       Foreground="{StaticResource MutedBrush}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center"
                                                     HorizontalAlignment="Right" Spacing="2">
@@ -565,9 +567,9 @@
             <!-- ══════════════════════════════════════════════════════════════ -->
             <!-- ── Display Test launch ───────────────────────────────────── -->
             <!-- ══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
                     CornerRadius="8" Padding="20"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1">
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
@@ -578,7 +580,7 @@
                         <TextBlock Text="🖥️ Display Test" FontSize="16" FontWeight="SemiBold"/>
                         <TextBlock Text="Full-screen colour panels to check for dead pixels and colour accuracy."
                                    FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                     <Button Grid.Column="1"
                             Content="Open Display Test"
@@ -590,4 +592,5 @@
 
         </StackPanel>
     </ScrollViewer>
+    </hud:HudBackdrop>
 </Page>

@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="using:Optimizer.WinUI.Converters"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
     xmlns:models="using:Optimizer.WinUI.Models"
     Background="Transparent"
@@ -14,6 +15,7 @@
         <converters:StringToSolidColorBrushConverter x:Key="StringToBrush"/>
     </Page.Resources>
 
+    <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
 
@@ -32,7 +34,7 @@
                                    Style="{StaticResource TitleTextBlockStyle}"/>
                         <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
                                    FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -47,8 +49,8 @@
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!--  SECTION 1 — Security Score                                   -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1" CornerRadius="8" Padding="24">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -71,7 +73,7 @@
                             <TextBlock Text="/100"
                                        FontSize="11"
                                        HorizontalAlignment="Center"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Foreground="{StaticResource MutedBrush}"/>
                         </StackPanel>
                     </Border>
 
@@ -89,7 +91,7 @@
                         </StackPanel>
 
                         <TextBlock TextWrapping="Wrap" FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                   Foreground="{StaticResource MutedBrush}">
                             Score is based on Defender settings (40 pts), firewall profiles (30 pts), and BitLocker encryption (20 pts + 10 bonus).
                         </TextBlock>
                     </StackPanel>
@@ -99,8 +101,8 @@
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!--  SECTION 2 — Windows Defender                                 -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="12">
 
@@ -135,49 +137,49 @@
 
                         <!-- Real-Time Protection -->
                         <Border Grid.Row="0" Grid.Column="0"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12,10">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Real-Time Protection" FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind ViewModel.RealTimeProtectionEnabled, Mode=OneWay}"
                                            FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
                         <!-- Cloud Protection -->
                         <Border Grid.Row="0" Grid.Column="1"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12,10">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Cloud Protection" FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind ViewModel.CloudProtectionEnabled, Mode=OneWay}"
                                            FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
                         <!-- Tamper Protection -->
                         <Border Grid.Row="1" Grid.Column="0"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12,10">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Tamper Protection" FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind ViewModel.TamperProtectionEnabled, Mode=OneWay}"
                                            FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
                         <!-- Definition version -->
                         <Border Grid.Row="1" Grid.Column="1"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12,10">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Definition Version" FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind ViewModel.DefinitionVersion, Mode=OneWay}"
                                            FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Foreground="{StaticResource MutedBrush}"
                                            TextWrapping="Wrap"
                                            MaxLines="2" TextTrimming="CharacterEllipsis"
                                            ToolTipService.ToolTip="{x:Bind ViewModel.DefinitionVersion, Mode=OneWay}"/>
@@ -186,25 +188,25 @@
 
                         <!-- Last Quick Scan -->
                         <Border Grid.Row="2" Grid.Column="0"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12,10">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Last Quick Scan" FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind ViewModel.LastQuickScan, Mode=OneWay}"
                                            FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
                         <!-- Last Full Scan -->
                         <Border Grid.Row="2" Grid.Column="1"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12,10">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Last Full Scan" FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind ViewModel.LastFullScan, Mode=OneWay}"
                                            FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
@@ -215,8 +217,8 @@
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!--  SECTION 3 — Firewall                                         -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="12">
 
@@ -238,7 +240,7 @@
 
                         <!-- Domain profile -->
                         <Border Grid.Column="0"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12">
                             <StackPanel Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE753;" FontSize="28"
@@ -248,13 +250,13 @@
                                            HorizontalAlignment="Center"/>
                                 <TextBlock Text="{x:Bind ViewModel.DomainFirewallEnabled, Mode=OneWay}"
                                            FontSize="12" HorizontalAlignment="Center"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
                         <!-- Private profile -->
                         <Border Grid.Column="1"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12">
                             <StackPanel Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE8F1;" FontSize="28"
@@ -264,13 +266,13 @@
                                            HorizontalAlignment="Center"/>
                                 <TextBlock Text="{x:Bind ViewModel.PrivateFirewallEnabled, Mode=OneWay}"
                                            FontSize="12" HorizontalAlignment="Center"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
                         <!-- Public profile -->
                         <Border Grid.Column="2"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12">
                             <StackPanel Spacing="6" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE704;" FontSize="28"
@@ -280,7 +282,7 @@
                                            HorizontalAlignment="Center"/>
                                 <TextBlock Text="{x:Bind ViewModel.PublicFirewallEnabled, Mode=OneWay}"
                                            FontSize="12" HorizontalAlignment="Center"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                           Foreground="{StaticResource MutedBrush}"/>
                             </StackPanel>
                         </Border>
 
@@ -291,8 +293,8 @@
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!--  SECTION 4 — Encryption (BitLocker)                           -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="12">
 
@@ -308,7 +310,7 @@
                     <!-- Needs admin / no volumes -->
                     <TextBlock Text="BitLocker information requires administrator privileges, or no fixed drives were found."
                                FontSize="13"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Foreground="{StaticResource MutedBrush}"
                                TextWrapping="Wrap"
                                Visibility="{x:Bind ViewModel.HasNoBitLockerVolumes, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
@@ -319,7 +321,7 @@
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="models:BitLockerVolume">
-                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                         CornerRadius="6" Padding="12,10">
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
@@ -340,13 +342,13 @@
                                                        FontSize="13" FontWeight="SemiBold"/>
                                             <TextBlock Text="{x:Bind LockStatus}"
                                                        FontSize="11"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                       Foreground="{StaticResource MutedBrush}"/>
                                         </StackPanel>
 
                                         <TextBlock Grid.Column="2"
                                                    Text="{x:Bind ProtectionStatus}"
                                                    FontSize="12" VerticalAlignment="Center"
-                                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                                   Foreground="{StaticResource MutedBrush}"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -359,8 +361,8 @@
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!--  SECTION 5 — Recommendations                                  -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            <Border Background="{ThemeResource HudSurfaceAltBrush}"
+                    BorderBrush="{ThemeResource HudHairlineBrush}"
                     BorderThickness="1" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="12">
 
@@ -379,7 +381,7 @@
                         </ItemsRepeater.Layout>
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate x:DataType="vm:SecurityRecommendation">
-                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                         CornerRadius="6" Padding="12,10"
                                         BorderThickness="1"
                                         BorderBrush="{x:Bind SeverityColor, Converter={StaticResource StringToBrush}}">
@@ -401,7 +403,7 @@
                                                        TextWrapping="Wrap"/>
                                             <TextBlock Text="{x:Bind Detail}"
                                                        FontSize="11"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       Foreground="{StaticResource MutedBrush}"
                                                        TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </Grid>
@@ -415,4 +417,5 @@
 
         </StackPanel>
     </ScrollViewer>
+    </hud:HudBackdrop>
 </Page>

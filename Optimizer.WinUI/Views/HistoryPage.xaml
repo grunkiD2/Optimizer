@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="using:Optimizer.WinUI.Converters"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
     Background="Transparent"
     Loaded="Page_Loaded">
@@ -13,6 +14,7 @@
         <converters:StringToSolidColorBrushConverter x:Key="StringToBrush"/>
     </Page.Resources>
 
+    <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" Padding="24,16,24,24">
             <StackPanel.ChildrenTransitions>
@@ -35,7 +37,7 @@
                         <TextBlock Text="{x:Bind ViewModel.CategoryName}"
                                    Style="{StaticResource TitleTextBlockStyle}"/>
                         <TextBlock FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                   Foreground="{StaticResource MutedBrush}">
                             <Run Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}"/>
                             <Run Text=" total entries"/>
                         </TextBlock>
@@ -53,7 +55,7 @@
             <!-- ── Status message ─────────────────────────────────────────── -->
             <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
                        FontSize="12"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Visibility="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
 
             <!-- ── Filter bar ─────────────────────────────────────────────── -->
@@ -96,7 +98,7 @@
 
             <!-- ── Empty state ─────────────────────────────────────────────── -->
             <Border CornerRadius="8" Padding="32"
-                    Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                    Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" Background="{ThemeResource HudSurfaceAltBrush}">
                 <StackPanel HorizontalAlignment="Center" Spacing="8">
                     <TextBlock Text="&#x1F4DC;" FontSize="40" HorizontalAlignment="Center"/>
                     <TextBlock Text="No history yet"
@@ -104,7 +106,7 @@
                                HorizontalAlignment="Center"/>
                     <TextBlock Text="Applied optimizations will appear here."
                                FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Foreground="{StaticResource MutedBrush}"
                                HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
@@ -140,7 +142,7 @@
 
                                 <TextBlock Grid.Column="2"
                                            FontSize="11" VerticalAlignment="Center"
-                                           Foreground="{ThemeResource TextFillColorTertiaryBrush}">
+                                           Foreground="{StaticResource MutedBrush}">
                                     <Run Text="{x:Bind Count}"/>
                                     <Run Text=" entries"/>
                                 </TextBlock>
@@ -156,8 +158,8 @@
 
                                         <Border CornerRadius="8" Padding="14,10"
                                                 BorderThickness="1"
-                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                                BorderBrush="{ThemeResource HudHairlineBrush}"
+                                                Background="{ThemeResource HudSurfaceAltBrush}">
 
                                             <Grid ColumnSpacing="10">
                                                 <Grid.ColumnDefinitions>
@@ -174,10 +176,10 @@
                                                                TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text="{x:Bind Category}"
                                                                FontSize="11"
-                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                               Foreground="{StaticResource MutedBrush}"/>
                                                     <TextBlock Text="{x:Bind TimeText}"
                                                                FontSize="10" Margin="0,3,0,0"
-                                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                                               Foreground="{StaticResource MutedBrush}"/>
                                                 </StackPanel>
 
                                                 <!-- Action badge -->
@@ -223,4 +225,5 @@
 
         </StackPanel>
     </ScrollViewer>
+    </hud:HudBackdrop>
 </Page>

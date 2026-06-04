@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:settingsControls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent"
     Loaded="Page_Loaded">
@@ -12,6 +13,7 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
     </Page.Resources>
 
+    <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="20" Padding="24,16,24,24">
 
@@ -30,7 +32,7 @@
                                    Style="{StaticResource TitleTextBlockStyle}"/>
                         <TextBlock Text="Application preferences and behaviour"
                                    FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                   Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -43,7 +45,7 @@
             <!-- ── APPEARANCE ─────────────────────────────────────────────── -->
             <TextBlock Text="APPEARANCE"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <settingsControls:SettingsCard Header="Theme"
@@ -86,7 +88,7 @@
             <!-- ── MONITORING ─────────────────────────────────────────────── -->
             <TextBlock Text="MONITORING"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <settingsControls:SettingsCard Header="Metrics Refresh Interval"
@@ -110,7 +112,7 @@
             <!-- ── NOTIFICATIONS ──────────────────────────────────────────── -->
             <TextBlock Text="NOTIFICATIONS"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <settingsControls:SettingsCard Header="Performance Alerts"
@@ -158,7 +160,7 @@
             <!-- ── DATA ───────────────────────────────────────────────────── -->
             <TextBlock Text="DATA"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <settingsControls:SettingsCard Header="Start With Windows"
@@ -213,7 +215,7 @@
             <!-- ── CLOUD SYNC ─────────────────────────────────────────────── -->
             <TextBlock Text="CLOUD SYNC"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <!-- Server URL (always shown) -->
@@ -277,7 +279,7 @@
             <!-- ── PRIVACY-PRESERVING COMMUNITY INSIGHTS ─────────────────── -->
             <TextBlock Text="PRIVACY &amp; AI"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <settingsControls:SettingsCard
@@ -291,7 +293,7 @@
             <!-- ── REMOTE API ──────────────────────────────────────────────── -->
             <TextBlock Text="REMOTE API"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <settingsControls:SettingsCard Header="Enable REST API"
@@ -329,7 +331,7 @@
             <!-- ── AI ASSISTANT ─────────────────────────────────────────────── -->
             <TextBlock Text="AI ASSISTANT"
                        FontSize="11" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Foreground="{StaticResource MutedBrush}"
                        Margin="0,8,0,0"/>
 
             <settingsControls:SettingsCard Header="Enable AI Assistant"
@@ -374,4 +376,5 @@
 
         </StackPanel>
     </ScrollViewer>
+    </hud:HudBackdrop>
 </Page>
