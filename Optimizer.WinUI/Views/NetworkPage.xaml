@@ -13,7 +13,6 @@
     Unloaded="Page_Unloaded">
 
     <Page.Resources>
-        <converters:BoolToVisibilityConverter    x:Key="BoolToVisibility"/>
         <converters:OneDecimalConverter          x:Key="OneDecimal"/>
         <converters:NullToVisibilityConverter    x:Key="NullToVisibility"/>
     </Page.Resources>

@@ -9,9 +9,8 @@
     Background="Transparent"
     Loaded="Page_Loaded">
 
-    <Page.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
-    </Page.Resources>
+    <!-- BoolToVisibility is a global converter in App.xaml -->
+
 
     <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">

@@ -10,7 +10,6 @@
     Loaded="Page_Loaded">
 
     <Page.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
         <converters:DateTimeToStringConverter x:Key="DateTimeToString"/>
     </Page.Resources>
 

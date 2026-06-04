@@ -8,9 +8,8 @@
     xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent">
 
-    <Page.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
-    </Page.Resources>
+    <!-- BoolToVisibility is a global converter in App.xaml -->
+
 
     <hud:HudBackdrop>
     <Grid>

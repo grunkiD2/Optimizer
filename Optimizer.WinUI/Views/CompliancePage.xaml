@@ -10,7 +10,6 @@
     Loaded="Page_Loaded">
 
     <Page.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
         <converters:StringToSolidColorBrushConverter x:Key="ColorToBrush"/>
     </Page.Resources>
 

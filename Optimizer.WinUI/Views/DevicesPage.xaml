@@ -9,11 +9,8 @@
     Background="Transparent"
     Loaded="Page_Loaded">
 
-    <Page.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
-        <!-- Reuse BoolToVisibilityConverter with Invert parameter to negate bool (for IsEnabled on critical) -->
-        <converters:BoolToVisibilityConverter x:Key="BoolNegation"/>
-    </Page.Resources>
+    <!-- BoolToVisibility is a global converter in App.xaml; pass ConverterParameter=Invert to negate -->
+
 
     <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -125,7 +122,7 @@
                                 <ToggleSwitch Grid.Column="4"
                                              VerticalAlignment="Center"
                                              IsOn="{x:Bind IsEnabled, Mode=OneWay}"
-                                             IsEnabled="{x:Bind IsCritical, Converter={StaticResource BoolNegation}, ConverterParameter=Invert}"
+                                             IsEnabled="{x:Bind IsCritical, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"
                                              Toggled="DeviceToggle_Toggled"
                                              Tag="{x:Bind InstanceId}"
                                              MinWidth="0"

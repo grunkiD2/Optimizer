@@ -8,7 +8,7 @@
     xmlns:m="using:Optimizer.WinUI.Models">
 
     <UserControl.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <!-- BoolToVisibility is a global converter in App.xaml -->
 
         <!-- Breathing animation for the live-status dot -->
         <Storyboard x:Key="LivePulse" RepeatBehavior="Forever">
