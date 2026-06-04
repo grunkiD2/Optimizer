@@ -10,31 +10,33 @@ public sealed record HubSection(string Label, Type PageType);
 public sealed record HubConfig(string Tag, string Title, IReadOnlyList<HubSection> Sections);
 
 /// <summary>
-/// The 5-hub information architecture. Each hub is one <see cref="HubPage"/> whose Segmented
-/// sub-nav swaps between the section pages. Individual pages remain navigable directly (e.g. by the
-/// assistant) via MainWindow's PageMap — the rail just groups them.
+/// The 5-hub information architecture from <c>docs/REDESIGN-IA.md</c>. Each hub is one
+/// <see cref="HubPage"/> whose Segmented sub-nav swaps between the section pages. Individual
+/// pages remain navigable directly (e.g. by the assistant) via MainWindow's PageMap — the
+/// rail just groups them.
+///
+/// Section merges (each one host page absorbs another via an in-page Segmented switcher):
+///   PerformancePage  → "CPU & Power"            (Performance + Tuning)
+///   StartupPage      → "Startup & Services"     (Startup + Services)
+///   MarketplacePage  → "Extensions"             (Marketplace + Plugins)
+///   ProfilesPage     → "Profiles"               (Profiles + Templates)
 /// </summary>
 public static class HubRegistry
 {
     public static readonly HubConfig Monitor = new("Monitor", "Monitor", new HubSection[]
     {
         new("Sensors & Inventory", typeof(HardwarePage)),
-        new("Devices", typeof(DevicesPage)),
         new("Event Log", typeof(EventLogsPage)),
-        new("Updates", typeof(UpdatesPage)),
     });
 
     public static readonly HubConfig Optimize = new("Optimize", "Optimize", new HubSection[]
     {
-        // "CPU & Power" merges what used to be Performance + Tuning into one page
-        // (PerformancePage hosts both ViewModels and an in-page Segmented switcher).
         new("CPU & Power", typeof(PerformancePage)),
         new("Privacy & System", typeof(SystemPage)),
         new("Network", typeof(NetworkPage)),
         new("Storage", typeof(StoragePage)),
-        // "Startup & Services" merges what used to be Startup + Services — one place
-        // for "what runs at boot / in the background." Hosted by StartupPage.
         new("Startup & Services", typeof(StartupPage)),
+        new("Devices", typeof(DevicesPage)),
     });
 
     public static readonly HubConfig Automate = new("Automate", "Automate", new HubSection[]
@@ -43,7 +45,6 @@ public static class HubRegistry
         new("Recommendations", typeof(RecommendationsPage)),
         new("Learning", typeof(LearningPage)),
         new("History", typeof(HistoryPage)),
-        new("Templates", typeof(TemplatesPage)),
     });
 
     public static readonly HubConfig Protect = new("Protect", "Protect", new HubSection[]
@@ -51,12 +52,11 @@ public static class HubRegistry
         new("Diagnostics", typeof(DiagnosticsPage)),
         new("Security", typeof(SecurityPage)),
         new("Compliance", typeof(CompliancePage)),
+        new("Updates", typeof(UpdatesPage)),
     });
 
     public static readonly HubConfig Extend = new("Extend", "Extend", new HubSection[]
     {
-        // "Extensions" merges what used to be Marketplace + Plugins into one third-party
-        // discovery surface. Hosted by MarketplacePage (which now also owns PluginsViewModel).
         new("Extensions", typeof(MarketplacePage)),
         new("Fleet", typeof(FleetPage)),
         new("Reports", typeof(ReportsPage)),
