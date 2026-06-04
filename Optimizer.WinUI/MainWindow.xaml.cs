@@ -14,25 +14,24 @@ public sealed partial class MainWindow : Window
     private readonly NavigationService _navigationService;
     private readonly ISettingsService _settingsService;
 
+    // PageMap is the assistant's direct-navigation target list. After the IA redesign,
+    // each retired/merged page redirects to its new host so assistant scripts that still
+    // reference the old tags ("Tuning", "Services", "Plugins", "Templates", "Dashboard",
+    // "Marketplace") keep working.
     private static readonly Dictionary<string, Type> PageMap = new()
     {
         ["CommandCenter"] = typeof(CommandCenterPage),
-        ["Dashboard"] = typeof(DashboardPage),
         ["Performance"] = typeof(PerformancePage),
         ["Network"] = typeof(NetworkPage),
         ["Storage"] = typeof(StoragePage),
         ["System"] = typeof(SystemPage),
         ["Startup"] = typeof(StartupPage),
         ["Hardware"] = typeof(HardwarePage),
-        ["Tuning"]   = typeof(TuningPage),
         ["Diagnostics"] = typeof(DiagnosticsPage),
         ["Recommendations"] = typeof(RecommendationsPage),
         ["Updates"] = typeof(UpdatesPage),
         ["Security"] = typeof(SecurityPage),
-        ["Services"] = typeof(ServicesPage),
         ["Profiles"] = typeof(ProfilesPage),
-        ["Marketplace"] = typeof(MarketplacePage),
-        ["Plugins"]     = typeof(PluginsPage),
         ["History"] = typeof(HistoryPage),
         ["Learning"] = typeof(LearningPage),
         ["EventLogs"] = typeof(EventLogsPage),
@@ -41,8 +40,15 @@ public sealed partial class MainWindow : Window
         ["DisplayTest"]  = typeof(DisplayTestPage),
         ["Devices"]      = typeof(DevicesPage),
         ["Fleet"]        = typeof(FleetPage),
-        ["Templates"]    = typeof(TemplatesPage),
         ["Compliance"]   = typeof(CompliancePage),
+
+        // ── Backwards-compat redirects (old tag → new merged host) ─────────────
+        ["Dashboard"]    = typeof(CommandCenterPage),    // duplicate of home, killed
+        ["Tuning"]       = typeof(PerformancePage),      // → "CPU & Power"
+        ["Services"]     = typeof(StartupPage),          // → "Startup & Services"
+        ["Plugins"]      = typeof(MarketplacePage),      // → "Extensions"
+        ["Marketplace"]  = typeof(MarketplacePage),      // renamed Extensions
+        ["Templates"]    = typeof(ProfilesPage),         // → "Profiles"
     };
 
     /// <summary>

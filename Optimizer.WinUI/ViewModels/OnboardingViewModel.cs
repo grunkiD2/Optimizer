@@ -61,7 +61,7 @@ public partial class OnboardingViewModel : ObservableObject
             try { await _optimizer.ApplyProfileAsync("preset-privacy"); } catch { /* non-fatal */ }
         }
 
-        NavigateToDashboard();
+        NavigateToHome();
     }
 
     [RelayCommand]
@@ -69,12 +69,13 @@ public partial class OnboardingViewModel : ObservableObject
     {
         _settings.Settings.HasCompletedOnboarding = true;
         _settings.Save();
-        NavigateToDashboard();
+        NavigateToHome();
     }
 
-    private static void NavigateToDashboard()
+    private static void NavigateToHome()
     {
+        // Dashboard was retired in the IA redesign — Command Center is the home.
         var nav = App.GetService<NavigationService>();
-        nav.NavigateTo(typeof(DashboardPage));
+        nav.NavigateTo(typeof(CommandCenterPage));
     }
 }
