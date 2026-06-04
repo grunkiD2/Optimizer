@@ -2,12 +2,14 @@ name: Build
 
 on:
   push:
-    branches: [main, master, "feature/**"]
+    branches: [main, master, "feature/**", "redesign/**"]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, "feature/**"]
 
 jobs:
+  # Core .NET projects: WinUI, Cli, Server + their tests. Fast — no MAUI workload.
   build:
+    name: Build & test (.NET, no MAUI)
     runs-on: windows-latest
 
     steps:
@@ -21,36 +23,86 @@ jobs:
           10.0.x
         include-prerelease: true
 
-    - name: Restore dependencies
+    - name: Restore
       run: |
         dotnet restore Optimizer.WinUI/Optimizer.WinUI.csproj
-        dotnet restore Optimizer.Cli/Optimizer.Cli.csproj
         dotnet restore Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj
+        dotnet restore Optimizer.Cli/Optimizer.Cli.csproj
+        dotnet restore Optimizer.Cli.Tests/Optimizer.Cli.Tests.csproj
+        dotnet restore Optimizer.Server/Optimizer.Server.csproj
+        dotnet restore Optimizer.Server.Tests/Optimizer.Server.Tests.csproj
 
-    - name: Build
-      run: dotnet build Optimizer.WinUI/Optimizer.WinUI.csproj --configuration Release --no-restore
+    - name: Build WinUI
+      run: dotnet build Optimizer.WinUI/Optimizer.WinUI.csproj -c Release --no-restore
 
-    - name: Build CLI
-      run: dotnet build Optimizer.Cli/Optimizer.Cli.csproj --configuration Release --no-restore
+    - name: Build WinUI tests
+      run: dotnet build Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj -c Release --no-restore
 
-    - name: Build Tests
-      run: dotnet build Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --configuration Release --no-restore
+    - name: Build Cli
+      run: dotnet build Optimizer.Cli/Optimizer.Cli.csproj -c Release --no-restore
 
-    # NOTE: Optimizer.Mobile (MAUI) is intentionally excluded — it requires
-    # the MAUI workload (dotnet workload install maui) which is not installed on
-    # the standard windows-latest runner without explicit setup steps.
+    - name: Build Cli tests
+      run: dotnet build Optimizer.Cli.Tests/Optimizer.Cli.Tests.csproj -c Release --no-restore
 
-    - name: Run Tests
-      run: dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
+    - name: Build Server
+      run: dotnet build Optimizer.Server/Optimizer.Server.csproj -c Release --no-restore
 
-    - name: Publish artifacts
+    - name: Build Server tests
+      run: dotnet build Optimizer.Server.Tests/Optimizer.Server.Tests.csproj -c Release --no-restore
+
+    - name: Test WinUI
+      run: dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --no-build -c Release --logger "trx;LogFileName=winui.trx"
+
+    - name: Test Cli
+      run: dotnet test Optimizer.Cli.Tests/Optimizer.Cli.Tests.csproj --no-build -c Release --logger "trx;LogFileName=cli.trx"
+
+    - name: Test Server
+      run: dotnet test Optimizer.Server.Tests/Optimizer.Server.Tests.csproj --no-build -c Release --logger "trx;LogFileName=server.trx"
+
+    - name: Publish WinUI artifact
       if: github.event_name == 'push'
       run: dotnet publish Optimizer.WinUI/Optimizer.WinUI.csproj -c Release -r win-x64 --self-contained false -o publish
 
-    - name: Upload artifacts
+    - name: Upload WinUI artifact
       if: github.event_name == 'push'
       uses: actions/upload-artifact@v4
       with:
         name: Optimizer-WinUI
         path: publish/
         retention-days: 7
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          **/TestResults/*.trx
+        retention-days: 7
+
+  # Separate job for Optimizer.Mobile (MAUI). Pulls the workload (~1.5 GB),
+  # builds Android only — iOS would require a macOS runner. Continues on error
+  # so a MAUI workload regression doesn't block desktop releases.
+  mobile:
+    name: Build Mobile (MAUI Android)
+    runs-on: windows-latest
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          10.0.x
+        include-prerelease: true
+
+    - name: Install MAUI workload
+      run: dotnet workload install maui-android
+
+    - name: Restore Mobile
+      run: dotnet restore Optimizer.Mobile/Optimizer.Mobile.csproj
+
+    - name: Build Mobile (Android)
+      run: dotnet build Optimizer.Mobile/Optimizer.Mobile.csproj -c Release -f net10.0-android --no-restore
