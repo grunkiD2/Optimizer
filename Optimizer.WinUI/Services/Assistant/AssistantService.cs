@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Optimizer.WinUI.Services.Commands;
+using Optimizer.WinUI.Services; // EngineLog
 
 namespace Optimizer.WinUI.Services.Assistant;
 
@@ -9,7 +10,8 @@ public sealed class AssistantService(
     IAssistantSettings settings,
     IAssistantActionLogger actionLogger,
     IContextDetectionService contextDetection,
-    IContextualPromptBuilder promptBuilder) : IAssistantService
+    IContextualPromptBuilder promptBuilder,
+    IElevationService elevation) : IAssistantService
 {
     private const int MaxToolRounds = 8;
 
@@ -65,18 +67,33 @@ public sealed class AssistantService(
 
                 if (cmd.RequiresConfirmation)
                 {
-                    var summary = $"{cmd.Id} {RenderArgs(use.ToolInput)}".Trim();
-                    var approved = await cb.ConfirmAsync(cmd.Id, summary);
-                    if (!approved)
+                    // When the app is running elevated and the user has opted into
+                    // "trust the assistant when elevated" (default ON), skip the per-
+                    // tool-call confirm dialog. UAC was already granted to the whole
+                    // process; a second prompt per command is friction. The setting
+                    // can be flipped off in Settings → AI Assistant.
+                    var elevatedTrust = settings.AutoConfirmWhenElevated && elevation.IsElevated;
+                    if (!elevatedTrust)
                     {
-                        toolResults.Add(ToolError(use.ToolUseId!, "User declined this action.", isError: false));
-                        continue;
+                        var summary = $"{cmd.Id} {RenderArgs(use.ToolInput)}".Trim();
+                        var approved = await cb.ConfirmAsync(cmd.Id, summary);
+                        if (!approved)
+                        {
+                            toolResults.Add(ToolError(use.ToolUseId!, "User declined this action.", isError: false));
+                            continue;
+                        }
                     }
                 }
 
                 cb.OnStatus($"Running {cmd.Id}…");
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 var context = await contextDetection.DetectContextAsync();
+
+                // Make the tool call visible in the Activity console. The assistant runs
+                // background work the user can't otherwise see; without this line the dock
+                // looks dead while the assistant is operating.
+                var argsRendered = RenderArgs(use.ToolInput);
+                EngineLog.Write($"Assistant ▸ {cmd.Id}{argsRendered}");
 
                 try
                 {
@@ -86,12 +103,15 @@ public sealed class AssistantService(
                     // Log action success
                     _ = actionLogger.LogActionAsync(
                         cmd.Id,
-                        RenderArgs(use.ToolInput),
+                        argsRendered,
                         r.Success,
                         detectedContext: context,
                         executionTimeMs: (int)sw.ElapsedMilliseconds);
 
                     cb.OnToolExecuted(cmd.Id, r.Success);
+                    EngineLog.Write(r.Success
+                        ? $"Assistant ✓ {cmd.Id} ({sw.ElapsedMilliseconds} ms)"
+                        : $"Assistant ✗ {cmd.Id}: {r.Summary}");
 
                     toolResults.Add(new ClaudeBlock(ClaudeBlockKind.ToolResult,
                         ToolUseId: use.ToolUseId!, ToolResultContent: r.Summary, ToolResultIsError: !r.Success));
@@ -103,13 +123,14 @@ public sealed class AssistantService(
                     // Log action failure
                     _ = actionLogger.LogActionAsync(
                         cmd.Id,
-                        RenderArgs(use.ToolInput),
+                        argsRendered,
                         false,
                         ex.Message,
                         detectedContext: context,
                         executionTimeMs: (int)sw.ElapsedMilliseconds);
 
                     cb.OnToolExecuted(cmd.Id, false);
+                    EngineLog.Error($"Assistant ✗ {cmd.Id} threw", ex);
 
                     toolResults.Add(ToolError(use.ToolUseId!, $"Command threw: {ex.Message}"));
                 }

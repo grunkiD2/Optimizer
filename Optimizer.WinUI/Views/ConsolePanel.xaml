@@ -48,7 +48,6 @@
                           Margin="10,0,0,0">
                 <tk:SegmentedItem Content="Activity"/>
                 <tk:SegmentedItem Content="Assistant"/>
-                <tk:SegmentedItem Content="Output"/>
             </tk:Segmented>
 
             <!-- Live indicator + utility buttons -->
@@ -179,16 +178,10 @@
             </Grid>
         </Grid>
 
-        <!-- ── Output pane (raw command output) ──────────────────────── -->
-        <ScrollViewer x:Name="PaneOutput" Grid.Row="1"
-                      Visibility="Collapsed"
-                      VerticalScrollBarVisibility="Auto"
-                      Padding="10,6">
-            <TextBlock x:Name="OutputBlock"
-                       FontFamily="Consolas" FontSize="11"
-                       TextWrapping="Wrap"
-                       Foreground="{StaticResource MutedBrush}"
-                       Text="No output yet."/>
-        </ScrollViewer>
+        <!-- "Output" tab existed here as a placeholder during the IA redesign — removed
+             2026-06-04 once it became clear that Activity (Engine/EventBus log) already
+             carries all the surfaces the user needs to see. Add a third tab back when
+             there's genuinely-different content to show (e.g., raw stdout from a long-
+             running cleanup script). -->
     </Grid>
 </UserControl>

@@ -45,7 +45,6 @@ public sealed partial class ConsolePanel : UserControl
         var i = ConsoleTabs.SelectedIndex;
         PaneActivity.Visibility  = i == 0 ? Visibility.Visible : Visibility.Collapsed;
         PaneAssistant.Visibility = i == 1 ? Visibility.Visible : Visibility.Collapsed;
-        PaneOutput.Visibility    = i == 2 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async Task<bool> ConfirmAsync(string id, string summary)
