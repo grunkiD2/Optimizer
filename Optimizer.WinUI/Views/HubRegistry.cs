@@ -55,8 +55,9 @@ public static class HubRegistry
 
     public static readonly HubConfig Extend = new("Extend", "Extend", new HubSection[]
     {
-        new("Marketplace", typeof(MarketplacePage)),
-        new("Plugins", typeof(PluginsPage)),
+        // "Extensions" merges what used to be Marketplace + Plugins into one third-party
+        // discovery surface. Hosted by MarketplacePage (which now also owns PluginsViewModel).
+        new("Extensions", typeof(MarketplacePage)),
         new("Fleet", typeof(FleetPage)),
         new("Reports", typeof(ReportsPage)),
     });
