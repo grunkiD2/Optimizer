@@ -12,10 +12,34 @@ public sealed partial class HubPage : Page
 {
     public HubPage() => InitializeComponent();
 
+    // When a HubNavTarget supplies a sub-section index, stash it here so the
+    // subsequent Section_Changed handler can pass it through to the section page
+    // (e.g. PerformancePage's inner Segmented). Cleared after first use — one-shot.
+    private int? _pendingSubSection;
+
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        if (e.Parameter is not HubConfig config) return;
+
+        HubConfig? config = null;
+        var sectionIndex = 0;
+        _pendingSubSection = null;
+
+        // Both call shapes supported:
+        //   1) NavigateTo(HubPage, HubConfig)        — original (slim-rail click)
+        //   2) NavigateTo(HubPage, HubNavTarget)     — AI-driven hub-aware nav
+        if (e.Parameter is HubNavTarget target)
+        {
+            config = target.Hub;
+            sectionIndex = Math.Clamp(target.SectionIndex, 0, target.Hub.Sections.Count - 1);
+            _pendingSubSection = target.SubSectionIndex;
+        }
+        else if (e.Parameter is HubConfig hc)
+        {
+            config = hc;
+        }
+
+        if (config is null) return;
 
         HubTitle.Text = config.Title.ToUpperInvariant();
 
@@ -24,12 +48,18 @@ public sealed partial class HubPage : Page
             SectionSeg.Items.Add(new SegmentedItem { Content = s.Label, Tag = s.PageType });
 
         if (SectionSeg.Items.Count > 0)
-            SectionSeg.SelectedIndex = 0; // fires Section_Changed → navigates the first section
+            SectionSeg.SelectedIndex = sectionIndex; // fires Section_Changed → navigates the section
     }
 
     private void Section_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (SectionSeg.SelectedItem is SegmentedItem { Tag: Type pageType })
-            SectionFrame.Navigate(pageType, null, new SuppressNavigationTransitionInfo());
+        {
+            // Pass the sub-section hint exactly once; clear so manual section clicks
+            // don't carry stale state.
+            var param = _pendingSubSection is int v ? (object)v : null;
+            _pendingSubSection = null;
+            SectionFrame.Navigate(pageType, param, new SuppressNavigationTransitionInfo());
+        }
     }
 }

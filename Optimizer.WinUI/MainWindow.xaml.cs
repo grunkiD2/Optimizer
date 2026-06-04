@@ -14,42 +14,19 @@ public sealed partial class MainWindow : Window
     private readonly NavigationService _navigationService;
     private readonly ISettingsService _settingsService;
 
-    // PageMap is the assistant's direct-navigation target list. After the IA redesign,
-    // each retired/merged page redirects to its new host so assistant scripts that still
-    // reference the old tags ("Tuning", "Services", "Plugins", "Templates", "Dashboard",
-    // "Marketplace") keep working.
+    // PageMap = standalone destinations the assistant can navigate to directly. After the
+    // IA redesign, anything that lives INSIDE a hub goes through `HubRoutes` below so the
+    // outer Segmented + slim rail render the way the user expects. PageMap stays small.
     private static readonly Dictionary<string, Type> PageMap = new()
     {
         ["CommandCenter"] = typeof(CommandCenterPage),
-        ["Performance"] = typeof(PerformancePage),
-        ["Network"] = typeof(NetworkPage),
-        ["Storage"] = typeof(StoragePage),
-        ["System"] = typeof(SystemPage),
-        ["Startup"] = typeof(StartupPage),
-        ["Hardware"] = typeof(HardwarePage),
-        ["Diagnostics"] = typeof(DiagnosticsPage),
-        ["Recommendations"] = typeof(RecommendationsPage),
-        ["Updates"] = typeof(UpdatesPage),
-        ["Security"] = typeof(SecurityPage),
-        ["Profiles"] = typeof(ProfilesPage),
-        ["History"] = typeof(HistoryPage),
-        ["Learning"] = typeof(LearningPage),
-        ["EventLogs"] = typeof(EventLogsPage),
-        ["Reports"]      = typeof(ReportsPage),
-        ["Settings"]     = typeof(SettingsPage),
-        ["DisplayTest"]  = typeof(DisplayTestPage),
-        ["Devices"]      = typeof(DevicesPage),
-        ["Fleet"]        = typeof(FleetPage),
-        ["Compliance"]   = typeof(CompliancePage),
-
-        // ── Backwards-compat redirects (old tag → new merged host) ─────────────
-        ["Dashboard"]    = typeof(CommandCenterPage),    // duplicate of home, killed
-        ["Tuning"]       = typeof(PerformancePage),      // → "CPU & Power"
-        ["Services"]     = typeof(StartupPage),          // → "Startup & Services"
-        ["Plugins"]      = typeof(MarketplacePage),      // → "Extensions"
-        ["Marketplace"]  = typeof(MarketplacePage),      // renamed Extensions
-        ["Templates"]    = typeof(ProfilesPage),         // → "Profiles"
+        ["Settings"]      = typeof(SettingsPage),
+        ["DisplayTest"]   = typeof(DisplayTestPage),
+        ["Dashboard"]     = typeof(CommandCenterPage),   // back-compat: Dashboard was killed
     };
+
+    // Hub-aware navigation lives in HubRouting.cs so it can be exercised by unit tests
+    // without spinning up the WinUI shell. See HubRoutingTests.cs.
 
     /// <summary>
     /// Set to true by TrayIconService before calling Close() so the minimize-to-tray
@@ -74,15 +51,15 @@ public sealed partial class MainWindow : Window
         _navigationService.Frame = ContentFrame;
 
         // Wire the assistant's navigate_to_page command to real shell navigation.
+        // Hub-aware: pages that live inside a hub route through HubPage with a
+        // HubNavTarget so the slim rail highlights the right hub AND the inner
+        // Segmented lands on the correct section (and sub-section for merged hosts).
         var navigator = (PageNavigator)App.GetService<IPageNavigator>();
         navigator.Configure(
-            PageMap.Keys.ToList(),
+            HubRouting.KnownTags.Concat(PageMap.Keys).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
             tag =>
             {
-                var match = PageMap.Keys.FirstOrDefault(k => string.Equals(k, tag, StringComparison.OrdinalIgnoreCase));
-                if (match is null) return false;
-                var pageType = PageMap[match];
-                DispatcherQueue.TryEnqueue(() => _navigationService.NavigateTo(pageType));
+                DispatcherQueue.TryEnqueue(() => NavigateByTag(tag));
                 return true;
             });
 
@@ -217,6 +194,10 @@ public sealed partial class MainWindow : Window
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        // Programmatic rail updates (driven by NavigateByTag for AI nav) must NOT re-trigger
+        // navigation — they're already navigating elsewhere via the assistant's request.
+        if (_suppressRailSelection) return;
+
         if (args.IsSettingsSelected)
         {
             _navigationService.NavigateTo(typeof(SettingsPage));
@@ -237,6 +218,57 @@ public sealed partial class MainWindow : Window
             _settingsService.Settings.LastNavigationItem = tag;
             _settingsService.Save();
         }
+    }
+
+    /// <summary>Set during programmatic rail updates so NavView_SelectionChanged is a no-op.</summary>
+    private bool _suppressRailSelection;
+
+    /// <summary>
+    /// Resolve a navigation tag the assistant emitted into actual shell navigation.
+    /// Hub-aware: a tag belonging to a hub section (or a back-compat tag like "Tuning")
+    /// routes through HubPage with a HubNavTarget. Standalone tags (Settings, the home,
+    /// DisplayTest) go directly. Always runs on the UI thread.
+    /// </summary>
+    private void NavigateByTag(string tag)
+    {
+        // 1. Hub-aware: lands on HubPage with the section + sub-section already selected.
+        if (HubRouting.Resolve(tag) is { } target)
+        {
+            SyncRailToHub(target.Hub.Tag);
+            _navigationService.NavigateTo(typeof(HubPage), target);
+            _settingsService.Settings.LastNavigationItem = target.Hub.Tag;
+            _settingsService.Save();
+            return;
+        }
+
+        // 2. Standalone destinations (the home, Settings, DisplayTest, etc.).
+        if (PageMap.TryGetValue(tag, out var pageType))
+        {
+            _navigationService.NavigateTo(pageType);
+            // Keep the slim rail honest for the home + Settings paths.
+            if (string.Equals(tag, "CommandCenter", StringComparison.OrdinalIgnoreCase)
+             || string.Equals(tag, "Dashboard",     StringComparison.OrdinalIgnoreCase))
+                SyncRailToHub("CommandCenter");
+
+            _settingsService.Settings.LastNavigationItem = tag;
+            _settingsService.Save();
+        }
+    }
+
+    /// <summary>
+    /// Highlight the given hub tag in the slim rail without re-entering NavView_SelectionChanged.
+    /// </summary>
+    private void SyncRailToHub(string hubTag)
+    {
+        var item = NavView.MenuItems.OfType<NavigationViewItem>()
+            .Concat(NavView.FooterMenuItems.OfType<NavigationViewItem>())
+            .FirstOrDefault(i => string.Equals(i.Tag as string, hubTag, StringComparison.OrdinalIgnoreCase));
+
+        if (item is null || ReferenceEquals(NavView.SelectedItem, item)) return;
+
+        _suppressRailSelection = true;
+        try { NavView.SelectedItem = item; }
+        finally { _suppressRailSelection = false; }
     }
 
     // ── Console dock ────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
@@ -30,6 +31,22 @@ public sealed partial class PerformancePage : Page
 
     // Guard against re-entrant SelectionChanged while loading
     private bool _suppressBoostModeChange;
+
+    /// <summary>
+    /// When HubPage navigates here with a sub-section int parameter, land on that inner
+    /// Segmented panel (0 = Optimizations &amp; Power, 1 = Advanced Tuning). Lets the AI
+    /// navigate_to_page("Tuning") open the Tuning panel directly inside the Optimize hub
+    /// instead of dumping the user on the default panel.
+    /// </summary>
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is int idx && SectionSeg is not null
+            && idx >= 0 && idx < SectionSeg.Items.Count)
+        {
+            SectionSeg.SelectedIndex = idx;
+        }
+    }
 
     public PerformancePage()
     {

@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Navigation;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
@@ -19,6 +20,17 @@ public sealed partial class ProfilesPage : Page
 {
     public ProfilesViewModel ViewModel { get; }
     public TemplatesViewModel TemplatesVM { get; }
+
+    /// <summary>0 = Profiles &amp; Rules, 1 = Templates. See HubPage hub-aware navigation.</summary>
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is int idx && SectionSeg is not null
+            && idx >= 0 && idx < SectionSeg.Items.Count)
+        {
+            SectionSeg.SelectedIndex = idx;
+        }
+    }
 
     public ProfilesPage()
     {

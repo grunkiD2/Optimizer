@@ -10,6 +10,13 @@ public sealed record HubSection(string Label, Type PageType);
 public sealed record HubConfig(string Tag, string Title, IReadOnlyList<HubSection> Sections);
 
 /// <summary>
+/// Navigation target carrying a hub, the index of the section to select within that hub,
+/// and an optional sub-section index for merged host pages (e.g. PerformancePage's inner
+/// "Advanced Tuning" tab). Passed as the navigation parameter to <c>HubPage</c>.
+/// </summary>
+public sealed record HubNavTarget(HubConfig Hub, int SectionIndex, int? SubSectionIndex);
+
+/// <summary>
 /// The 5-hub information architecture from <c>docs/REDESIGN-IA.md</c>. Each hub is one
 /// <see cref="HubPage"/> whose Segmented sub-nav swaps between the section pages. Individual
 /// pages remain navigable directly (e.g. by the assistant) via MainWindow's PageMap — the
@@ -71,4 +78,74 @@ public static class HubRegistry
         "Extend" => Extend,
         _ => null,
     };
+}
+
+/// <summary>
+/// Resolves an assistant-supplied navigation tag (current name OR pre-redesign back-compat
+/// alias) into a <see cref="HubNavTarget"/>. Built once at startup; tested directly by
+/// HubRoutingTests so the back-compat redirects don't silently rot when the IA shifts.
+/// </summary>
+public static class HubRouting
+{
+    private static readonly Dictionary<string, HubNavTarget> _routes = MakeRoutes();
+
+    /// <summary>Try to resolve a tag. Returns null if the tag isn't a hub-section destination.</summary>
+    public static HubNavTarget? Resolve(string tag)
+        => _routes.TryGetValue(tag, out var t) ? t : null;
+
+    /// <summary>All tags this resolver knows. Exposed so PageNavigator can advertise them to the AI.</summary>
+    public static IEnumerable<string> KnownTags => _routes.Keys;
+
+    private static Dictionary<string, HubNavTarget> MakeRoutes()
+    {
+        static HubNavTarget Mk(HubConfig hub, string sectionLabel, int? sub = null)
+        {
+            var idx = 0;
+            for (int i = 0; i < hub.Sections.Count; i++)
+                if (string.Equals(hub.Sections[i].Label, sectionLabel, StringComparison.Ordinal))
+                { idx = i; break; }
+            return new HubNavTarget(hub, idx, sub);
+        }
+        return new(StringComparer.OrdinalIgnoreCase)
+        {
+            // Monitor
+            ["Hardware"]        = Mk(HubRegistry.Monitor, "Sensors & Inventory"),
+            ["EventLogs"]       = Mk(HubRegistry.Monitor, "Event Log"),
+
+            // Optimize
+            ["Performance"]     = Mk(HubRegistry.Optimize, "CPU & Power"),
+            ["CpuAndPower"]     = Mk(HubRegistry.Optimize, "CPU & Power"),
+            ["System"]          = Mk(HubRegistry.Optimize, "Privacy & System"),
+            ["Network"]         = Mk(HubRegistry.Optimize, "Network"),
+            ["Storage"]         = Mk(HubRegistry.Optimize, "Storage"),
+            ["Startup"]         = Mk(HubRegistry.Optimize, "Startup & Services"),
+            ["Devices"]         = Mk(HubRegistry.Optimize, "Devices"),
+
+            // Automate
+            ["Profiles"]        = Mk(HubRegistry.Automate, "Profiles"),
+            ["Recommendations"] = Mk(HubRegistry.Automate, "Recommendations"),
+            ["Learning"]        = Mk(HubRegistry.Automate, "Learning"),
+            ["History"]         = Mk(HubRegistry.Automate, "History"),
+
+            // Protect
+            ["Diagnostics"]     = Mk(HubRegistry.Protect, "Diagnostics"),
+            ["Security"]        = Mk(HubRegistry.Protect, "Security"),
+            ["Compliance"]      = Mk(HubRegistry.Protect, "Compliance"),
+            ["Updates"]         = Mk(HubRegistry.Protect, "Updates"),
+
+            // Extend
+            ["Extensions"]      = Mk(HubRegistry.Extend, "Extensions"),
+            ["Fleet"]           = Mk(HubRegistry.Extend, "Fleet"),
+            ["Reports"]         = Mk(HubRegistry.Extend, "Reports"),
+
+            // ── Back-compat: tags that pre-IA-redesign were standalone pages now resolve
+            //    to the merged host's inner Segmented panel. Sub-section index matches the
+            //    Segmented item declared in the host page's XAML.
+            ["Tuning"]          = Mk(HubRegistry.Optimize, "CPU & Power",        sub: 1),
+            ["Services"]        = Mk(HubRegistry.Optimize, "Startup & Services", sub: 1),
+            ["Plugins"]         = Mk(HubRegistry.Extend,   "Extensions",         sub: 1),
+            ["Marketplace"]     = Mk(HubRegistry.Extend,   "Extensions",         sub: 0),
+            ["Templates"]       = Mk(HubRegistry.Automate, "Profiles",           sub: 1),
+        };
+    }
 }

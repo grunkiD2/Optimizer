@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
@@ -18,6 +19,17 @@ public sealed partial class StartupPage : Page
 
     // Guard against re-entrant SelectionChanged fired while we reload
     private bool _suppressStartupTypeChange;
+
+    /// <summary>0 = Startup Programs, 1 = Services. See HubPage hub-aware navigation.</summary>
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is int idx && SectionSeg is not null
+            && idx >= 0 && idx < SectionSeg.Items.Count)
+        {
+            SectionSeg.SelectedIndex = idx;
+        }
+    }
 
     public StartupPage()
     {

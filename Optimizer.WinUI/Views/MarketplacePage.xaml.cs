@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using Optimizer.WinUI.Services.Cloud;
 using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
@@ -17,6 +18,17 @@ public sealed partial class MarketplacePage : Page
 {
     public MarketplaceViewModel ViewModel { get; }
     public PluginsViewModel PluginsVM { get; }
+
+    /// <summary>0 = Profiles, 1 = Plugins. See HubPage hub-aware navigation.</summary>
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is int idx && SectionSeg is not null
+            && idx >= 0 && idx < SectionSeg.Items.Count)
+        {
+            SectionSeg.SelectedIndex = idx;
+        }
+    }
 
     public MarketplacePage()
     {
