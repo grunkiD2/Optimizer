@@ -227,20 +227,25 @@ public sealed partial class CommandCenterPage : Page
         pageNav.NavigateTo(CategoryTag(r.Category));
     }
 
-    // FindingCategory has 8 values — keep this switch exhaustive so a Hardware or Network
-    // recommendation doesn't silently land in the Automate hub's Recommendations section.
-    private static string CategoryTag(FindingCategory cat) => cat switch
-    {
-        FindingCategory.Storage     => "Storage",       // Optimize → Storage
-        FindingCategory.Privacy     => "System",        // Optimize → Privacy & System
-        FindingCategory.Security    => "Security",      // Protect  → Security
-        FindingCategory.Performance => "Performance",   // Optimize → CPU & Power
-        FindingCategory.Network     => "Network",       // Optimize → Network
-        FindingCategory.Hardware    => "Hardware",      // Monitor  → Sensors & Inventory
-        FindingCategory.Stability   => "Diagnostics",   // Protect  → Diagnostics
-        FindingCategory.Maintenance => "Storage",       // Optimize → Storage (cleanup lives there)
-        _                           => "Recommendations",
-    };
+    // Each FindingCategory routes to a hub-aware tag (see HubRouting.KnownTags).
+    // Kept as a dictionary so an exhaustiveness test can assert every enum value is mapped
+    // and every target tag resolves — silent fall-through to "Recommendations" was the
+    // shape of the CategoryTag bug spotted in code review.
+    internal static readonly IReadOnlyDictionary<FindingCategory, string> CategoryRoutes =
+        new Dictionary<FindingCategory, string>
+        {
+            [FindingCategory.Storage]     = "Storage",       // Optimize → Storage
+            [FindingCategory.Privacy]     = "System",        // Optimize → Privacy & System
+            [FindingCategory.Security]    = "Security",      // Protect  → Security
+            [FindingCategory.Performance] = "Performance",   // Optimize → CPU & Power
+            [FindingCategory.Network]     = "Network",       // Optimize → Network
+            [FindingCategory.Hardware]    = "Hardware",      // Monitor  → Sensors & Inventory
+            [FindingCategory.Stability]   = "Diagnostics",   // Protect  → Diagnostics
+            [FindingCategory.Maintenance] = "Storage",       // Optimize → Storage (cleanup lives there)
+        };
+
+    internal static string CategoryTag(FindingCategory cat) =>
+        CategoryRoutes.TryGetValue(cat, out var tag) ? tag : "Recommendations";
 
     // ── Quick actions ─────────────────────────────────────────────────────────
 
