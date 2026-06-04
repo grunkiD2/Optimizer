@@ -13,6 +13,7 @@ public class LearningDashboardTests
     private sealed class FakeContext : IContextDetectionService
     {
         public Task<string> DetectContextAsync() => Task.FromResult("Gaming");
+        public UserIntent UserIntent => UserIntent.None;
     }
 
     private sealed class FakeAnalytics : IActionAnalyticsService

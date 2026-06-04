@@ -1,20 +1,61 @@
 using System.Diagnostics;
+using Microsoft.Win32;
 
 namespace Optimizer.WinUI.Services;
+
+/// <summary>
+/// The user's declared setup intent, as captured by Windows at first-run / Settings → Personalization.
+/// Stored as a bitmask at HKCU\Software\Microsoft\Windows\CurrentVersion\CloudExperienceHost\Intent.
+/// </summary>
+public sealed record UserIntent(
+    bool Gaming,
+    bool Family,
+    bool Creativity,
+    bool Schoolwork,
+    bool Entertainment,
+    bool Business,
+    bool Development,
+    bool DevModeEnabled)
+{
+    public static readonly UserIntent None =
+        new(false, false, false, false, false, false, false, false);
+
+    /// <summary>Human-readable summary, suitable for the assistant's context block.</summary>
+    public string ToPromptHint()
+    {
+        var bits = new List<string>(8);
+        if (Gaming) bits.Add("Gaming");
+        if (Family) bits.Add("Family");
+        if (Creativity) bits.Add("Creativity");
+        if (Schoolwork) bits.Add("Schoolwork");
+        if (Entertainment) bits.Add("Entertainment");
+        if (Business) bits.Add("Business");
+        if (Development) bits.Add("Development");
+        if (DevModeEnabled) bits.Add("DevMode");
+        return bits.Count == 0 ? "none declared" : string.Join(", ", bits);
+    }
+}
 
 /// <summary>Detects the user's current context (Gaming, Work, Plex, etc.).</summary>
 public interface IContextDetectionService
 {
-    /// <summary>Detect the current context from running processes and time-of-day.</summary>
+    /// <summary>Detect the current context from running processes, time-of-day, and declared user intent.</summary>
     Task<string> DetectContextAsync();
+
+    /// <summary>The user's declared setup intent from Windows. Cached at construction.</summary>
+    UserIntent UserIntent { get; }
 }
 
 /// <summary>
-/// Detects context from running processes (primary signal) and time-of-day (fallback).
-/// Active-profile-based detection is a future enhancement and intentionally not wired in yet.
+/// Detects context from running processes (primary signal), time-of-day (fallback),
+/// and the Windows-stored "user intent" bitmask (bias). The intent bitmask never overrides
+/// a confident process match — it only breaks ties when processes are ambiguous, and it
+/// flows through to the assistant so prompts can reference the user's declared setup.
 /// </summary>
 public class ContextDetectionService : IContextDetectionService
 {
+    public UserIntent UserIntent { get; }
+
     private static readonly string[] GamingProcesses = new[]
     {
         "obs64.exe", "obs.exe",           // OBS streaming
@@ -43,6 +84,11 @@ public class ContextDetectionService : IContextDetectionService
         "zoom.exe", "skype.exe",           // Conferencing
     };
 
+    public ContextDetectionService()
+    {
+        UserIntent = ReadUserIntent();
+    }
+
     public Task<string> DetectContextAsync() => Task.FromResult(DetectByProcessesAndTime());
 
     private string DetectByProcessesAndTime()
@@ -55,7 +101,7 @@ public class ContextDetectionService : IContextDetectionService
 
         var runningProcesses = GetRunningProcessNames();
 
-        // Check for specific processes
+        // Process-based detection (primary signal — most authoritative).
         if (runningProcesses.Any(p => GamingProcesses.Any(g => p.Contains(g, StringComparison.OrdinalIgnoreCase))))
             return "Gaming";
 
@@ -65,6 +111,12 @@ public class ContextDetectionService : IContextDetectionService
         if (runningProcesses.Any(p => WorkProcesses.Any(w => p.Contains(w, StringComparison.OrdinalIgnoreCase))))
             return "Work";
 
+        // No confident process match — try declared user intent before falling through
+        // to time-of-day. Map each intent bit to the closest existing context.
+        var intentContext = MapUserIntentToContext(UserIntent);
+        if (intentContext is not null)
+            return intentContext;
+
         // Fallback to time-based heuristic
         if (isGamingTime)
             return "Gaming";
@@ -73,6 +125,60 @@ public class ContextDetectionService : IContextDetectionService
             return "Work";
 
         return "Unknown";
+    }
+
+    /// <summary>
+    /// Map the strongest set intent bit to one of the existing contexts. Returns null when no
+    /// intent bit is set or the bits are ambiguous (no clear winner among non-Family bits).
+    /// Family / Schoolwork have no analogue and are ignored.
+    /// </summary>
+    private static string? MapUserIntentToContext(UserIntent intent)
+    {
+        if (intent.Gaming) return "Gaming";
+        if (intent.Entertainment) return "Plex";
+        // Business / Development / Creativity / DevMode all bias toward Work
+        if (intent.Business || intent.Development || intent.Creativity || intent.DevModeEnabled)
+            return "Work";
+        return null;
+    }
+
+    /// <summary>
+    /// Read HKCU\…\CloudExperienceHost\Intent and HKLM\…\AppModelUnlock\devModeEnabled.
+    /// Returns <see cref="UserIntent.None"/> on any failure — registry quirks must never
+    /// prevent the service from constructing (it's a DI singleton).
+    /// </summary>
+    private static UserIntent ReadUserIntent()
+    {
+        try
+        {
+            int intent = 0;
+            using (var k = Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\CloudExperienceHost\Intent"))
+            {
+                if (k?.GetValue("Intent") is int i) intent = i;
+            }
+
+            bool devMode = false;
+            using (var k = Registry.LocalMachine.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"))
+            {
+                if (k?.GetValue("devModeEnabled") is int d) devMode = d != 0;
+            }
+
+            return new UserIntent(
+                Gaming:        (intent & 0b0000_0010) != 0,
+                Family:        (intent & 0b0000_0100) != 0,
+                Creativity:    (intent & 0b0000_1000) != 0,
+                Schoolwork:    (intent & 0b0001_0000) != 0,
+                Entertainment: (intent & 0b0010_0000) != 0,
+                Business:      (intent & 0b0100_0000) != 0,
+                Development:   (intent & 0b1000_0000) != 0,
+                DevModeEnabled: devMode);
+        }
+        catch
+        {
+            return UserIntent.None;
+        }
     }
 
     private static List<string> GetRunningProcessNames()

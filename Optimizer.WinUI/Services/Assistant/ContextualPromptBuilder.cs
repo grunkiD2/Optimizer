@@ -35,6 +35,16 @@ public class ContextualPromptBuilder(
         sb.Append("\n\n## Learned context\n");
         sb.Append($"The user currently appears to be in **{context}** context.\n");
 
+        // Declared setup intent from Windows (HKCU CloudExperienceHost\Intent bitmask).
+        // Useful as a stable hint about what the user wants this PC to be for.
+        try
+        {
+            var intent = contextDetection.UserIntent;
+            if (intent != UserIntent.None)
+                sb.Append($"At setup the user declared this PC is for: {intent.ToPromptHint()}.\n");
+        }
+        catch (Exception ex) { EngineLog.Error("Prompt: user-intent section failed (skipped)", ex); }
+
         // Most reliable tools in this context.
         try
         {

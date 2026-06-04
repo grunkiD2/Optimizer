@@ -58,6 +58,7 @@ public class AssistantServiceTests
     private sealed class FakeContextDetection : Optimizer.WinUI.Services.IContextDetectionService
     {
         public Task<string> DetectContextAsync() => Task.FromResult("Unknown");
+        public Optimizer.WinUI.Services.UserIntent UserIntent => Optimizer.WinUI.Services.UserIntent.None;
     }
 
     private sealed class FakePromptBuilder : IContextualPromptBuilder
