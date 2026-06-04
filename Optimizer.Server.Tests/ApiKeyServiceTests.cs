@@ -41,8 +41,8 @@ public class ApiKeyServiceTests
 
         var result = await svc.CreateAsync(user.Id, "CI key", [ApiScopes.SyncRead], null);
 
-        Assert.StartsWith("opt_live_", result.RawKey);
-        Assert.StartsWith("opt_live_", result.Prefix);
+        Assert.StartsWith("opt_live_", result.RawKey, StringComparison.Ordinal);
+        Assert.StartsWith("opt_live_", result.Prefix, StringComparison.Ordinal);
         // Prefix contains first 4 chars of random part
         Assert.Equal("opt_live_" + result.RawKey["opt_live_".Length..][..4], result.Prefix);
     }
@@ -57,7 +57,7 @@ public class ApiKeyServiceTests
         var result = await svc.CreateAsync(user.Id, "Test", [ApiScopes.SyncRead], null);
 
         var stored = await db.ApiKeys.SingleAsync(k => k.Id == result.Id);
-        Assert.DoesNotContain(result.RawKey, stored.KeyHash);
+        Assert.DoesNotContain(result.RawKey, stored.KeyHash, StringComparison.Ordinal);
         Assert.NotEqual(result.RawKey, stored.KeyHash);
         // Hash should be a 64-char hex string (SHA-256)
         Assert.Equal(64, stored.KeyHash.Length);
@@ -74,7 +74,7 @@ public class ApiKeyServiceTests
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
             svc.CreateAsync(user.Id, "Bad key", ["unknown:scope"], null));
 
-        Assert.Contains("Unknown scope", ex.Message);
+        Assert.Contains("Unknown scope", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class ApiKeyServiceTests
         {
             Assert.NotEmpty(k.Name);
             Assert.NotEmpty(k.Prefix);
-            Assert.StartsWith("opt_live_", k.Prefix);
+            Assert.StartsWith("opt_live_", k.Prefix, StringComparison.Ordinal);
         });
     }
 

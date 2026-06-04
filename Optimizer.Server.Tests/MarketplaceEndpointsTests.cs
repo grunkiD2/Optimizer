@@ -183,7 +183,7 @@ public class MarketplaceEndpointsTests
         var browse = await browseResp.Content.ReadFromJsonAsync<MarketplaceBrowseResponse>(
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         Assert.NotNull(browse);
-        Assert.True(browse!.Listings.Any(l => l.Name == "Flow Test Profile"));
+        Assert.Contains(browse!.Listings, l => l.Name == "Flow Test Profile");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

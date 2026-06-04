@@ -19,7 +19,7 @@ public class SessionPersistence(DatabaseService db) : ISessionPersistence
         var existing = await db.ExecuteQueryAsync(checkSql, parameters);
         if (existing.Count > 0)
         {
-            var id = existing[0]["Id"].ToString()!;
+            var id = existing[0]["Id"]?.ToString() ?? string.Empty;
             return new AssistantSession
             {
                 Id = id,

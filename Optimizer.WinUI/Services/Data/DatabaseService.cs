@@ -192,7 +192,11 @@ public class DatabaseService : IAsyncDisposable
         source.BackupDatabase(dest);
     });
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
+    }
 }
 
 /// <summary>A set of statements executed against one shared connection + transaction.</summary>

@@ -56,7 +56,15 @@ jobs:
 
     - name: Create self-signed certificate
       shell: pwsh
+      # The cert is ephemeral (created in-job, discarded with the runner) so the password
+      # never needs to leave this step. Generated randomly so nothing literal lives in source.
+      # If SIGN_CERT_PFX_BASE64 + SIGN_CERT_PASSWORD secrets are configured (real CA cert),
+      # prefer those over the self-signed branch by setting the env up in a future step.
       run: |
+        Add-Type -AssemblyName System.Web
+        $pfxPassword = [System.Web.Security.Membership]::GeneratePassword(32, 8)
+        Write-Host "::add-mask::$pfxPassword"
+
         $cert = New-SelfSignedCertificate `
           -Subject "CN=Optimizer Dev" `
           -Type CodeSigning `
@@ -64,9 +72,10 @@ jobs:
           -KeyUsage DigitalSignature `
           -FriendlyName "Optimizer Dev Cert" `
           -NotAfter (Get-Date).AddYears(1)
-        $pwd = ConvertTo-SecureString -String "dev-only-password" -Force -AsPlainText
+        $pwd = ConvertTo-SecureString -String $pfxPassword -Force -AsPlainText
         Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath cert.pfx -Password $pwd | Out-Null
         echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+        echo "CERT_PFX_PASSWORD=$pfxPassword" >> $env:GITHUB_ENV
         Write-Host "Created self-signed cert: $($cert.Thumbprint)"
 
     - name: Sign WinUI executable (self-signed)
@@ -75,7 +84,7 @@ jobs:
       run: |
         $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
         if ($signtool) {
-          & $signtool sign /f cert.pfx /p "dev-only-password" /tr http://timestamp.digicert.com /td sha256 /fd sha256 "publish\winui\Optimizer.WinUI.exe"
+          & $signtool sign /f cert.pfx /p $env:CERT_PFX_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 "publish\winui\Optimizer.WinUI.exe"
           Write-Host "Signed with self-signed cert."
           Write-Host "WARNING: NOT TRUSTED — users will see SmartScreen warnings. Use a trusted CA cert for production."
         } else {
@@ -88,7 +97,7 @@ jobs:
       run: |
         $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
         if ($signtool) {
-          & $signtool sign /f cert.pfx /p "dev-only-password" /tr http://timestamp.digicert.com /td sha256 /fd sha256 "publish\cli\Optimizer.Cli.exe"
+          & $signtool sign /f cert.pfx /p $env:CERT_PFX_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 "publish\cli\Optimizer.Cli.exe"
         }
 
     - name: Package WinUI artifact
