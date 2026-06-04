@@ -40,30 +40,83 @@ public sealed class ClaudeClient(IApiKeyStore keyStore) : IClaudeClient
                 Messages = BuildMessages(messages),
             };
 
-            // Stream text deltas to the UI as they arrive.
-            await foreach (var streamEvent in client.Messages.CreateStreaming(parameters, ct).WithCancellation(ct))
+            // Single-pass streaming: forward text deltas to the UI as they arrive AND
+            // accumulate tool-use blocks + stop_reason from the same stream. The previous
+            // implementation made a second non-streaming Create() call to get tool_use + stop
+            // reason, which double-billed every turn. Per the CLAUDE.md gotcha, the streaming
+            // events carry everything we need: ContentBlockStart names tool_use blocks,
+            // ContentBlockDelta carries TextDelta (for UI) and InputJsonDelta (for tool input),
+            // MessageDelta carries the final stop_reason.
+
+            // Per-index state. The model emits blocks 0..N-1 in order; we materialize at the end.
+            var blockState = new Dictionary<long, BlockAcc>();
+            string stopReason = "end_turn";
+
+            await foreach (var ev in client.Messages.CreateStreaming(parameters, ct).WithCancellation(ct))
             {
-                if (streamEvent.TryPickContentBlockDelta(out var delta) && delta.Delta.TryPickText(out var text))
-                    onText(text.Text);
+                if (ev.TryPickContentBlockStart(out var start))
+                {
+                    var acc = new BlockAcc();
+                    if (start.ContentBlock.TryPickText(out _))
+                    {
+                        acc.Kind = ClaudeBlockKind.Text;
+                    }
+                    else if (start.ContentBlock.TryPickToolUse(out var tu))
+                    {
+                        acc.Kind = ClaudeBlockKind.ToolUse;
+                        acc.ToolUseId = tu.ID;
+                        acc.ToolName = tu.Name;
+                    }
+                    else
+                    {
+                        // Thinking, ServerToolUse, etc. — not surfaced through ClaudeBlock.
+                        acc.Kind = ClaudeBlockKind.Text;
+                        acc.Skip = true;
+                    }
+                    blockState[start.Index] = acc;
+                }
+                else if (ev.TryPickContentBlockDelta(out var delta))
+                {
+                    if (!blockState.TryGetValue(delta.Index, out var acc)) continue;
+                    if (delta.Delta.TryPickText(out var text))
+                    {
+                        acc.Buffer.Append(text.Text);
+                        if (!acc.Skip) onText(text.Text);
+                    }
+                    else if (delta.Delta.TryPickInputJson(out var inputJson))
+                    {
+                        acc.Buffer.Append(inputJson.PartialJson);
+                    }
+                }
+                else if (ev.TryPickDelta(out var msgDelta) && msgDelta.Delta.StopReason is { } sr)
+                {
+                    // ApiEnum<string, StopReason> — null until the final MessageDelta event.
+                    string srStr = sr;
+                    if (!string.IsNullOrEmpty(srStr)) stopReason = srStr;
+                }
+                // MessageStart, MessageStop, ContentBlockStop carry no information we need.
             }
 
-            // Re-issue non-streaming to get the complete message (stop_reason + tool_use blocks).
-            // NOTE: This creates a second API call with the same parameters. To avoid double tool execution:
-            // - The model should be deterministic, but streaming + non-streaming are separate calls
-            // - Future: consider switching to non-streaming-only if tools are registered, or implement request deduplication at the service layer
-            var final = await client.Messages.Create(parameters, ct);
             var collected = new List<ClaudeBlock>();
-            foreach (var block in final.Content)
+            foreach (var (_, acc) in blockState.OrderBy(kv => kv.Key))
             {
-                if (block.TryPickText(out var txt))
-                    collected.Add(new ClaudeBlock(ClaudeBlockKind.Text, Text: txt.Text));
-                else if (block.TryPickToolUse(out var tu))
+                if (acc.Skip) continue;
+                if (acc.Kind == ClaudeBlockKind.Text)
+                {
+                    collected.Add(new ClaudeBlock(ClaudeBlockKind.Text, Text: acc.Buffer.ToString()));
+                }
+                else // ToolUse — parse accumulated JSON; default to empty object if the model emitted no args.
+                {
+                    JsonElement input;
+                    var json = acc.Buffer.Length > 0 ? acc.Buffer.ToString() : "{}";
+                    try { input = JsonSerializer.Deserialize<JsonElement>(json); }
+                    catch (JsonException) { input = JsonSerializer.SerializeToElement(new { }); }
                     collected.Add(new ClaudeBlock(ClaudeBlockKind.ToolUse,
-                        ToolUseId: tu.ID, ToolName: tu.Name,
-                        ToolInput: JsonSerializer.SerializeToElement(tu.Input)));
+                        ToolUseId: acc.ToolUseId, ToolName: acc.ToolName, ToolInput: input));
+                }
             }
 
-            return new ClaudeResult(new ClaudeTurn(final.StopReason ?? "end_turn", collected), ClaudeErrorKind.None, null);
+            return new ClaudeResult(new ClaudeTurn(stopReason, collected), ClaudeErrorKind.None, null);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
@@ -116,6 +169,16 @@ public sealed class ClaudeClient(IApiKeyStore keyStore) : IClaudeClient
             foreach (var prop in input.EnumerateObject())
                 dict[prop.Name] = prop.Value;
         return dict;
+    }
+
+    // Per-block accumulator used while streaming.
+    private sealed class BlockAcc
+    {
+        public ClaudeBlockKind Kind;
+        public StringBuilder Buffer { get; } = new();
+        public string? ToolUseId;
+        public string? ToolName;
+        public bool Skip;
     }
 
     private static List<MessageParam> BuildMessages(IReadOnlyList<ClaudeMessage> messages)
