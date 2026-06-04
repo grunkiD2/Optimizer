@@ -24,7 +24,9 @@ public class NavigationService
     public bool NavigateTo(Type pageType, object? parameter = null)
     {
         if (_frame == null) return false;
-        if (_frame.Content?.GetType() == pageType) return false;
+        // Skip a no-op re-nav to the same page — but always navigate when a parameter is supplied
+        // (e.g. switching between hubs, which are all the same HubPage type with different configs).
+        if (parameter == null && _frame.Content?.GetType() == pageType) return false;
 
         return _frame.Navigate(pageType, parameter,
             new DrillInNavigationTransitionInfo());

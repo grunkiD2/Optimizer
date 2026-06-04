@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Optimizer.WinUI.Views.HubPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:tk="using:CommunityToolkit.WinUI.Controls"
+    Background="Transparent">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Hub identity + segmented section switcher -->
+        <StackPanel Grid.Row="0" Spacing="10" Padding="32,18,32,10">
+            <TextBlock x:Name="HubTitle" Style="{StaticResource HudMicroStyle}"/>
+            <ScrollViewer HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden"
+                          VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
+                          HorizontalAlignment="Left">
+                <tk:Segmented x:Name="SectionSeg" SelectionChanged="Section_Changed"/>
+            </ScrollViewer>
+        </StackPanel>
+
+        <!-- The selected section page renders here (each carries its own backdrop + header) -->
+        <Frame Grid.Row="1" x:Name="SectionFrame"/>
+    </Grid>
+</Page>

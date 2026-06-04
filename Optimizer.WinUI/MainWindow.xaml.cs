@@ -181,21 +181,18 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // The rail now holds only Command Center + the 5 hubs + Settings. Any older page-level
+        // last-nav value falls back to the home. Setting SelectedItem fires SelectionChanged,
+        // which performs the navigation.
         var lastNav = _settingsService.Settings.LastNavigationItem;
-        if (!PageMap.ContainsKey(lastNav)) lastNav = "Dashboard";
+        if (lastNav != "CommandCenter" && lastNav != "Settings" && HubRegistry.ByTag(lastNav) is null)
+            lastNav = "CommandCenter";
 
         var allItems = NavView.MenuItems.OfType<NavigationViewItem>()
             .Concat(NavView.FooterMenuItems.OfType<NavigationViewItem>());
-        foreach (var item in allItems)
-        {
-            if (item.Tag?.ToString() == lastNav)
-            {
-                NavView.SelectedItem = item;
-                break;
-            }
-        }
-
-        _navigationService.NavigateTo(PageMap[lastNav]);
+        NavView.SelectedItem =
+            allItems.FirstOrDefault(i => i.Tag?.ToString() == lastNav) ??
+            allItems.FirstOrDefault(i => i.Tag?.ToString() == "CommandCenter");
     }
 
     /// <summary>Make the system caption buttons blend into the glass title bar (transparent bg, cyan hover).</summary>
@@ -224,12 +221,15 @@ public sealed partial class MainWindow : Window
 
         if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
         {
-            if (PageMap.TryGetValue(tag, out var pageType))
-            {
+            if (HubRegistry.ByTag(tag) is { } hub)
+                _navigationService.NavigateTo(typeof(HubPage), hub);
+            else if (PageMap.TryGetValue(tag, out var pageType))
                 _navigationService.NavigateTo(pageType);
-                _settingsService.Settings.LastNavigationItem = tag;
-                _settingsService.Save();
-            }
+            else
+                return;
+
+            _settingsService.Settings.LastNavigationItem = tag;
+            _settingsService.Save();
         }
     }
 

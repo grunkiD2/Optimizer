@@ -66,141 +66,30 @@
             Grid.Column="0"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="False"
-            PaneDisplayMode="Left"
-            OpenPaneLength="220"
+            PaneDisplayMode="LeftCompact"
+            CompactPaneLength="64"
+            OpenPaneLength="240"
             SelectionChanged="NavView_SelectionChanged"
             Loaded="NavView_Loaded">
 
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Command Center" Tag="CommandCenter">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE9D9;"/>
-                    </NavigationViewItem.Icon>
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Dashboard" Tag="Dashboard" Icon="Home"/>
-
-                <NavigationViewItemHeader Content="OPTIMIZE"/>
-                <NavigationViewItem Content="Performance" Tag="Performance">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE945;"/>
-                    </NavigationViewItem.Icon>
+                <NavigationViewItem Content="Monitor" Tag="Monitor">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Network" Tag="Network">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE968;"/>
-                    </NavigationViewItem.Icon>
+                <NavigationViewItem Content="Optimize" Tag="Optimize">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Storage" Tag="Storage">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xEDA2;"/>
-                    </NavigationViewItem.Icon>
+                <NavigationViewItem Content="Automate" Tag="Automate">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9F5;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="System" Tag="System">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE770;"/>
-                    </NavigationViewItem.Icon>
+                <NavigationViewItem Content="Protect" Tag="Protect">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Startup" Tag="Startup">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE7B5;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-
-                <NavigationViewItem Content="Hardware" Tag="Hardware">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE7F4;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Tuning" Tag="Tuning">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xEC4A;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-
-                <NavigationViewItemHeader Content="ANALYZE"/>
-                <NavigationViewItem Content="Diagnostics" Tag="Diagnostics">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE9D9;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Recommendations" Tag="Recommendations">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE82D;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Updates" Tag="Updates">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE72C;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Security" Tag="Security">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE72E;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-
-                <NavigationViewItemHeader Content="MANAGE"/>
-                <NavigationViewItem Content="Devices" Tag="Devices">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE975;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Services" Tag="Services">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE9F5;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Profiles" Tag="Profiles">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8FD;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Marketplace" Tag="Marketplace">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE7BF;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Plugins" Tag="Plugins">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE74C;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="History" Tag="History">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE81C;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Learning" Tag="Learning">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE9D9;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Event Logs" Tag="EventLogs">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE7C3;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Reports" Tag="Reports">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE9F9;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-
-                <NavigationViewItemHeader Content="ENTERPRISE"/>
-                <NavigationViewItem Content="Fleet" Tag="Fleet">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE716;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Templates" Tag="Templates">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8A5;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Compliance" Tag="Compliance">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8B3;"/>
-                    </NavigationViewItem.Icon>
+                <NavigationViewItem Content="Extend" Tag="Extend">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE74C;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
 

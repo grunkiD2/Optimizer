@@ -10,6 +10,8 @@
                 <!-- Command Center design tokens (colors, typography, spacing, radii) -->
                 <ResourceDictionary Source="ms-appx:///Styles/Tokens.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <!-- Earned accent: the hub rail's active indicator glows cyan -->
+            <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#FF38BDF8" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
