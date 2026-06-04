@@ -19,6 +19,8 @@ public sealed partial class CommandCenterPage : Page
     private readonly IRecommendationsService _recs;
     private readonly IContextDetectionService _context;
     private readonly ISettingsService _settings;
+    private readonly IWindowsOptimizerService _optimizer;
+    private readonly NavigationService _nav;
 
     private const int TrendLength = 40;
     private readonly Queue<double> _cpuTrend = new();
@@ -32,6 +34,8 @@ public sealed partial class CommandCenterPage : Page
         _recs = App.GetService<IRecommendationsService>();
         _context = App.GetService<IContextDetectionService>();
         _settings = App.GetService<ISettingsService>();
+        _optimizer = App.GetService<IWindowsOptimizerService>();
+        _nav = App.GetService<NavigationService>();
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -137,7 +141,7 @@ public sealed partial class CommandCenterPage : Page
             {
                 AttentionList.Children.Clear();
                 foreach (var r in recs.Take(5))
-                    AttentionList.Children.Add(AttentionRow(SeverityToStatus(r.Severity), r.Severity.ToString().ToUpperInvariant(), r.Title));
+                    AttentionList.Children.Add(AttentionActionRow(r));
                 if (recs.Count == 0)
                     AttentionList.Children.Add(AttentionRow(HudStatus.Success, "OK", "All clear — nothing needs attention."));
             });
@@ -176,6 +180,82 @@ public sealed partial class CommandCenterPage : Page
         });
         return row;
     }
+
+    /// <summary>A Needs-Attention row with an inline action button — the command center acts, not just shows.</summary>
+    private FrameworkElement AttentionActionRow(Recommendation r)
+    {
+        var grid = new Grid { ColumnSpacing = 10 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var pill = new StatusPill { Status = SeverityToStatus(r.Severity), Text = r.Severity.ToString().ToUpperInvariant(), VerticalAlignment = VerticalAlignment.Center };
+        var title = new TextBlock { Text = r.Title, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Style = Res<Style>("HudBodyStyle") };
+        var btn = new Button
+        {
+            Content = string.IsNullOrWhiteSpace(r.ActionLabel) ? "Fix" : r.ActionLabel,
+            VerticalAlignment = VerticalAlignment.Center,
+            Padding = new Thickness(12, 4, 12, 4),
+        };
+        btn.Click += async (_, _) => await InvokeRecAction(r);
+
+        Grid.SetColumn(pill, 0);
+        Grid.SetColumn(title, 1);
+        Grid.SetColumn(btn, 2);
+        grid.Children.Add(pill);
+        grid.Children.Add(title);
+        grid.Children.Add(btn);
+        return grid;
+    }
+
+    private async Task InvokeRecAction(Recommendation r)
+    {
+        if (r.QuickAction is { } action)
+        {
+            SetStatus($"Working on “{r.Title}”…");
+            try { SetStatus(await action() ? "Done." : "Couldn't apply that automatically."); }
+            catch { SetStatus("That action failed."); }
+            await LoadAttentionAsync();
+            return;
+        }
+        // No inline fix — take the user to the page where they can address it.
+        _nav.NavigateTo(CategoryPage(r.Category));
+    }
+
+    private static Type CategoryPage(FindingCategory cat) => cat switch
+    {
+        FindingCategory.Storage => typeof(StoragePage),
+        FindingCategory.Privacy => typeof(SystemPage),
+        FindingCategory.Security => typeof(SecurityPage),
+        FindingCategory.Performance => typeof(PerformancePage),
+        _ => typeof(RecommendationsPage),
+    };
+
+    // ── Quick actions ─────────────────────────────────────────────────────────
+
+    private async void OptimizeGaming_Click(object sender, RoutedEventArgs e)
+    {
+        SetStatus("Applying the Gaming profile…");
+        try { SetStatus(await _optimizer.ApplyProfileAsync("preset-gaming") ? "Gaming profile applied." : "Couldn't apply the Gaming profile."); }
+        catch { SetStatus("Applying the Gaming profile failed."); }
+    }
+
+    private async void RunCleanup_Click(object sender, RoutedEventArgs e)
+    {
+        SetStatus("Clearing temporary files…");
+        try { var res = await _optimizer.ApplyOptimizationAsync(OptimizationIds.ClearTemporaryFiles); SetStatus(res.Message); }
+        catch { SetStatus("Cleanup failed."); }
+        await LoadAttentionAsync();
+    }
+
+    private async void ContextDetect_Click(object sender, RoutedEventArgs e)
+    {
+        SetStatus("Re-detecting context…");
+        await LoadContextAsync();
+        SetStatus("Context updated.");
+    }
+
+    private void SetStatus(string message) => DispatcherQueue.TryEnqueue(() => ActionStatus.Text = message);
 
     private static HudStatus SeverityToStatus(FindingSeverity sev)
     {

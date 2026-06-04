@@ -25,6 +25,20 @@
                     <TextBlock Text="Command Center" Style="{StaticResource HudTitleStyle}" VerticalAlignment="Center"/>
                 </StackPanel>
 
+                <!-- Quick actions — the command center does things, not just shows them -->
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Button Click="OptimizeGaming_Click" Style="{StaticResource AccentButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE945;" FontSize="14"/>
+                            <TextBlock Text="Optimize for Gaming"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="RunCleanup_Click" Content="Run Cleanup"/>
+                    <Button Click="ContextDetect_Click" Content="Re-detect Context"/>
+                    <TextBlock x:Name="ActionStatus" Style="{StaticResource HudCaptionStyle}"
+                               VerticalAlignment="Center" Margin="6,0,0,0"/>
+                </StackPanel>
+
                 <!-- Hero: health ring + live vitals -->
                 <Grid ColumnSpacing="28">
                     <Grid.ColumnDefinitions>
