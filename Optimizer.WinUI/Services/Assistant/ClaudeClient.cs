@@ -7,9 +7,24 @@ using Optimizer.WinUI.Services;
 namespace Optimizer.WinUI.Services.Assistant;
 
 /// <summary>Wraps the official Anthropic .NET SDK behind <see cref="IClaudeClient"/>.</summary>
-public sealed class ClaudeClient(IApiKeyStore keyStore) : IClaudeClient
+public sealed class ClaudeClient : IClaudeClient
 {
-    public bool IsConfigured => keyStore.HasKey;
+    private readonly IApiKeyStore _keyStore;
+    private readonly Func<string, AnthropicClient> _clientFactory;
+
+    /// <summary>Production constructor — used by DI. Creates a real AnthropicClient per call.</summary>
+    public ClaudeClient(IApiKeyStore keyStore)
+        : this(keyStore, key => new AnthropicClient { ApiKey = key }) { }
+
+    /// <summary>Testing seam — lets a test inject an AnthropicClient with a fake HttpMessageHandler.
+    /// Internal so it's only reachable through InternalsVisibleTo("Optimizer.WinUI.Tests").</summary>
+    internal ClaudeClient(IApiKeyStore keyStore, Func<string, AnthropicClient> clientFactory)
+    {
+        _keyStore = keyStore;
+        _clientFactory = clientFactory;
+    }
+
+    public bool IsConfigured => _keyStore.HasKey;
 
     public async Task<ClaudeResult> SendAsync(
         string system,
@@ -19,13 +34,13 @@ public sealed class ClaudeClient(IApiKeyStore keyStore) : IClaudeClient
         Action<string> onText,
         CancellationToken ct)
     {
-        var key = keyStore.GetKey();
+        var key = _keyStore.GetKey();
         if (string.IsNullOrWhiteSpace(key))
             return new ClaudeResult(null, ClaudeErrorKind.Auth, "No Anthropic API key is configured.");
 
         try
         {
-            var client = new AnthropicClient { ApiKey = key };
+            var client = _clientFactory(key);
 
             var parameters = new MessageCreateParams
             {
