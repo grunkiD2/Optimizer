@@ -31,7 +31,11 @@ appsettings.*.json
 .localhistory/
 
 ## Tool / session artifacts
-.claude/
+# Ignore .claude/ contents (worktrees, settings.local.json, etc.) but allow
+# the shared project-scope plugin config. Negation only works when the parent
+# dir isn't excluded — see https://git-scm.com/docs/gitignore (#PATTERN FORMAT).
+.claude/*
+!/.claude/settings.json
 .superpowers/
 *.binlog
 screenshot_*.png
