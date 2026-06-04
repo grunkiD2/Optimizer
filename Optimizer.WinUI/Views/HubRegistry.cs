@@ -32,8 +32,9 @@ public static class HubRegistry
         new("Privacy & System", typeof(SystemPage)),
         new("Network", typeof(NetworkPage)),
         new("Storage", typeof(StoragePage)),
-        new("Startup", typeof(StartupPage)),
-        new("Services", typeof(ServicesPage)),
+        // "Startup & Services" merges what used to be Startup + Services — one place
+        // for "what runs at boot / in the background." Hosted by StartupPage.
+        new("Startup & Services", typeof(StartupPage)),
     });
 
     public static readonly HubConfig Automate = new("Automate", "Automate", new HubSection[]

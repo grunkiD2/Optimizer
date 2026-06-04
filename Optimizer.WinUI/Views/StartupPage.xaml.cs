@@ -4,13 +4,25 @@ using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
 
+/// <summary>
+/// "Startup &amp; Services" — the merged Startup + Services destination from the Optimize hub.
+/// Hosts both <see cref="ViewModel"/> (StartupCategoryViewModel, drives the startup-programs
+/// panel) and <see cref="ServicesVM"/> (ServicesViewModel, drives the services panel). The
+/// in-page <c>Segmented</c> switches between them; both view the same "what runs at boot or
+/// in the background" job.
+/// </summary>
 public sealed partial class StartupPage : Page
 {
     public StartupCategoryViewModel ViewModel { get; }
+    public ServicesViewModel ServicesVM { get; }
+
+    // Guard against re-entrant SelectionChanged fired while we reload
+    private bool _suppressStartupTypeChange;
 
     public StartupPage()
     {
-        ViewModel = App.GetService<StartupCategoryViewModel>();
+        ViewModel  = App.GetService<StartupCategoryViewModel>();
+        ServicesVM = App.GetService<ServicesViewModel>();
         InitializeComponent();
     }
 
@@ -18,7 +30,20 @@ public sealed partial class StartupPage : Page
     {
         ViewModel.Load();
         await ViewModel.LoadBootMetricsAsync();
+        await ServicesVM.LoadAsync();
     }
+
+    // ── Section switcher ─────────────────────────────────────────────────────
+
+    private void Section_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (PanelStartup is null) return;
+        var i = SectionSeg.SelectedIndex;
+        PanelStartup.Visibility  = i == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PanelServices.Visibility = i == 1 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ── Panel A: Startup programs ────────────────────────────────────────────
 
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)
     {
@@ -37,5 +62,43 @@ public sealed partial class StartupPage : Page
         // (prevents re-entrancy when Load() refreshes the list)
         if (toggle.IsOn != entry.Enabled)
             ViewModel.ToggleEntryCommand.Execute(entry);
+    }
+
+    // ── Panel B: Services ────────────────────────────────────────────────────
+
+    private async void RefreshServices_Click(object sender, RoutedEventArgs e)
+        => await ServicesVM.LoadAsync();
+
+    private async void Toggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string serviceName)
+        {
+            var svc = ServicesVM.Services.FirstOrDefault(s => s.ServiceName == serviceName);
+            if (svc != null) await ServicesVM.ToggleServiceAsync(svc);
+        }
+    }
+
+    private async void StartupType_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressStartupTypeChange) return;
+
+        if (sender is ComboBox cb &&
+            cb.Tag is string serviceName &&
+            cb.SelectedItem is ComboBoxItem item)
+        {
+            var svc = ServicesVM.Services.FirstOrDefault(s => s.ServiceName == serviceName);
+            if (svc != null && svc.StartupType != item.Content?.ToString())
+            {
+                _suppressStartupTypeChange = true;
+                try
+                {
+                    await ServicesVM.SetStartupTypeAsync(svc, item.Content!.ToString()!);
+                }
+                finally
+                {
+                    _suppressStartupTypeChange = false;
+                }
+            }
+        }
     }
 }
