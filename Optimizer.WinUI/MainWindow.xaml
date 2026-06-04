@@ -3,6 +3,7 @@
     x:Class="Optimizer.WinUI.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:tk="using:CommunityToolkit.WinUI.Controls"
     Title="Optimizer">
 
     <!-- KeyboardAcceleratorPlacementMode="Hidden" suppresses the auto-generated
@@ -11,11 +12,12 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>   <!-- custom title bar (drag region) -->
             <RowDefinition Height="Auto"/>   <!-- elevation info bar -->
-            <RowDefinition Height="*"/>      <!-- nav + content -->
+            <RowDefinition Height="*"/>      <!-- nav + splitter + console dock -->
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*" MinWidth="320"/>    <!-- Col 0: navigation content -->
+            <ColumnDefinition x:Name="SplitterCol" Width="4"/>          <!-- Col 1: drag splitter -->
+            <ColumnDefinition x:Name="ConsoleDockCol" Width="400" MinWidth="260" MaxWidth="680"/> <!-- Col 2: console dock -->
         </Grid.ColumnDefinitions>
 
         <Grid.KeyboardAccelerators>
@@ -26,7 +28,7 @@
 
         <!-- Custom title bar: with ExtendsContentIntoTitleBar the top reads as one continuous
              glass (Mica) surface; the system caption buttons float at the right. -->
-        <Grid x:Name="AppTitleBar" Grid.Row="0" Grid.ColumnSpan="2" Height="44" Background="Transparent">
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Grid.ColumnSpan="3" Height="44" Background="Transparent">
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="16,0,0,0">
                 <TextBlock Text="&#x25C9;" Foreground="{StaticResource AccentCyanBrush}" FontSize="14" VerticalAlignment="Center"/>
                 <TextBlock Text="OPTIMIZER" FontWeight="SemiBold" FontSize="13" CharacterSpacing="120"
@@ -37,7 +39,7 @@
         <InfoBar
             x:Name="ElevationInfoBar"
             Grid.Row="1"
-            Grid.ColumnSpan="2"
+            Grid.ColumnSpan="3"
             IsOpen="True"
             IsClosable="False"
             Severity="Warning"
@@ -52,7 +54,7 @@
         <InfoBar
             x:Name="ElevatedInfoBar"
             Grid.Row="1"
-            Grid.ColumnSpan="2"
+            Grid.ColumnSpan="3"
             IsOpen="True"
             IsClosable="True"
             Severity="Success"
@@ -100,11 +102,23 @@
             <Frame x:Name="ContentFrame"/>
         </NavigationView>
 
-        <!-- Persistent console dock (Assistant + Activity), right side. Toggled with Ctrl+`; can pop out. -->
-        <Border Grid.Row="2" Grid.Column="1" x:Name="ConsoleDockHost" Width="440"
-                Background="{ThemeResource HudSurfaceAltBrush}"
-                BorderThickness="1,0,0,0"
-                BorderBrush="{StaticResource HudGlassBorderBrush}"
-                Visibility="Collapsed"/>
+        <!-- Drag splitter between the nav/content area and the console dock.
+             ResizeBehavior="PreviousAndNext" resizes Col 0 and Col 2 when dragged. -->
+        <tk:GridSplitter
+            x:Name="DockSplitter"
+            Grid.Row="2" Grid.Column="1"
+            ResizeDirection="Columns"
+            ResizeBehavior="PreviousAndNext"
+            HorizontalAlignment="Stretch"
+            Background="{StaticResource HudGlassBorderBrush}"/>
+
+        <!-- Persistent console dock (Activity / Assistant / Output), right side.
+             Toggled with Ctrl+`; can pop out to a floating window. -->
+        <Border
+            Grid.Row="2" Grid.Column="2"
+            x:Name="ConsoleDockHost"
+            Background="{ThemeResource HudSurfaceAltBrush}"
+            BorderThickness="0"
+            Visibility="Collapsed"/>
     </Grid>
 </Window>

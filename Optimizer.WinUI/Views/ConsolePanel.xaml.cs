@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Optimizer.WinUI.ViewModels;
 using Windows.System;
 
@@ -14,7 +14,6 @@ public sealed partial class ConsolePanel : UserControl
     public ConsoleViewModel ConsoleVM { get; } = App.GetService<ConsoleViewModel>();
     public AssistantViewModel AssistantVM { get; } = App.GetService<AssistantViewModel>();
 
-    /// <summary>Raised when the user clicks pop-out / collapse so the host (MainWindow) can react.</summary>
     public event EventHandler? PopOutRequested;
     public event EventHandler? CollapseRequested;
 
@@ -22,12 +21,31 @@ public sealed partial class ConsolePanel : UserControl
     {
         InitializeComponent();
         AssistantVM.ConfirmHandler = ConfirmAsync;
+        Loaded += OnLoaded;
     }
 
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (Resources["LivePulse"] is Storyboard sb)
+            sb.Begin();
+    }
+
+    /// <summary>Switch to the Assistant tab and focus the input box.</summary>
     public void FocusAssistant()
     {
-        // Both panes are always visible now; just focus the chat input.
+        ConsoleTabs.SelectedIndex = 1;
         InputBox.Focus(FocusState.Programmatic);
+    }
+
+    private void ConsoleTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Guard: during InitializeComponent the panes may not yet be named.
+        if (PaneActivity is null) return;
+
+        var i = ConsoleTabs.SelectedIndex;
+        PaneActivity.Visibility  = i == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PaneAssistant.Visibility = i == 1 ? Visibility.Visible : Visibility.Collapsed;
+        PaneOutput.Visibility    = i == 2 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async Task<bool> ConfirmAsync(string id, string summary)
@@ -53,6 +71,6 @@ public sealed partial class ConsolePanel : UserControl
         }
     }
 
-    private void PopOut_Click(object sender, RoutedEventArgs e) => PopOutRequested?.Invoke(this, EventArgs.Empty);
+    private void PopOut_Click(object sender, RoutedEventArgs e)   => PopOutRequested?.Invoke(this, EventArgs.Empty);
     private void Collapse_Click(object sender, RoutedEventArgs e) => CollapseRequested?.Invoke(this, EventArgs.Empty);
 }

@@ -251,6 +251,10 @@ public sealed partial class MainWindow : Window
     {
         EnsureDockPanel();
         ConsoleDockHost.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        // When hidden, zero out the splitter and dock columns so the nav fills the window.
+        // When shown, restore the dock to its default width (GridSplitter adjusts from there).
+        SplitterCol.Width    = visible ? new GridLength(4)   : new GridLength(0);
+        ConsoleDockCol.Width = visible ? new GridLength(400) : new GridLength(0);
     }
 
     public void ToggleConsole() =>
