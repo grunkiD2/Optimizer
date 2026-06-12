@@ -161,6 +161,12 @@ public partial class App : Application
                 // Command bridge: mutations go through Fancontrol's own ctl.ps1 contract only.
                 services.AddSingleton<IFancontrolCommandService>(sp =>
                     new FancontrolCommandService(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
+                // Telemetry ingestion (read-only): brain 5 s ticks → SQLite for trends/history.
+                services.AddSingleton<FancontrolTelemetryService>(sp =>
+                    new FancontrolTelemetryService(sp.GetRequiredService<DatabaseService>(),
+                        sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
+                services.AddSingleton<IFancontrolTelemetryService>(sp => sp.GetRequiredService<FancontrolTelemetryService>());
+                services.AddHostedService(sp => sp.GetRequiredService<FancontrolTelemetryService>());
                 services.AddSingleton<IStressTestService, StressTestService>();
                 // GPU control backends (registered in priority order: NVAPI, ADL, Null)
                 services.AddSingleton<IGpuControlBackend, NvApiGpuBackend>();

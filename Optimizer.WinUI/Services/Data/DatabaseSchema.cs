@@ -448,6 +448,26 @@ public static class DatabaseSchema
             Value TEXT NOT NULL,
             UpdatedAt TEXT DEFAULT CURRENT_TIMESTAMP
         )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
+        // Fancontrol federation telemetry — ingested READ-ONLY from the
+        // Fancontrol system's state\telemetry\*.jsonl (5 s brain ticks).
+        // Ts is the brain's own ISO timestamp; PRIMARY KEY = idempotent re-ingestion.
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS FancontrolTelemetry (
+            Ts TEXT PRIMARY KEY,
+            Mode TEXT NOT NULL DEFAULT '',
+            Night INTEGER NOT NULL DEFAULT 0,
+            Game INTEGER NOT NULL DEFAULT 0,
+            Alarm INTEGER NOT NULL DEFAULT 0,
+            CpuLoad REAL, CpuTemp REAL, CpuWatts REAL,
+            GpuLoad REAL, GpuTemp REAL, GpuWatts REAL, GpuMem REAL,
+            Coolant REAL, PumpRpm INTEGER,
+            CaseDemand INTEGER, RadDemand INTEGER,
+            App TEXT
+        )
         """
     };
 

@@ -163,6 +163,18 @@ public class ApiHostService : IApiHostService
         .WithTags("Fancontrol")
         .WithOpenApi();
 
+        app.MapGet("/api/fancontrol/history", async (double? hours, int? maxPoints, CancellationToken ct) =>
+        {
+            var telemetry = _appServices.GetService<IFancontrolTelemetryService>();
+            if (telemetry == null)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            var points = await telemetry.GetHistoryAsync(hours ?? 24, maxPoints ?? 300, ct);
+            return Results.Ok(new { count = points.Count, points });
+        })
+        .WithName("GetFancontrolHistory")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
         app.MapGet("/api/fancontrol/profiles", () =>
         {
             var fc = _appServices.GetService<IFancontrolCommandService>();

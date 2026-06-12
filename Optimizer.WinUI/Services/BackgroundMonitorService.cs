@@ -13,6 +13,7 @@ public class BackgroundMonitorService : IHostedService, IDisposable
     private readonly IDiskHealthService _diskHealth;
     private readonly INotificationService _notifications;
     private readonly IEventBus _eventBus;
+    private readonly IFancontrolStatusService? _fancontrol;
 
     private readonly Queue<double> _cpuHistory = new();
     private int _tickCount;
@@ -22,12 +23,25 @@ public class BackgroundMonitorService : IHostedService, IDisposable
         ISystemDataBus dataBus,
         IDiskHealthService diskHealth,
         INotificationService notifications,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        IFancontrolStatusService? fancontrol = null)
     {
         _dataBus       = dataBus;
         _diskHealth    = diskHealth;
         _notifications = notifications;
         _eventBus      = eventBus;
+        _fancontrol    = fancontrol;
+    }
+
+    /// <summary>
+    /// Alert dedup on federated machines (docs/MACHINE-OWNERSHIP.md): the fan brain's alarm
+    /// layer + sentinel + ntfy own thermal alerting. Optimizer only steps in as a FAILSAFE
+    /// when the brain is dead/stale — otherwise both systems would alert on the same event.
+    /// </summary>
+    private bool FancontrolOwnsThermal()
+    {
+        try { return _fancontrol?.IsConfigured == true && _fancontrol.GetStatus()?.Brain is { Stale: false }; }
+        catch { return false; }
     }
 
     // ── IHostedService ────────────────────────────────────────────────────────
@@ -93,8 +107,8 @@ public class BackgroundMonitorService : IHostedService, IDisposable
                     }));
             }
 
-            // ── CPU thermal warning ───────────────────────────────────────────
-            if (snapshot.CpuTemperature > 90)
+            // ── CPU thermal warning (suppressed when the Fancontrol brain owns thermal) ──
+            if (snapshot.CpuTemperature > 90 && !FancontrolOwnsThermal())
             {
                 var title = "CPU thermal warning";
                 var detail = $"CPU temperature is {snapshot.CpuTemperature:F0}°C. Check cooling immediately.";
