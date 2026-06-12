@@ -1,6 +1,9 @@
 # Optimizer
 
-WinUI 3 desktop app for Windows. Active project: `Optimizer.WinUI/`. Tests: `Optimizer.WinUI.Tests/` (466 xUnit tests).
+WinUI 3 desktop app for Windows. Active project: `Optimizer.WinUI/`. Tests: `Optimizer.WinUI.Tests/` (588 xUnit tests).
+
+## ⛔ This machine: Fancontrol federation
+This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol`). **Read [`docs/MACHINE-OWNERSHIP.md`](docs/MACHINE-OWNERSHIP.md) before touching sensors, power plans, profiles, or automation** — Optimizer is the UI/diagnostics shell in that federation, never a competing controller. Sensors come from the external LHM server (`http://localhost:8085/data.json`), power plans belong to Process Lasso, profile switching belongs to fgwatch/`ctl.ps1`.
 
 ## Build & run
 - Build: `dotnet build Optimizer.WinUI/Optimizer.WinUI.csproj -c Debug -p:Platform=x64`. **Always pass `-p:Platform=x64`** — Win2D fails on AnyCPU.
