@@ -2,6 +2,28 @@
 
 Parked opportunities, not yet scheduled.
 
+## Harvested from the pre-redesign roadmaps (2026-06-12 audit)
+
+Full audit of the 7 deleted roadmap docs (ROADMAP-V2/V3-V7/V8×2, AUTOMATION, BACKLOG-ACTIONABILITY, CROSS-PLATFORM — survives in the laughing-mendel worktree): **80 items done, 37 partial, 32 missing, 25 scrapped-by-vision.** The survivors, curated:
+
+### Worth doing (vision-clean, concrete value)
+- **Monitor → Vitals rolling charts** — restore the chart engine deleted with DashboardPage (the IA plan explicitly called for a Vitals section). Build it as ONE chart engine that also draws `/api/fancontrol/history` → folds into convergence Etape 1.
+- **Event Log actionability** — pattern-match event signatures → known-fix categories, wire `SystemRepairService` actions into a confirm-driven apply flow on EventLogsPage (BACKLOG-ACTIONABILITY §1).
+- **In-app Windows Update** — WUApiLib COM interop to query/trigger update scans on UpdatesPage instead of launching Settings (§3).
+- **Cleanup scope expansion** — hibernation file, System Restore points, browser caches (Edge/Chrome/Firefox); 5-30 GB easy wins.
+- **Per-process bandwidth breakdown** (ETW/IPHelper) — sister analysis to PPI: find rogue uploaders the way PPI finds power drainers.
+- **Process detail flyout** — modules/threads/handles for root-causing hung processes ("analysis, not symptom-patching").
+- **DNS preset buttons** (Cloudflare/Google/Quad9) — old Tier-1 item, never shipped.
+
+### Nice-to-have (parked)
+Disk-space treemap (WinDirStat-style) · composite 0-100 health breakdown per category (the ring exists; the breakdown doesn't) · global hotkeys · compact always-on-top widget · firewall-rules viewer + port scan · Templates-UI polish · accessibility pass (AutomationProperties/Narrator/high-contrast) AFTER convergence Etape 4 so it isn't done twice.
+
+### Rejected in the audit (with reasons — do not resurrect without a scope change)
+- **All 9 items in AUTOMATION.md** — auto power-plan/profile switching belongs to Process Lasso/fgwatch on this machine (MACHINE-OWNERSHIP.md); the learning engine's confirm-first model superseded the rest.
+- OAuth2/public API + rate limiting, voice input, shareable-URL/QR profiles, fleet/DSC/Intune — VISION.md (single-user, local-only, analysis-not-chat).
+- Persist process priorities across boots + integrated "Game Mode" combo — Lasso (ProBalance/Gaming Mode) and fgwatch own those domains here.
+- Stale claims corrected: live speedtest EXISTS (`NetworkSpeedTestService`), ClaudeClient double-bill was FIXED (`26f865d`).
+
 ## In flight / parked-but-designed
 
 - ~~**Per-Process Power Intelligence (PPI)**~~ — ✅ CORE SHIPPED 2026-06-12 (estimated-attribution model; see the status header in [`docs/POWER-INSIGHTS.md`](POWER-INSIGHTS.md)). Remaining: Monitor-hub UI page, ContextualPromptBuilder drainer block, Recommendations-row surfacing, long-run verification (#4/#6/#7), and the Fancontrol-brain consumer (`/api/power/processes` is the contract — brain-side consumption is a reviewed Fancontrol change).
