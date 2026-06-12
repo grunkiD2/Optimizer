@@ -14,6 +14,7 @@ public class BackgroundMonitorService : IHostedService, IDisposable
     private readonly INotificationService _notifications;
     private readonly IEventBus _eventBus;
     private readonly IFancontrolStatusService? _fancontrol;
+    private readonly IUrgentAlertEgress? _urgentEgress;
 
     private readonly Queue<double> _cpuHistory = new();
     private int _tickCount;
@@ -24,13 +25,23 @@ public class BackgroundMonitorService : IHostedService, IDisposable
         IDiskHealthService diskHealth,
         INotificationService notifications,
         IEventBus eventBus,
-        IFancontrolStatusService? fancontrol = null)
+        IFancontrolStatusService? fancontrol = null,
+        IUrgentAlertEgress? urgentEgress = null)
     {
         _dataBus       = dataBus;
         _diskHealth    = diskHealth;
         _notifications = notifications;
         _eventBus      = eventBus;
         _fancontrol    = fancontrol;
+        _urgentEgress  = urgentEgress;
+    }
+
+    /// <summary>R5: urgent findings also go to the phone (ntfy); failures must never break monitoring.</summary>
+    private async Task PushUrgentAsync(string title, string detail)
+    {
+        if (_urgentEgress == null) return;
+        try { await _urgentEgress.PushUrgentAsync(title, detail); }
+        catch (Exception ex) { EngineLog.Error("Urgent egress push failed", ex); }
     }
 
     /// <summary>
@@ -113,6 +124,9 @@ public class BackgroundMonitorService : IHostedService, IDisposable
                 var title = "CPU thermal warning";
                 var detail = $"CPU temperature is {snapshot.CpuTemperature:F0}°C. Check cooling immediately.";
                 _notifications.Show(title, detail, NotificationCategory.Hardware);
+                // R5: this only fires as the FAILSAFE (brain dead/stale + >90 °C) — that exact
+                // combination is the most urgent state this machine has. Phone, not just toast.
+                await PushUrgentAsync(title, detail + " (Fancontrol brain is dead/stale — failsafe alert.)");
                 _eventBus.Publish(OptimizerEvent.Create(
                     OptimizerEventType.ThresholdCrossed, title, detail,
                     new Dictionary<string, string>
@@ -151,6 +165,7 @@ public class BackgroundMonitorService : IHostedService, IDisposable
                 var title = "Drive failure predicted";
                 var detail = $"{disk.Model} reports unhealthy SMART status. Back up your data immediately.";
                 _notifications.Show(title, detail, NotificationCategory.Hardware);
+                await PushUrgentAsync(title, detail);   // R5: SMART death-rattle goes to the phone
                 _eventBus.Publish(OptimizerEvent.Create(
                     OptimizerEventType.ThresholdCrossed, title, detail,
                     new Dictionary<string, string>

@@ -160,6 +160,10 @@ public partial class App : Application
                 // Command bridge: mutations go through Fancontrol's own ctl.ps1 contract only.
                 services.AddSingleton<IFancontrolCommandService>(sp =>
                     new FancontrolCommandService(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
+                // R5 alarm-egress: urgent findings → the user's phone via the federation's
+                // ntfy channel (engine\notify.ps1); informational stays in the UI.
+                services.AddSingleton<IUrgentAlertEgress>(sp =>
+                    new UrgentAlertEgress(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 // Telemetry ingestion (read-only): brain 5 s ticks → SQLite for trends/history.
                 services.AddSingleton<FancontrolTelemetryService>(sp =>
                     new FancontrolTelemetryService(sp.GetRequiredService<DatabaseService>(),

@@ -8,7 +8,8 @@ namespace Optimizer.WinUI.Services.Analytics;
 /// </summary>
 public class PredictiveAlertService(
     DatabaseService db,
-    IPredictiveMaintenanceService maintenance) : IPredictiveAlertService
+    IPredictiveMaintenanceService maintenance,
+    IUrgentAlertEgress? urgentEgress = null) : IPredictiveAlertService
 {
     // Warn when a drive is projected to fill within this horizon.
     private const int DriveFullWarnDays = 30;
@@ -63,6 +64,18 @@ public class PredictiveAlertService(
 
         if (newAlerts.Count > 0)
             EngineLog.Write($"Raised {newAlerts.Count} predictive maintenance alert(s)");
+
+        // R5 alarm-egress: a Critical maintenance forecast ("disk dying — back up NOW") must
+        // reach the phone via the federation's ntfy channel, not sit in SQLite until the user
+        // happens to open the dashboard. UI/event behavior above is unchanged.
+        if (urgentEgress != null)
+        {
+            foreach (var a in newAlerts.Where(a => a.Severity == "Critical"))
+            {
+                try { await urgentEgress.PushUrgentAsync($"Optimizer: {a.Kind}", a.Message); }
+                catch (Exception ex) { EngineLog.Error("Urgent egress push failed", ex); }
+            }
+        }
 
         return newAlerts;
     }
