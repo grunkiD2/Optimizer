@@ -151,6 +151,18 @@ public class ApiHostService : IApiHostService
         .WithTags("Sensors")
         .WithOpenApi();
 
+        app.MapGet("/api/fancontrol", () =>
+        {
+            var fancontrol = _appServices.GetService<IFancontrolStatusService>();
+            if (fancontrol == null || !fancontrol.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured (AppSettings.FancontrolStateDir)" });
+            var status = fancontrol.GetStatus();
+            return status == null ? Results.StatusCode(503) : Results.Ok(status);
+        })
+        .WithName("GetFancontrolStatus")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
         app.MapGet("/api/profiles", () =>
         {
             var optimizer = _appServices.GetService<IWindowsOptimizerService>();

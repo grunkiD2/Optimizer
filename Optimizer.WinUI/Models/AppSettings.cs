@@ -46,6 +46,12 @@ public class AppSettings
     // if the server is down, sensors stay unavailable until it returns.
     public string ExternalSensorServerUrl { get; set; } = "";
 
+    // Fancontrol federation (read-only): when set, points at the Fancontrol system's
+    // state directory (e.g. L:\Users\Fancontrol\state) and Optimizer surfaces its
+    // brain/profile/sentinel status in the dashboard + /api/fancontrol. Optimizer
+    // never WRITES anything there — see docs/MACHINE-OWNERSHIP.md.
+    public string FancontrolStateDir { get; set; } = "";
+
     // Remote API
     public bool ApiEnabled { get; set; } = false;
     public int ApiPort { get; set; } = 8765;

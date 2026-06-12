@@ -155,6 +155,9 @@ public partial class App : Application
                         ? new SensorService()
                         : new ExternalLhmSensorService(url);
                 });
+                // Read-only view of the Fancontrol federation's state files (docs/MACHINE-OWNERSHIP.md).
+                services.AddSingleton<IFancontrolStatusService>(sp =>
+                    new FancontrolStatusService(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 services.AddSingleton<IStressTestService, StressTestService>();
                 // GPU control backends (registered in priority order: NVAPI, ADL, Null)
                 services.AddSingleton<IGpuControlBackend, NvApiGpuBackend>();
