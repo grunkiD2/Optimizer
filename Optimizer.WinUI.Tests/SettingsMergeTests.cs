@@ -1,3 +1,4 @@
+using System.IO;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
 using Xunit;
@@ -6,17 +7,19 @@ namespace Optimizer.WinUI.Tests;
 
 /// <summary>
 /// Tests for SettingsService.ApplyRemoteSettings — verifies synced fields are updated
-/// while per-device fields are preserved.
-/// NOTE: SettingsService writes to %LocalAppData%\Optimizer\app-settings.json.
-/// Tests operate against the real path but restore state in a finally block.
+/// while per-device fields are preserved. Uses ISOLATED temp files (the parameterless
+/// ctor writes the developer's real %LocalAppData% settings — never use it in tests).
 /// </summary>
 [Collection("SettingsServiceCollection")]
 public class SettingsMergeTests
 {
+    private static SettingsService MakeIsolated() =>
+        new(Path.Combine(Directory.CreateTempSubdirectory("optmerge").FullName, "app-settings.json"));
+
     [Fact]
     public void ApplyRemoteSettings_UpdatesSyncedFields()
     {
-        var svc = new SettingsService();
+        var svc = MakeIsolated();
         var originalTheme = svc.Settings.Theme;
         var originalRefresh = svc.Settings.MetricsRefreshSeconds;
 
@@ -74,7 +77,7 @@ public class SettingsMergeTests
     [Fact]
     public void ApplyRemoteSettings_PreservesPerDeviceFields()
     {
-        var svc = new SettingsService();
+        var svc = MakeIsolated();
 
         // Capture current per-device values to restore later
         var originalNav = svc.Settings.LastNavigationItem;
@@ -152,7 +155,7 @@ public class SettingsMergeTests
     [Fact]
     public void ApplyRemoteSettings_TriggersSettingsChangedEvent()
     {
-        var svc = new SettingsService();
+        var svc = MakeIsolated();
         var originalTheme = svc.Settings.Theme;
 
         try
@@ -174,7 +177,7 @@ public class SettingsMergeTests
     [Fact]
     public void Save_TriggersSettingsChangedEvent()
     {
-        var svc = new SettingsService();
+        var svc = MakeIsolated();
         var firedCount = 0;
         svc.SettingsChanged += () => firedCount++;
 

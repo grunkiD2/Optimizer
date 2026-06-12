@@ -110,6 +110,12 @@
             </div>
           </div>
           <div class="cooling-foot" id="fc-sentinel"></div>
+          <div class="cooling-actions">
+            <select id="fc-profile-select" class="fc-select"></select>
+            <button class="fc-btn" onclick="App.fcApplyProfile()">Apply</button>
+            <button class="fc-btn" id="fc-night-btn" onclick="App.fcToggleNight()">Night</button>
+            <button class="fc-btn warn" id="fc-ack-btn" onclick="App.fcAckAlerts()" style="display:none;">Ack</button>
+          </div>
         </div>
 
         <div class="action-bar">

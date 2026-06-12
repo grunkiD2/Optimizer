@@ -81,7 +81,7 @@ public class ApiHostService : IApiHostService
             if (context.Request.Path.StartsWithSegments("/api", StringComparison.Ordinal))
             {
                 var auth = context.Request.Headers["Authorization"].ToString();
-                if (!string.Equals(auth, $"Bearer {token}", StringComparison.Ordinal))
+                if (!TokenMatches(auth, token))
                 {
                     context.Response.StatusCode = 401;
                     context.Response.ContentType = "text/plain";
@@ -160,6 +160,53 @@ public class ApiHostService : IApiHostService
             return status == null ? Results.StatusCode(503) : Results.Ok(status);
         })
         .WithName("GetFancontrolStatus")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
+        app.MapGet("/api/fancontrol/profiles", () =>
+        {
+            var fc = _appServices.GetService<IFancontrolCommandService>();
+            if (fc == null || !fc.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            return Results.Ok(fc.GetProfileNames());
+        })
+        .WithName("GetFancontrolProfiles")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
+        app.MapPost("/api/fancontrol/apply-profile", async (FancontrolProfileRequest req, CancellationToken ct) =>
+        {
+            var fc = _appServices.GetService<IFancontrolCommandService>();
+            if (fc == null || !fc.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            var r = await fc.ApplyProfileAsync(req.Profile ?? "", ct);
+            return Results.Ok(new { success = r.Success, output = r.Output });
+        })
+        .WithName("FancontrolApplyProfile")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
+        app.MapPost("/api/fancontrol/night", async (FancontrolNightRequest req, CancellationToken ct) =>
+        {
+            var fc = _appServices.GetService<IFancontrolCommandService>();
+            if (fc == null || !fc.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            var r = await fc.SetNightAsync(req.Mode ?? "", ct);
+            return Results.Ok(new { success = r.Success, output = r.Output });
+        })
+        .WithName("FancontrolNight")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
+        app.MapPost("/api/fancontrol/ack-alerts", async (FancontrolAckRequest req, CancellationToken ct) =>
+        {
+            var fc = _appServices.GetService<IFancontrolCommandService>();
+            if (fc == null || !fc.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            var r = await fc.AckAlertsAsync(req.Note, ct);
+            return Results.Ok(new { success = r.Success, output = r.Output });
+        })
+        .WithName("FancontrolAckAlerts")
         .WithTags("Fancontrol")
         .WithOpenApi();
 
@@ -385,7 +432,30 @@ public class ApiHostService : IApiHostService
         ListeningUrl = "";
         EngineLog.Write("API server stopped");
     }
+
+    /// <summary>
+    /// Constant-time bearer check (CryptographicOperations.FixedTimeEquals) — plain string
+    /// comparison leaks the match length through timing. Internal for tests.
+    /// </summary>
+    internal static bool TokenMatches(string authorizationHeader, string token)
+    {
+        const string prefix = "Bearer ";
+        if (string.IsNullOrEmpty(authorizationHeader) || string.IsNullOrEmpty(token)) return false;
+        if (!authorizationHeader.StartsWith(prefix, StringComparison.Ordinal)) return false;
+        var presented = System.Text.Encoding.UTF8.GetBytes(authorizationHeader[prefix.Length..]);
+        var expected = System.Text.Encoding.UTF8.GetBytes(token);
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(presented, expected);
+    }
 }
+
+/// <summary>Body for POST /api/fancontrol/apply-profile.</summary>
+public sealed record FancontrolProfileRequest(string? Profile);
+
+/// <summary>Body for POST /api/fancontrol/night.</summary>
+public sealed record FancontrolNightRequest(string? Mode);
+
+/// <summary>Body for POST /api/fancontrol/ack-alerts.</summary>
+public sealed record FancontrolAckRequest(string? Note);
 
 /// <summary>Request item for POST /api/apply/batch.</summary>
 public sealed class BatchApplyItem

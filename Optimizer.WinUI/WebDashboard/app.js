@@ -3,6 +3,8 @@ const App = (() => {
   let currentTab = 'dashboard';
   let refreshInterval = null;
   let deferredInstallPrompt = null;
+  let fcNight = false;
+  let fcProfilesLoaded = false;
 
   // ── API helper ────────────────────────────────────────────────────────────
 
@@ -120,6 +122,12 @@ const App = (() => {
       if (card && fc.brain) {
         card.style.display = 'block';
         const b = fc.brain;
+        fcNight = !!b.night;
+        const nightBtn = document.getElementById('fc-night-btn');
+        if (nightBtn) nightBtn.textContent = b.night ? 'Night: ON' : 'Night';
+        const ackBtn = document.getElementById('fc-ack-btn');
+        if (ackBtn) ackBtn.style.display = (fc.sentinel && fc.sentinel.issues && fc.sentinel.issues.length > 0) ? 'inline-block' : 'none';
+        loadFcProfiles();
         const pill = document.getElementById('fc-mode');
         if (pill) {
           pill.textContent = b.alarm ? 'ALARM' : b.stale ? 'STALE' : (b.mode || '—');
@@ -137,6 +145,51 @@ const App = (() => {
         }
       }
     } catch (_) { /* 404 = federation not configured — card stays hidden */ }
+  }
+
+  // ── Fancontrol quick controls (all mutations go through the desktop's gated ctl.ps1 bridge) ──
+
+  async function loadFcProfiles() {
+    if (fcProfilesLoaded) return;
+    try {
+      const names = await api('/api/fancontrol/profiles');
+      const sel = document.getElementById('fc-profile-select');
+      if (sel && Array.isArray(names) && names.length > 0) {
+        sel.innerHTML = '<option value="">Profile…</option>' +
+          names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        fcProfilesLoaded = true;
+      }
+    } catch (_) { /* retry on next refresh */ }
+  }
+
+  async function fcApplyProfile() {
+    const sel = document.getElementById('fc-profile-select');
+    const profile = sel ? sel.value : '';
+    if (!profile) { alert('Pick a profile first.'); return; }
+    if (!confirm(`Apply Fancontrol profile "${profile}"? This changes monitor/HDR/power settings on the PC.`)) return;
+    try {
+      const r = await api('/api/fancontrol/apply-profile', { method: 'POST', body: JSON.stringify({ profile }) });
+      alert(r.success ? `✓ ${profile} applied` : `Failed: ${r.output || ''}`);
+      refresh();
+    } catch (e) { alert(`Error: ${e.message}`); }
+  }
+
+  async function fcToggleNight() {
+    const mode = fcNight ? 'auto' : 'on';
+    if (!confirm(fcNight ? 'Release night mode (back to auto)?' : 'Force quiet NIGHT mode on?')) return;
+    try {
+      const r = await api('/api/fancontrol/night', { method: 'POST', body: JSON.stringify({ mode }) });
+      alert(r.success ? `✓ Night → ${mode}` : `Failed: ${r.output || ''}`);
+      refresh();
+    } catch (e) { alert(`Error: ${e.message}`); }
+  }
+
+  async function fcAckAlerts() {
+    try {
+      const r = await api('/api/fancontrol/ack-alerts', { method: 'POST', body: JSON.stringify({ note: 'acked from phone' }) });
+      alert(r.success ? '✓ Alerts acknowledged' : `Failed: ${r.output || ''}`);
+      refresh();
+    } catch (e) { alert(`Error: ${e.message}`); }
   }
 
   // ── Profiles ──────────────────────────────────────────────────────────────
@@ -290,7 +343,10 @@ const App = (() => {
     applyProfile,
     runCleanup,
     triggerInstall,
-    dismissInstall
+    dismissInstall,
+    fcApplyProfile,
+    fcToggleNight,
+    fcAckAlerts
   };
 })();
 

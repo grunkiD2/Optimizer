@@ -304,3 +304,32 @@ body {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* Cooling quick controls */
+.cooling-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.fc-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--text);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.fc-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fc-btn.warn { background: var(--amber); color: #1a1a1a; }

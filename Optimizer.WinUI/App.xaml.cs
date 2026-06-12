@@ -158,6 +158,9 @@ public partial class App : Application
                 // Read-only view of the Fancontrol federation's state files (docs/MACHINE-OWNERSHIP.md).
                 services.AddSingleton<IFancontrolStatusService>(sp =>
                     new FancontrolStatusService(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
+                // Command bridge: mutations go through Fancontrol's own ctl.ps1 contract only.
+                services.AddSingleton<IFancontrolCommandService>(sp =>
+                    new FancontrolCommandService(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 services.AddSingleton<IStressTestService, StressTestService>();
                 // GPU control backends (registered in priority order: NVAPI, ADL, Null)
                 services.AddSingleton<IGpuControlBackend, NvApiGpuBackend>();
@@ -303,6 +306,11 @@ public partial class App : Application
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.ApplyOptimizationCommand>();
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.RunCleanupCommand>();
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.UndoLastCommand>();
+                // Fancontrol federation tools (read status + gated mutations via ctl.ps1)
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.GetFancontrolStatusCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.FancontrolApplyProfileCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.FancontrolNightCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.FancontrolAckAlertsCommand>();
 
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.ICommandRegistry>(sp =>
                 {
