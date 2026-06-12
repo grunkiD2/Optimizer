@@ -151,6 +151,11 @@ public class ApiHostService : IApiHostService
             var snap = ppi.LatestSnapshot;
             return Results.Ok(new
             {
+                // R7: the first REVERSE contract (C# producer → PS consumer). The Fancontrol
+                // brain's future attribution-bias consumer pins this version; bump it on ANY
+                // field rename/semantic change so the PS side can fail closed instead of
+                // silently reading nulls (the same rule the state-file contracts follow).
+                schemaVersion = 1,
                 timestamp = snap?.Timestamp,
                 windowSeconds = snap?.WindowSeconds,
                 packageWatts = snap?.PackageWatts,
@@ -170,7 +175,7 @@ public class ApiHostService : IApiHostService
             if (ppi == null || !ppi.Enabled)
                 return Results.NotFound(new { error = "Power Insights disabled (AppSettings.PpiEnabled)" });
             var events = await ppi.GetRecentDriftAsync(hours ?? 24, limit ?? 50);
-            return Results.Ok(new { count = events.Count, events });
+            return Results.Ok(new { schemaVersion = 1, count = events.Count, events });   // R7: reverse contract version
         })
         .WithName("GetPowerDrift")
         .WithTags("Power")
