@@ -21,6 +21,7 @@ This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol
 - Merged-page pattern (Performance+Tuning, Startup+Services, Marketplace+Plugins, Profiles+Templates): host page owns both VMs, a `tk:Segmented` + `Section_Changed` handler toggles `Visibility` on named `StackPanel` panes. Canonical example: `Optimizer.WinUI/Views/PerformancePage.xaml.cs`.
 
 ## Gotchas
+- Power Insights (`Services/Power/`) attributes MEASURED package watts by CPU-time share — deliberately NOT the ETW Energy-Estimation-Engine path (no per-process energy on battery-less desktops, and ETW needs elevation). It is read-only by contract; `PpiReadOnlyTests` audits the source for mutating calls — keep new Power code clean of `.Kill(`/`SetValue(`/priority/affinity/powercfg.
 - The correct ease class is `<SineEase EasingMode="EaseInOut"/>` — there is no `SineEaseInOut`.
 - `Cursor=` is **not** a XAML attribute. For draggable splitters use `tk:GridSplitter` (it sets the cursor itself).
 - `Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj` has `ImplicitUsings` off — test files need explicit `using` statements.

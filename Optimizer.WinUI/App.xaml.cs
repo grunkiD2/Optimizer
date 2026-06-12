@@ -167,6 +167,11 @@ public partial class App : Application
                         sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 services.AddSingleton<IFancontrolTelemetryService>(sp => sp.GetRequiredService<FancontrolTelemetryService>());
                 services.AddHostedService(sp => sp.GetRequiredService<FancontrolTelemetryService>());
+                // Per-Process Power Intelligence (docs/POWER-INSIGHTS.md) — read-only attribution + drift.
+                services.AddSingleton<Optimizer.WinUI.Services.Power.IPowerAttributionService, Optimizer.WinUI.Services.Power.PowerAttributionService>();
+                services.AddSingleton<Optimizer.WinUI.Services.Power.PowerInsightsService>();
+                services.AddSingleton<Optimizer.WinUI.Services.Power.IPowerInsightsService>(sp => sp.GetRequiredService<Optimizer.WinUI.Services.Power.PowerInsightsService>());
+                services.AddHostedService(sp => sp.GetRequiredService<Optimizer.WinUI.Services.Power.PowerInsightsService>());
                 services.AddSingleton<IStressTestService, StressTestService>();
                 // GPU control backends (registered in priority order: NVAPI, ADL, Null)
                 services.AddSingleton<IGpuControlBackend, NvApiGpuBackend>();
@@ -317,6 +322,7 @@ public partial class App : Application
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.FancontrolApplyProfileCommand>();
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.FancontrolNightCommand>();
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.FancontrolAckAlertsCommand>();
+                services.AddSingleton<Optimizer.WinUI.Services.Commands.IAppCommand, Optimizer.WinUI.Services.Commands.GetPowerDrainersCommand>();
 
                 services.AddSingleton<Optimizer.WinUI.Services.Commands.ICommandRegistry>(sp =>
                 {

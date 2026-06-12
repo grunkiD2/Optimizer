@@ -1,6 +1,20 @@
 # Per-Process Power Intelligence (PPI) — feature plan
 
-**Status:** parked discovery brief. Created 2026-06-04 from the deep-research synthesis (see commit history for the source claims). Not yet scheduled.
+**Status:** CORE SHIPPED 2026-06-12 (`Services/Power/`). **Model decision:** the §4 fallback
+was promoted to primary — on this desktop (no battery) the Energy-Estimation-Engine ETW
+provider emits no per-process energy, and ETW sessions would demand elevation the app
+doesn't run with. Attribution = per-process CPU-time share × the MEASURED CPU package watts
+(via ISensorService → the Fancontrol federation's LHM server = real measurement, not TDP).
+Clearly labeled "estimated"; sum-to-attributed-pool holds by construction. Shipped: sampler
+(`PowerAttributionService`), ADS drift loop (`PowerInsightsService`, Welford + 72 h half-life
++ modified-z with σ-floor, 4 h dedup), SQLite tables (PowerSnapshots/PowerBaselines/
+PowerDriftEvents — PascalCase, deviating from §5's snake_case for codebase consistency),
+`/api/power/{processes,drift}`, assistant tool `get_power_drainers`, settings incl. exclusion
+regexes. Livetested: context-aware attribution live (Plex ctx, 65 W package), synthetic
+CPU-load appeared as #1 drainer within one 30 s tick, self-exclusion works. 635/635 tests.
+**Residuals:** Monitor-hub UI page (§6), ContextualPromptBuilder block, Recommendations-row
+surfacing (drift events go to SQLite + Activity console for now), verification checks #4/#6/#7
+(need multi-day runtime). The original ETW path below is kept as the design record.
 
 ## 0. Concept in one sentence
 

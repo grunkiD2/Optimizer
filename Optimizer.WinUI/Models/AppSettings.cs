@@ -52,6 +52,15 @@ public class AppSettings
     // never WRITES anything there — see docs/MACHINE-OWNERSHIP.md.
     public string FancontrolStateDir { get; set; } = "";
 
+    // ── Per-Process Power Intelligence (docs/POWER-INSIGHTS.md) — read-only,
+    // suggestions only. Off by default until shaken out (ship-dark policy).
+    public bool PpiEnabled { get; set; } = false;
+    public bool PpiSuggestionsEnabled { get; set; } = true;
+    public double PpiDriftZThreshold { get; set; } = 3.5;
+    public double PpiBaselineHalfLifeHours { get; set; } = 72;
+    public List<string> PpiProcessExclusions { get; set; } =
+        ["MsMpEng", "TrustedInstaller", "SearchHost", "SystemSettings", @"Optimizer\.WinUI"];
+
     // Remote API
     public bool ApiEnabled { get; set; } = false;
     public int ApiPort { get; set; } = 8765;

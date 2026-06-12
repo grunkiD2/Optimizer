@@ -143,6 +143,39 @@ public class ApiHostService : IApiHostService
         .WithTags("Fancontrol")
         .WithOpenApi();
 
+        app.MapGet("/api/power/processes", () =>
+        {
+            var ppi = _appServices.GetService<Optimizer.WinUI.Services.Power.IPowerInsightsService>();
+            if (ppi == null || !ppi.Enabled)
+                return Results.NotFound(new { error = "Power Insights disabled (AppSettings.PpiEnabled)" });
+            var snap = ppi.LatestSnapshot;
+            return Results.Ok(new
+            {
+                timestamp = snap?.Timestamp,
+                windowSeconds = snap?.WindowSeconds,
+                packageWatts = snap?.PackageWatts,
+                attributedShare = snap?.AttributedShare,
+                context = ppi.LatestContext,
+                model = "estimated: cpu-time share × measured package watts",
+                processes = ppi.GetTopDrainers(),
+            });
+        })
+        .WithName("GetPowerProcesses")
+        .WithTags("Power")
+        .WithOpenApi();
+
+        app.MapGet("/api/power/drift", async (double? hours, int? limit) =>
+        {
+            var ppi = _appServices.GetService<Optimizer.WinUI.Services.Power.IPowerInsightsService>();
+            if (ppi == null || !ppi.Enabled)
+                return Results.NotFound(new { error = "Power Insights disabled (AppSettings.PpiEnabled)" });
+            var events = await ppi.GetRecentDriftAsync(hours ?? 24, limit ?? 50);
+            return Results.Ok(new { count = events.Count, events });
+        })
+        .WithName("GetPowerDrift")
+        .WithTags("Power")
+        .WithOpenApi();
+
         app.MapGet("/api/fancontrol/profiles", () =>
         {
             var fc = _appServices.GetService<IFancontrolCommandService>();

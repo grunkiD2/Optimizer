@@ -455,6 +455,52 @@ public static class DatabaseSchema
         // Fancontrol system's state\telemetry\*.jsonl (5 s brain ticks).
         // Ts is the brain's own ISO timestamp; PRIMARY KEY = idempotent re-ingestion.
         // ────────────────────────────────────────────────────────────────
+        // ────────────────────────────────────────────────────────────────
+        // Per-Process Power Intelligence (docs/POWER-INSIGHTS.md) — attribution
+        // snapshots, per-(context,process) Welford baselines, surfaced drift.
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS PowerSnapshots (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Ts TEXT NOT NULL,
+            Context TEXT NOT NULL,
+            ProcessName TEXT NOT NULL,
+            AvgPowerW REAL NOT NULL,
+            CpuShare REAL NOT NULL,
+            WindowSec REAL NOT NULL
+        )
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS IX_PowerSnapshots_Ts ON PowerSnapshots(Ts)
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS PowerBaselines (
+            Context TEXT NOT NULL,
+            ProcessName TEXT NOT NULL,
+            Count REAL NOT NULL,
+            MeanW REAL NOT NULL,
+            M2 REAL NOT NULL,
+            EwmaW REAL NOT NULL,
+            LastUpdated TEXT NOT NULL,
+            PRIMARY KEY (Context, ProcessName)
+        )
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS PowerDriftEvents (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Ts TEXT NOT NULL,
+            Context TEXT NOT NULL,
+            ProcessName TEXT NOT NULL,
+            ObservedW REAL NOT NULL,
+            BaselineW REAL NOT NULL,
+            ZScore REAL NOT NULL,
+            Classification TEXT NOT NULL
+        )
+        """,
+
         """
         CREATE TABLE IF NOT EXISTS FancontrolTelemetry (
             Ts TEXT PRIMARY KEY,
