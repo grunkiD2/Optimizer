@@ -12,9 +12,7 @@ PowerDriftEvents — PascalCase, deviating from §5's snake_case for codebase co
 `/api/power/{processes,drift}`, assistant tool `get_power_drainers`, settings incl. exclusion
 regexes. Livetested: context-aware attribution live (Plex ctx, 65 W package), synthetic
 CPU-load appeared as #1 drainer within one 30 s tick, self-exclusion works. 635/635 tests.
-**Residuals:** Monitor-hub UI page (§6), ContextualPromptBuilder block, Recommendations-row
-surfacing (drift events go to SQLite + Activity console for now), verification checks #4/#6/#7
-(need multi-day runtime). The original ETW path below is kept as the design record.
+**Residuals (post 51a0d35 — UI/prompt/recommendations SHIPPED same day):** verification checks #4/#6/#7 (need multi-day runtime). The original ETW path below is kept as the design record.
 
 ## 0. Concept in one sentence
 
