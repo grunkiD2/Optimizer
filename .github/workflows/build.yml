@@ -7,9 +7,9 @@ on:
     branches: [main, master, "feature/**"]
 
 jobs:
-  # Core .NET projects: WinUI, Cli, Server + their tests. Fast — no MAUI workload.
+  # Core .NET projects: WinUI, Cli, Server + their tests.
   build:
-    name: Build & test (.NET, no MAUI)
+    name: Build & test (.NET)
     runs-on: windows-latest
 
     steps:
@@ -127,30 +127,3 @@ jobs:
         path: |
           **/TestResults/*.trx
         retention-days: 7
-
-  # Separate job for Optimizer.Mobile (MAUI). Pulls the workload (~1.5 GB),
-  # builds Android only — iOS would require a macOS runner. Continues on error
-  # so a MAUI workload regression doesn't block desktop releases.
-  mobile:
-    name: Build Mobile (MAUI Android)
-    runs-on: windows-latest
-    continue-on-error: true
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: |
-          10.0.x
-        include-prerelease: true
-
-    - name: Install MAUI workload
-      run: dotnet workload install maui-android
-
-    - name: Restore Mobile
-      run: dotnet restore Optimizer.Mobile/Optimizer.Mobile.csproj
-
-    - name: Build Mobile (Android)
-      run: dotnet build Optimizer.Mobile/Optimizer.Mobile.csproj -c Release -f net10.0-android --no-restore

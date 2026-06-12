@@ -41,5 +41,5 @@ live Fancontrol system (autonomous noise-first fan/profile control). Optimizer
 is the observing/diagnostics shell in that federation — ownership rules in
 [MACHINE-OWNERSHIP.md](MACHINE-OWNERSHIP.md), phased plan in
 `L:\Users\Fancontrol\docs\optimizer-merge-plan.md`. The single-user/local-only
-scope above is also why the federation ignores Optimizer.Server, the
-marketplace, and the MAUI app.
+scope above is also why the PWA/MAUI phone companions were REMOVED outright
+(2026-06-12) and why the federation ignores Optimizer.Server and the marketplace.

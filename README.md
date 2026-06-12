@@ -50,12 +50,12 @@ A comprehensive Windows system optimization, diagnostics, and management platfor
 - Smart Insights (CPU bottleneck, battery health, service bloat, etc.)
 - Personalization tracking (accept/dismiss preferences)
 
-### Cross-Platform
+### Surfaces
 - **Desktop:** Native WinUI 3 (this app)
-- **Remote API:** Embedded REST API + OpenAPI/Swagger UI
+- **Local API:** Embedded REST API (localhost only) + OpenAPI spec
 - **CLI:** `optimizer` console tool (status / apply / scan / cleanup)
-- **Mobile companion:** Installable PWA (works on iOS/Android home screens)
-- **Native mobile:** .NET MAUI project (iOS + Android targets)
+
+*(The PWA/mobile companions were removed 2026-06-12 — see [`docs/VISION.md`](docs/VISION.md): single-user, local-only.)*
 
 ## Requirements
 
@@ -68,13 +68,12 @@ A comprehensive Windows system optimization, diagnostics, and management platfor
 
 ```
 Optimizer/
-├── Optimizer.WinUI/        Main desktop app (22 pages, ~40 services)
+├── Optimizer.WinUI/        Main desktop app (hub shell, ~45 services)
 ├── Optimizer.Cli/          Command-line tool
-├── Optimizer.Mobile/       .NET MAUI iOS/Android companion
-├── Optimizer.WinUI.Tests/  Test suite (190+ tests, xUnit)
+├── Optimizer.WinUI.Tests/  Test suite (600+ tests, xUnit)
+├── Optimizer.Server/       Optional cloud sync/marketplace server
 ├── Optimizer.Packaging/    MSIX packaging project
-├── Optimizer.WinUI/WebDashboard/  PWA (HTML/JS/SW)
-└── docs/                   Roadmap, cross-platform plan, V4-V7 vision
+└── docs/                   Vision, IA, learning engine, backlog
 ```
 
 ## Quick Start
@@ -112,14 +111,6 @@ $env:OPTIMIZER_TOKEN = "your-token-from-settings"
 .\Optimizer.Cli\bin\Debug\net10.0\optimizer.exe scan
 ```
 
-### Mobile (PWA)
-
-1. Start desktop app, enable Remote API in Settings
-2. From your phone (same Wi-Fi) browse to `http://<desktop-IP>:8765`
-3. iOS Safari: Share > Add to Home Screen
-4. Android Chrome: menu > Install App
-5. Paste the API token to connect
-
 ## Architecture
 
 - **MVVM** via CommunityToolkit.Mvvm (ObservableObject, RelayCommand)
@@ -137,11 +128,7 @@ $env:OPTIMIZER_TOKEN = "your-token-from-settings"
 
 [MIT](LICENSE) — Open source
 
-## Roadmap
+## Direction
 
-See [docs/](docs/) for the full roadmap. Major milestones:
-- V1: WinUI 3 migration ✓
-- V2: 14 Tier 1 features ✓
-- V3: Overclocking, onboarding, localization ✓
-- V4-V7: Ecosystem (marketplace), AI (ML.NET), Enterprise (compliance), Cross-platform ✓
-- V8+: Real native mobile, server-side marketplace, certified code signing
+Intent and durable constraints live in [docs/VISION.md](docs/VISION.md) (private,
+single-user, local-only). Planned/parked work: [docs/BACKLOG.md](docs/BACKLOG.md).

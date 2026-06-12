@@ -110,11 +110,6 @@ jobs:
       run: |
         Compress-Archive -Path publish/cli/* -DestinationPath "optimizer-cli-${{ steps.version.outputs.VERSION }}-win-x64.zip" -Force
 
-    - name: Package web dashboard
-      shell: pwsh
-      run: |
-        Compress-Archive -Path Optimizer.WinUI/WebDashboard/* -DestinationPath "optimizer-web-dashboard-${{ steps.version.outputs.VERSION }}.zip" -Force
-
     - name: Generate SHA256 checksums
       shell: pwsh
       run: |
@@ -146,7 +141,6 @@ jobs:
           |---------|-------------|
           | `optimizer-${{ steps.version.outputs.VERSION }}-win-x64.zip` | Desktop app (Windows x64) |
           | `optimizer-cli-${{ steps.version.outputs.VERSION }}-win-x64.zip` | CLI tool (Windows x64) |
-          | `optimizer-web-dashboard-${{ steps.version.outputs.VERSION }}.zip` | Web dashboard / PWA |
           | `checksums.txt` | SHA256 hashes for verification |
 
           ## System Requirements
@@ -172,9 +166,8 @@ jobs:
 
           ## REST API
 
-          The desktop app hosts a local REST API on port 7071 with:
-          - Swagger UI at `http://localhost:7071/swagger.html`
-          - OpenAPI spec at `http://localhost:7071/openapi/v1.json`
+          The desktop app hosts a local REST API (localhost only) with:
+          - OpenAPI spec at `http://localhost:8765/openapi/v1.json`
 
           ## Changelog
 
