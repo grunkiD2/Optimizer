@@ -90,9 +90,6 @@
                 <NavigationViewItem Content="Protect" Tag="Protect">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Extend" Tag="Extend">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE74C;"/></NavigationViewItem.Icon>
-                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <NavigationView.FooterMenuItems>

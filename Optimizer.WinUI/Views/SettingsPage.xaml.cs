@@ -74,28 +74,6 @@ public sealed partial class SettingsPage : Page
         ViewModel.CopyApiTokenCommand.Execute(null);
     }
 
-    // ── Cloud Sync handlers ────────────────────────────────────────────────────
-
-    private async void SendMagicLink_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.SendMagicLinkCommand.ExecuteAsync(null);
-    }
-
-    private async void VerifyCloudToken_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.VerifyCloudTokenCommand.ExecuteAsync(null);
-    }
-
-    private async void SyncNow_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.SyncNowCommand.ExecuteAsync(null);
-    }
-
-    private async void CloudSignOut_Click(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.CloudSignOutCommand.ExecuteAsync(null);
-    }
-
     private async void RegenerateToken_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new ContentDialog

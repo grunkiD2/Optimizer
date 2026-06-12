@@ -8,7 +8,6 @@ A comprehensive Windows system optimization, diagnostics, and management platfor
 - 12 optimizations across Performance, Network, Storage, System categories
 - CPU power management presets (Stock, Mild Tune, Maximum Performance, Quiet/Cool)
 - Built-in CPU stress test with thermal watchdog (auto-revert on overheat)
-- Profile marketplace with 7 curated profiles
 - Custom profile creation + snapshot management
 - Smart profile auto-switching by time or running process
 
@@ -39,11 +38,6 @@ A comprehensive Windows system optimization, diagnostics, and management platfor
 - BIOS/firmware information
 - GPU vendor tool detection (MSI Afterburner, NVIDIA App, AMD Adrenalin)
 
-### Enterprise
-- Fleet roster (CSV import/export)
-- Configuration templates with DSC/Intune/WinGet export
-- Compliance frameworks (CIS Benchmark, NIST 800-171, HIPAA, SOC 2)
-
 ### Intelligence
 - ML.NET-backed recommendation acceptance prediction
 - Statistical anomaly detection on system metrics
@@ -55,7 +49,9 @@ A comprehensive Windows system optimization, diagnostics, and management platfor
 - **Local API:** Embedded REST API (localhost only) + OpenAPI spec
 - **CLI:** `optimizer` console tool (status / apply / scan / cleanup)
 
-*(The PWA/mobile companions were removed 2026-06-12 — see [`docs/VISION.md`](docs/VISION.md): single-user, local-only.)*
+*(The PWA/mobile companions were removed 2026-06-12 and the SaaS remnant — cloud sync server,
+marketplace, fleet, compliance, enterprise templates, SDK — on 2026-06-13. See
+[`docs/VISION.md`](docs/VISION.md): single-user, local-only.)*
 
 ## Requirements
 
@@ -70,8 +66,7 @@ A comprehensive Windows system optimization, diagnostics, and management platfor
 Optimizer/
 ├── Optimizer.WinUI/        Main desktop app (hub shell, ~45 services)
 ├── Optimizer.Cli/          Command-line tool
-├── Optimizer.WinUI.Tests/  Test suite (600+ tests, xUnit)
-├── Optimizer.Server/       Optional cloud sync/marketplace server
+├── Optimizer.WinUI.Tests/  Test suite (550+ tests, xUnit)
 ├── Optimizer.Packaging/    MSIX packaging project
 └── docs/                   Vision, IA, learning engine, backlog
 ```

@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Assistant;
-using Optimizer.WinUI.Services.Cloud;
 using Optimizer.WinUI.Services.Data;
 using Optimizer.WinUI.Services.Diagnostics;
 using Optimizer.WinUI.Services.Plugins;
@@ -188,25 +187,12 @@ public partial class App : Application
                 services.AddSingleton<IDeclarativeChangeExecutor, DeclarativeChangeExecutor>();
                 services.AddSingleton<IPluginLoader, PluginLoader>();
                 services.AddSingleton<IPluginVerifier, PluginVerifier>();
-                services.AddSingleton<IMarketplaceService, MarketplaceService>();
                 services.AddSingleton<IIntelligenceService, IntelligenceService>();
                 services.AddSingleton<ITrendHistoryService, TrendHistoryService>();
                 services.AddSingleton<IPredictiveMaintenanceService, PredictiveMaintenanceService>();
 
-                // Enterprise services
-                services.AddSingleton<IFleetService, FleetService>();
-                services.AddSingleton<ITemplatesService, TemplatesService>();
-                services.AddSingleton<IComplianceService, ComplianceService>();
-
-                // Event bus (depends on IOptimizerCloudClient — registered just below)
-                services.AddSingleton<IOptimizerCloudClient, OptimizerCloudClient>();
+                // Event bus (local pub/sub only)
                 services.AddSingleton<IEventBus, EventBus>();
-
-                // Cloud sync
-                services.AddSingleton<ISyncTombstoneCollector, SyncTombstoneCollector>();
-                services.AddSingleton<ICloudSyncOrchestrator, CloudSyncOrchestrator>();
-                // Federated learning scaffold (opt-in, DP-protected)
-                services.AddSingleton<IFederatedClient, FederatedClient>();
 
                 // ── Phase 1: SQLite Database + Learning Foundation ──
                 // Database infrastructure
@@ -281,12 +267,7 @@ public partial class App : Application
                 services.AddTransient<ReportsViewModel>();
                 services.AddTransient<TuningViewModel>();
                 services.AddSingleton<SettingsViewModel>();
-                services.AddTransient<MarketplaceViewModel>();
-                services.AddTransient<PluginsViewModel>();
                 services.AddTransient<DevicesViewModel>();
-                services.AddTransient<FleetViewModel>();
-                services.AddTransient<TemplatesViewModel>();
-                services.AddTransient<ComplianceViewModel>();
 
                 // ── AI Assistant: key store, Claude client, settings, orchestration ──
                 services.AddSingleton<Optimizer.WinUI.Services.Assistant.IApiKeyStore,
@@ -467,22 +448,6 @@ public partial class App : Application
                 catch (Exception ex)
                 {
                     WriteCrashLog("TrendHistoryService.RecordSampleAsync", ex);
-                }
-            });
-
-            // Federated learning scaffold (opt-in, DP-protected).
-            // Only runs when the user has explicitly enabled the feature.
-            // Uploads only differentially-private aggregates; never raw data.
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(30)); // let auth session restore
-                    await GetService<IFederatedClient>().SyncAsync();
-                }
-                catch (Exception ex)
-                {
-                    WriteCrashLog("FederatedClient.SyncAsync", ex);
                 }
             });
 

@@ -17,7 +17,7 @@ public sealed record HubConfig(string Tag, string Title, IReadOnlyList<HubSectio
 public sealed record HubNavTarget(HubConfig Hub, int SectionIndex, int? SubSectionIndex);
 
 /// <summary>
-/// The 5-hub information architecture from <c>docs/REDESIGN-IA.md</c>. Each hub is one
+/// The 4-hub information architecture from <c>docs/REDESIGN-IA.md</c>. Each hub is one
 /// <see cref="HubPage"/> whose Segmented sub-nav swaps between the section pages. Individual
 /// pages remain navigable directly (e.g. by the assistant) via MainWindow's PageMap — the
 /// rail just groups them.
@@ -25,8 +25,6 @@ public sealed record HubNavTarget(HubConfig Hub, int SectionIndex, int? SubSecti
 /// Section merges (each one host page absorbs another via an in-page Segmented switcher):
 ///   PerformancePage  → "CPU & Power"            (Performance + Tuning)
 ///   StartupPage      → "Startup & Services"     (Startup + Services)
-///   MarketplacePage  → "Extensions"             (Marketplace + Plugins)
-///   ProfilesPage     → "Profiles"               (Profiles + Templates)
 /// </summary>
 public static class HubRegistry
 {
@@ -53,21 +51,14 @@ public static class HubRegistry
         new("Recommendations", typeof(RecommendationsPage)),
         new("Learning", typeof(LearningPage)),
         new("History", typeof(HistoryPage)),
+        new("Reports", typeof(ReportsPage)),
     });
 
     public static readonly HubConfig Protect = new("Protect", "Protect", new HubSection[]
     {
         new("Diagnostics", typeof(DiagnosticsPage)),
         new("Security", typeof(SecurityPage)),
-        new("Compliance", typeof(CompliancePage)),
         new("Updates", typeof(UpdatesPage)),
-    });
-
-    public static readonly HubConfig Extend = new("Extend", "Extend", new HubSection[]
-    {
-        new("Extensions", typeof(MarketplacePage)),
-        new("Fleet", typeof(FleetPage)),
-        new("Reports", typeof(ReportsPage)),
     });
 
     public static HubConfig? ByTag(string tag) => tag switch
@@ -76,7 +67,6 @@ public static class HubRegistry
         "Optimize" => Optimize,
         "Automate" => Automate,
         "Protect" => Protect,
-        "Extend" => Extend,
         _ => null,
     };
 }
@@ -128,26 +118,18 @@ public static class HubRouting
             ["Recommendations"] = Mk(HubRegistry.Automate, "Recommendations"),
             ["Learning"]        = Mk(HubRegistry.Automate, "Learning"),
             ["History"]         = Mk(HubRegistry.Automate, "History"),
+            ["Reports"]         = Mk(HubRegistry.Automate, "Reports"),
 
             // Protect
             ["Diagnostics"]     = Mk(HubRegistry.Protect, "Diagnostics"),
             ["Security"]        = Mk(HubRegistry.Protect, "Security"),
-            ["Compliance"]      = Mk(HubRegistry.Protect, "Compliance"),
             ["Updates"]         = Mk(HubRegistry.Protect, "Updates"),
-
-            // Extend
-            ["Extensions"]      = Mk(HubRegistry.Extend, "Extensions"),
-            ["Fleet"]           = Mk(HubRegistry.Extend, "Fleet"),
-            ["Reports"]         = Mk(HubRegistry.Extend, "Reports"),
 
             // ── Back-compat: tags that pre-IA-redesign were standalone pages now resolve
             //    to the merged host's inner Segmented panel. Sub-section index matches the
             //    Segmented item declared in the host page's XAML.
             ["Tuning"]          = Mk(HubRegistry.Optimize, "CPU & Power",        sub: 1),
             ["Services"]        = Mk(HubRegistry.Optimize, "Startup & Services", sub: 1),
-            ["Plugins"]         = Mk(HubRegistry.Extend,   "Extensions",         sub: 1),
-            ["Marketplace"]     = Mk(HubRegistry.Extend,   "Extensions",         sub: 0),
-            ["Templates"]       = Mk(HubRegistry.Automate, "Profiles",           sub: 1),
         };
     }
 }

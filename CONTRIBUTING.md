@@ -164,8 +164,7 @@ protected override void OnNavigatedTo(NavigationEventArgs e)
 }
 ```
 
-Canonical examples: PerformancePage (Performance+Tuning), StartupPage (Startup+Services),
-MarketplacePage (Marketplace+Plugins), ProfilesPage (Profiles+Templates).
+Canonical examples: PerformancePage (Performance+Tuning), StartupPage (Startup+Services).
 
 ### 4.4 Extending a service interface
 
@@ -177,7 +176,7 @@ fakes that need the new member or the test build breaks late.
 
 ## 5. Testing
 
-- xUnit, ~580 tests, runs on Debug/x64. CI matches what you should run locally.
+- xUnit, ~560 tests, runs on Debug/x64. CI matches what you should run locally.
 - Architectural rules covered automatically: handler smoke surface (§4.1), HubRouting
   resolution, the assistant elevation gate + console-log emission.
 - Add tests for *behavior* you can't derive from the architectural surface: idempotence,

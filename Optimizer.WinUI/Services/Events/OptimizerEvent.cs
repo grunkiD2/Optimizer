@@ -9,8 +9,7 @@ public enum OptimizerEventType
     PluginEnabled,
     AnomalyDetected,
     ThresholdCrossed,     // e.g. CPU temp > limit, disk > 90%
-    DiagnosticCompleted,
-    CloudSyncCompleted
+    DiagnosticCompleted
 }
 
 public record OptimizerEvent(

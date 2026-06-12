@@ -1,6 +1,5 @@
 using System.CommandLine;
 using Optimizer.Cli;
-using Optimizer.Cli.Commands.Cloud;
 
 var rootCommand = new RootCommand("Optimizer CLI — control your system from the terminal")
 {
@@ -12,9 +11,6 @@ var rootCommand = new RootCommand("Optimizer CLI — control your system from th
     new CleanupCommand(),
     new ProfileCommand(),
     new ScheduleCommand(),
-
-    // Cloud server commands (talk to Optimizer.Server via OPTIMIZER_API_KEY)
-    new CloudCommand(),
 };
 
 return await rootCommand.InvokeAsync(args);

@@ -1,24 +1,18 @@
 using System.Text.Json;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
-using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.Services;
 
 public class ProfileService : IProfileService
 {
     private readonly IWindowsOptimizerService _optimizer;
-    private readonly ISyncTombstoneCollector? _tombstones;
     private readonly List<SettingsProfile> _snapshots = [];
     private static readonly string FilePath = AppPaths.GetDataFile("snapshots.json");
 
     public ProfileService(IWindowsOptimizerService optimizer)
-        : this(optimizer, null) { }
-
-    public ProfileService(IWindowsOptimizerService optimizer, ISyncTombstoneCollector? tombstones)
     {
         _optimizer = optimizer;
-        _tombstones = tombstones;
     }
 
     public IReadOnlyList<SettingsProfile> BuiltInPresets => _optimizer.GetBuiltInPresets();
@@ -102,10 +96,7 @@ public class ProfileService : IProfileService
     {
         var removed = _snapshots.RemoveAll(s => s.Id == snapshotId) > 0;
         if (removed)
-        {
             SaveSnapshots();
-            _tombstones?.Record("snapshot", snapshotId);
-        }
     }
 
     public string ExportAll()
@@ -146,7 +137,7 @@ public class ProfileService : IProfileService
         SaveSnapshots();
     }
 
-    /// <summary>Insert or replace a snapshot by its Id (used by cloud sync to apply remote items).</summary>
+    /// <summary>Insert or replace a snapshot by its Id.</summary>
     public void UpsertSnapshot(SettingsProfile snapshot)
     {
         var idx = _snapshots.FindIndex(s => s.Id == snapshot.Id);

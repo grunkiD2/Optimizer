@@ -60,7 +60,6 @@ public partial class ConsoleViewModel : ObservableObject
         OptimizerEventType.AnomalyDetected => "⚠",
         OptimizerEventType.ThresholdCrossed => "▲",
         OptimizerEventType.DiagnosticCompleted => "✓",
-        OptimizerEventType.CloudSyncCompleted => "☁",
         _ => "•"
     };
 

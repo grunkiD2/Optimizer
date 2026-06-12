@@ -7,9 +7,6 @@ namespace Optimizer.WinUI.Services.Events;
 /// Subscribers are invoked synchronously on the publishing thread.
 /// Subscribers that need to update UI must marshal to the UI thread themselves
 /// (e.g. via DispatcherQueue.TryEnqueue).
-///
-/// Cloud forwarding: each published event is forwarded to the server on a
-/// background queue (fire-and-forget). Failures are swallowed silently.
 /// </summary>
 public interface IEventBus
 {

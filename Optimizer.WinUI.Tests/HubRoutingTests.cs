@@ -9,7 +9,7 @@ namespace Optimizer.WinUI.Tests;
 /// <summary>
 /// Bug C regression — when the AI calls navigate_to_page("Tuning"), HubRouting must resolve
 /// the tag to the Optimize hub's "CPU &amp; Power" section AND PerformancePage's "Advanced
-/// Tuning" inner Segmented panel (sub-section index 1). Same for the other three merged
+/// Tuning" inner Segmented panel (sub-section index 1). Same for the other merged
 /// hosts. If the IA shifts again and a section is renamed without updating HubRouting,
 /// these tests fail loudly.
 /// </summary>
@@ -19,9 +19,6 @@ public class HubRoutingTests
     // Back-compat: pre-redesign standalone tags now route to merged sub-sections
     [InlineData("Tuning",      "Optimize", "CPU & Power",        1)]
     [InlineData("Services",    "Optimize", "Startup & Services", 1)]
-    [InlineData("Plugins",     "Extend",   "Extensions",         1)]
-    [InlineData("Marketplace", "Extend",   "Extensions",         0)]
-    [InlineData("Templates",   "Automate", "Profiles",           1)]
     public void BackCompat_tags_route_to_correct_hub_section_and_subsection(
         string tag, string expectedHubTag, string expectedSectionLabel, int expectedSubSection)
     {
@@ -42,8 +39,8 @@ public class HubRoutingTests
     [InlineData("Hardware",    "Monitor",  "Sensors & Inventory")]
     [InlineData("EventLogs",   "Monitor",  "Event Log")]
     [InlineData("Profiles",    "Automate", "Profiles")]
+    [InlineData("Reports",     "Automate", "Reports")]
     [InlineData("Updates",     "Protect",  "Updates")]
-    [InlineData("Extensions",  "Extend",   "Extensions")]
     public void Current_tags_route_to_hub_section_with_no_subsection(
         string tag, string expectedHubTag, string expectedSectionLabel)
     {
@@ -71,6 +68,19 @@ public class HubRoutingTests
     }
 
     [Fact]
+    public void Deleted_saas_tags_no_longer_resolve()
+    {
+        // The SaaS remnant (Marketplace/Plugins UI, Fleet, Compliance, Templates) was
+        // deleted per docs/VISION.md (single-user, local-only). These tags must stay dead.
+        Assert.Null(HubRouting.Resolve("Extensions"));
+        Assert.Null(HubRouting.Resolve("Marketplace"));
+        Assert.Null(HubRouting.Resolve("Plugins"));
+        Assert.Null(HubRouting.Resolve("Fleet"));
+        Assert.Null(HubRouting.Resolve("Compliance"));
+        Assert.Null(HubRouting.Resolve("Templates"));
+    }
+
+    [Fact]
     public void Known_tags_set_advertised_to_assistant_includes_all_routes()
     {
         var tags = HubRouting.KnownTags.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -79,11 +89,9 @@ public class HubRoutingTests
         // navigate via the old name even after the IA redesign.
         Assert.Contains("Tuning", tags);
         Assert.Contains("Services", tags);
-        Assert.Contains("Plugins", tags);
-        Assert.Contains("Templates", tags);
 
         // The current names must also be reachable.
         Assert.Contains("CpuAndPower", tags);
-        Assert.Contains("Extensions", tags);
+        Assert.Contains("Reports", tags);
     }
 }

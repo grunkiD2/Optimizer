@@ -164,7 +164,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        // The rail now holds only Command Center + the 5 hubs + Settings. Any older page-level
+        // The rail now holds only Command Center + the 4 hubs + Settings. Any older page-level
         // last-nav value falls back to the home. Setting SelectedItem fires SelectionChanged,
         // which performs the navigation.
         var lastNav = _settingsService.Settings.LastNavigationItem;

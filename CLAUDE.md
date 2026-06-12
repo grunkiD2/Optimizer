@@ -1,6 +1,6 @@
 # Optimizer
 
-WinUI 3 desktop app for Windows. Active project: `Optimizer.WinUI/`. Tests: `Optimizer.WinUI.Tests/` (588 xUnit tests).
+WinUI 3 desktop app for Windows. Active project: `Optimizer.WinUI/`. Tests: `Optimizer.WinUI.Tests/` (558 xUnit tests).
 
 ## ⛔ This machine: Fancontrol federation
 This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol`). **Read [`docs/MACHINE-OWNERSHIP.md`](docs/MACHINE-OWNERSHIP.md) before touching sensors, power plans, profiles, or automation** — Optimizer is the UI/diagnostics shell in that federation, never a competing controller. Sensors come from the external LHM server (`http://localhost:8085/data.json`), power plans belong to Process Lasso, profile switching belongs to fgwatch/`ctl.ps1`.
@@ -15,10 +15,10 @@ This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol
 
 ## Design system
 - Product intent + durable constraints in [`docs/VISION.md`](docs/VISION.md) (single-user, local-only, AI-for-analysis-not-chat, everything toggleable/reversible). IA ideology locked in [`docs/REDESIGN-IA.md`](docs/REDESIGN-IA.md). Parked work in [`docs/BACKLOG.md`](docs/BACKLOG.md).
-- Hub IA (1 home + 5 hubs + Settings) lives in `Optimizer.WinUI/Views/HubRegistry.cs`. Navigation goes through `HubRouting.Resolve(tag)` (same file), which routes any tag to the right hub + section + sub-section so the slim rail stays in sync. Code-behinds + ViewModels should call `App.GetService<IPageNavigator>().NavigateTo(tag)` — never `NavigationService.NavigateTo(typeof(X))` directly, that bypasses the hub.
+- Hub IA (1 home + 4 hubs + Settings) lives in `Optimizer.WinUI/Views/HubRegistry.cs`. Navigation goes through `HubRouting.Resolve(tag)` (same file), which routes any tag to the right hub + section + sub-section so the slim rail stays in sync. Code-behinds + ViewModels should call `App.GetService<IPageNavigator>().NavigateTo(tag)` — never `NavigationService.NavigateTo(typeof(X))` directly, that bypasses the hub.
 - Tokens in `Optimizer.WinUI/Styles/Tokens.xaml`. **Surfaces use `ThemeResource`** (`HudSurfaceBrush`, `HudSurfaceAltBrush`, `HudHairlineBrush`). **Semantic + accent brushes use `StaticResource`** (`MutedBrush`, `AccentCyanBrush`, `SuccessBrush`, `DangerBrush`, `WarningBrush`, `InfoBrush`, `VioletBrush`).
 - Calm page pattern: wrap content in `<hud:HudBackdrop>` (xmlns: `using:Optimizer.WinUI.Controls.Hud`); use `<hud:HudPageHeader Icon Title Description>` and group with `<hud:HudCard>`.
-- Merged-page pattern (Performance+Tuning, Startup+Services, Marketplace+Plugins, Profiles+Templates): host page owns both VMs, a `tk:Segmented` + `Section_Changed` handler toggles `Visibility` on named `StackPanel` panes. Canonical example: `Optimizer.WinUI/Views/PerformancePage.xaml.cs`.
+- Merged-page pattern (Performance+Tuning, Startup+Services): host page owns both VMs, a `tk:Segmented` + `Section_Changed` handler toggles `Visibility` on named `StackPanel` panes. Canonical example: `Optimizer.WinUI/Views/PerformancePage.xaml.cs`.
 
 ## Gotchas
 - Power Insights (`Services/Power/`) attributes MEASURED package watts by CPU-time share — deliberately NOT the ETW Energy-Estimation-Engine path (no per-process energy on battery-less desktops, and ETW needs elevation). It is read-only by contract; `PpiReadOnlyTests` audits the source for mutating calls — keep new Power code clean of `.Kill(`/`SetValue(`/priority/affinity/powercfg.

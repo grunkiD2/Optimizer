@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using Moq;
-using Optimizer.WinUI.Services.Cloud;
 using Optimizer.WinUI.Services.Events;
 using Xunit;
 
@@ -12,30 +9,10 @@ namespace Optimizer.WinUI.Tests;
 
 /// <summary>
 /// Unit tests for EventBus pub/sub, ring buffer, type filtering, and safety guarantees.
-/// IOptimizerCloudClient is mocked so cloud forwarding is a no-op.
 /// </summary>
-public class EventBusTests : IDisposable
+public class EventBusTests
 {
-    private readonly Mock<IOptimizerCloudClient> _cloudMock;
-    private readonly EventBus _bus;
-
-    public EventBusTests()
-    {
-        _cloudMock = new Mock<IOptimizerCloudClient>();
-        _cloudMock.Setup(c => c.IsAuthenticated).Returns(false); // no forwarding in tests
-        _cloudMock.Setup(c => c.ForwardEventAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
-                It.IsAny<IReadOnlyDictionary<string, string>?>()))
-            .Returns(Task.CompletedTask);
-
-        _bus = new EventBus(_cloudMock.Object);
-    }
-
-    public void Dispose()
-    {
-        _bus.Dispose();
-        GC.SuppressFinalize(this);
-    }
+    private readonly EventBus _bus = new();
 
     // ── Helper ────────────────────────────────────────────────────────────────
 

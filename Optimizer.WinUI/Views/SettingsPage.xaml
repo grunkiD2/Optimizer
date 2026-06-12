@@ -63,15 +63,6 @@
                           VerticalAlignment="Center"/>
             </settingsControls:SettingsCard>
 
-            <settingsControls:SettingsCard x:Uid="Settings_Language"
-                                           Header="Language"
-                                           Description="Application display language (restart required)">
-                <ComboBox ItemsSource="{x:Bind ViewModel.LanguageOptions}"
-                          SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}"
-                          MinWidth="140"
-                          VerticalAlignment="Center"/>
-            </settingsControls:SettingsCard>
-
             <settingsControls:SettingsCard Header="Accent Color"
                                            Description="Hex value used for highlights and charts">
                 <ColorPicker x:Name="AccentColorPicker"
@@ -209,84 +200,6 @@
                 <Button Content="Clear History"
                         Click="ClearHistory_Click"
                         VerticalAlignment="Center"/>
-            </settingsControls:SettingsCard>
-
-            <!-- ── CLOUD SYNC ─────────────────────────────────────────────── -->
-            <TextBlock Text="CLOUD SYNC"
-                       FontSize="11" FontWeight="SemiBold"
-                       Foreground="{StaticResource MutedBrush}"
-                       Margin="0,8,0,0"/>
-
-            <!-- Server URL (always shown) -->
-            <settingsControls:SettingsCard Header="Server URL"
-                                           Description="URL of your Optimizer.Server instance">
-                <TextBox Text="{x:Bind ViewModel.CloudServerUrl, Mode=TwoWay}"
-                         MinWidth="280" PlaceholderText="http://localhost:5000"
-                         VerticalAlignment="Center"/>
-            </settingsControls:SettingsCard>
-
-            <!-- Sign-in panel (shown when NOT authenticated) -->
-            <settingsControls:SettingsCard Header="Sign In"
-                                           Description="Enter your email to receive a magic link"
-                                           Visibility="{x:Bind ViewModel.CloudIsAuthenticated, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
-                <StackPanel Orientation="Vertical" Spacing="8" MinWidth="280">
-                    <TextBox x:Name="CloudEmailBox"
-                             Text="{x:Bind ViewModel.CloudEmail, Mode=TwoWay}"
-                             PlaceholderText="you@example.com"
-                             InputScope="EmailSmtpAddress"/>
-                    <Button Content="Send Magic Link"
-                            Click="SendMagicLink_Click"
-                            HorizontalAlignment="Stretch"/>
-                </StackPanel>
-            </settingsControls:SettingsCard>
-
-            <!-- Token verify panel (shown after link sent, before verified) -->
-            <settingsControls:SettingsCard Header="Paste Verification Token"
-                                           Description="Paste the ?token= value from the magic link URL"
-                                           Visibility="{x:Bind ViewModel.CloudMagicLinkSent, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Orientation="Vertical" Spacing="8" MinWidth="280">
-                    <TextBox Text="{x:Bind ViewModel.CloudVerifyToken, Mode=TwoWay}"
-                             PlaceholderText="Paste token here"/>
-                    <Button Content="Verify"
-                            Click="VerifyCloudToken_Click"
-                            HorizontalAlignment="Stretch"/>
-                </StackPanel>
-            </settingsControls:SettingsCard>
-
-            <!-- Signed-in panel -->
-            <settingsControls:SettingsCard Header="Cloud Sync Enabled"
-                                           Description="{x:Bind ViewModel.CloudSyncStatus, Mode=OneWay}"
-                                           Visibility="{x:Bind ViewModel.CloudIsAuthenticated, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                <ToggleSwitch IsOn="{x:Bind ViewModel.CloudSyncEnabled, Mode=TwoWay}"
-                              OnContent="" OffContent=""
-                              VerticalAlignment="Center"/>
-            </settingsControls:SettingsCard>
-
-            <settingsControls:SettingsCard Header="Last Sync"
-                                           Description="{x:Bind ViewModel.CloudLastSync, Mode=OneWay}"
-                                           Visibility="{x:Bind ViewModel.CloudIsAuthenticated, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Sync Now"
-                            Click="SyncNow_Click"
-                            VerticalAlignment="Center"/>
-                    <Button Content="Sign Out"
-                            Click="CloudSignOut_Click"
-                            VerticalAlignment="Center"/>
-                </StackPanel>
-            </settingsControls:SettingsCard>
-
-            <!-- ── PRIVACY-PRESERVING COMMUNITY INSIGHTS ─────────────────── -->
-            <TextBlock Text="PRIVACY &amp; AI"
-                       FontSize="11" FontWeight="SemiBold"
-                       Foreground="{StaticResource MutedBrush}"
-                       Margin="0,8,0,0"/>
-
-            <settingsControls:SettingsCard
-                    Header="Privacy-Preserving Community Insights"
-                    Description="When enabled, your device shares differentially-private, anonymized statistics — never raw data or system info — to help improve recommendation defaults for everyone. Contributions are protected by the Laplace differential-privacy mechanism before leaving your device. You can turn this off anytime. Default: Off.">
-                <ToggleSwitch IsOn="{x:Bind ViewModel.FederatedLearningEnabled, Mode=TwoWay}"
-                              OnContent="" OffContent=""
-                              VerticalAlignment="Center"/>
             </settingsControls:SettingsCard>
 
             <!-- ── REMOTE API ──────────────────────────────────────────────── -->

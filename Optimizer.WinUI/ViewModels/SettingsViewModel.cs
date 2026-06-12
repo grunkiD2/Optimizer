@@ -1,10 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
-using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Assistant;
-using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -15,8 +13,6 @@ public partial class SettingsViewModel : ObservableObject
     private readonly IHistoryService _historyService;
     private readonly IThemeService _themeService;
     private readonly IApiHostService _apiHost;
-    private readonly IOptimizerCloudClient _cloudClient;
-    private readonly ICloudSyncOrchestrator _syncOrchestrator;
     private readonly IApiKeyStore _apiKeyStore;
 
     // Flag to suppress partial-method saves while bulk-loading
@@ -50,19 +46,6 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string apiToken = "";
     [ObservableProperty] private string apiStatus = "Stopped";
 
-    // Cloud Sync
-    [ObservableProperty] private string cloudServerUrl = "http://localhost:5000";
-    [ObservableProperty] private string cloudEmail = "";
-    [ObservableProperty] private string cloudSyncStatus = "Not signed in";
-    [ObservableProperty] private bool cloudSyncEnabled;
-    [ObservableProperty] private bool cloudIsAuthenticated;
-    [ObservableProperty] private bool cloudMagicLinkSent;
-    [ObservableProperty] private string cloudVerifyToken = "";
-    [ObservableProperty] private string cloudLastSync = "Never";
-
-    // Privacy-Preserving Community Insights (Federated Learning scaffold, opt-in)
-    [ObservableProperty] private bool federatedLearningEnabled;
-
     // AI Assistant (Claude API, opt-in, bring-your-own-key)
     [ObservableProperty] private bool assistantEnabled;
     [ObservableProperty] private bool assistantAllowActions = true;
@@ -76,28 +59,21 @@ public partial class SettingsViewModel : ObservableObject
     public string CategoryName => "Settings";
     public string CategoryIcon => ""; // Settings gear icon
 
-    [ObservableProperty] private string selectedLanguage = "en-US";
-
     // Collections for dropdowns
     public List<string> ThemeOptions    { get; } = ["Light", "Dark", "Default"];
     public List<string> BackdropOptions { get; } = ["None", "Acrylic", "MicaAlt", "Mica"];
-    public List<string> LanguageOptions { get; } = ["en-US", "es-ES", "de-DE"];
 
     public SettingsViewModel(
         ISettingsService settingsService,
         IHistoryService historyService,
         IThemeService themeService,
         IApiHostService apiHost,
-        IOptimizerCloudClient cloudClient,
-        ICloudSyncOrchestrator syncOrchestrator,
         IApiKeyStore apiKeyStore)
     {
         _settingsService = settingsService;
         _historyService = historyService;
         _themeService = themeService;
         _apiHost = apiHost;
-        _cloudClient = cloudClient;
-        _syncOrchestrator = syncOrchestrator;
         _apiKeyStore = apiKeyStore;
     }
 
@@ -126,25 +102,11 @@ public partial class SettingsViewModel : ObservableObject
             NotifyRecommendations = s.NotifyRecommendations;
             NotifyOptimizations   = s.NotifyOptimizations;
 
-            SelectedLanguage = s.Language ?? "en-US";
-
             // Remote API
             ApiEnabled = s.ApiEnabled;
             ApiPort    = s.ApiPort;
             ApiToken   = s.ApiToken;
             ApiStatus  = _apiHost.IsRunning ? $"Running at {_apiHost.ListeningUrl}" : "Stopped";
-
-            // Cloud Sync
-            CloudServerUrl      = s.CloudServerUrl ?? "http://localhost:5000";
-            CloudSyncEnabled    = s.CloudSyncEnabled;
-            CloudIsAuthenticated = _cloudClient.IsAuthenticated;
-            CloudEmail          = _cloudClient.CurrentUserEmail ?? s.CloudServerUrl ?? "";
-            CloudMagicLinkSent  = false;
-            CloudVerifyToken    = "";
-            RefreshCloudSyncStatus();
-
-            // Federated learning (opt-in, default OFF)
-            FederatedLearningEnabled = s.FederatedLearningEnabled;
 
             // AI Assistant
             AssistantEnabled = s.AssistantEnabled;
@@ -159,14 +121,6 @@ public partial class SettingsViewModel : ObservableObject
         {
             _isLoading = false;
         }
-    }
-
-    partial void OnSelectedLanguageChanged(string value)
-    {
-        if (_isLoading) return;
-        _settingsService.Settings.Language = value;
-        _settingsService.Save();
-        Localization.SetLanguage(value);
     }
 
     partial void OnSelectedThemeChanged(string value)
@@ -362,86 +316,6 @@ public partial class SettingsViewModel : ObservableObject
         _historyService.Clear();
     }
 
-    // ── Cloud Sync commands ───────────────────────────────────────────────────
-
-    [RelayCommand]
-    public async Task SendMagicLinkAsync()
-    {
-        if (string.IsNullOrWhiteSpace(CloudServerUrl) || string.IsNullOrWhiteSpace(CloudEmail)) return;
-        _settingsService.Settings.CloudServerUrl = CloudServerUrl;
-        _settingsService.Save();
-
-        CloudSyncStatus = "Sending magic link...";
-        var ok = await _cloudClient.RequestMagicLinkAsync(CloudServerUrl, CloudEmail);
-        if (ok)
-        {
-            CloudMagicLinkSent = true;
-            CloudSyncStatus = "Magic link sent — check server console (dev) or your email.";
-        }
-        else
-        {
-            CloudSyncStatus = "Failed to send magic link. Check server URL.";
-        }
-    }
-
-    [RelayCommand]
-    public async Task VerifyCloudTokenAsync()
-    {
-        if (string.IsNullOrWhiteSpace(CloudVerifyToken)) return;
-        CloudSyncStatus = "Verifying...";
-        var ok = await _cloudClient.VerifyMagicLinkAsync(CloudVerifyToken.Trim());
-        if (ok)
-        {
-            CloudIsAuthenticated = true;
-            CloudMagicLinkSent = false;
-            CloudVerifyToken = "";
-            CloudEmail = _cloudClient.CurrentUserEmail ?? CloudEmail;
-            CloudSyncStatus = $"Signed in as {_cloudClient.CurrentUserEmail}";
-        }
-        else
-        {
-            CloudSyncStatus = "Verification failed. Token may have expired or be invalid.";
-        }
-    }
-
-    [RelayCommand]
-    public async Task CloudSignOutAsync()
-    {
-        await _cloudClient.LogoutAsync();
-        CloudIsAuthenticated = false;
-        CloudSyncEnabled = false;
-        CloudMagicLinkSent = false;
-        _settingsService.Settings.CloudSyncEnabled = false;
-        _settingsService.Save();
-        CloudSyncStatus = "Signed out.";
-    }
-
-    [RelayCommand]
-    public async Task SyncNowAsync()
-    {
-        CloudSyncStatus = "Syncing...";
-        var ok = await _syncOrchestrator.SyncNowAsync();
-        RefreshCloudSyncStatus();
-        if (!ok && _syncOrchestrator.LastError != null)
-            CloudSyncStatus = $"Sync failed: {_syncOrchestrator.LastError}";
-    }
-
-    partial void OnCloudSyncEnabledChanged(bool value)
-    {
-        if (_isLoading) return;
-        if (value)
-            _ = _syncOrchestrator.EnableAsync();
-        else
-            _ = _syncOrchestrator.DisableAsync();
-    }
-
-    partial void OnFederatedLearningEnabledChanged(bool value)
-    {
-        if (_isLoading) return;
-        _settingsService.Settings.FederatedLearningEnabled = value;
-        _settingsService.Save();
-    }
-
     // ── AI Assistant ──────────────────────────────────────────────────────────
 
     partial void OnAssistantEnabledChanged(bool value)
@@ -478,22 +352,6 @@ public partial class SettingsViewModel : ObservableObject
     {
         _apiKeyStore.Clear();
         HasApiKey = _apiKeyStore.HasKey;
-    }
-
-    private void RefreshCloudSyncStatus()
-    {
-        if (!_cloudClient.IsAuthenticated)
-        {
-            CloudSyncStatus = "Not signed in";
-            CloudLastSync = "Never";
-            return;
-        }
-        CloudLastSync = _syncOrchestrator.LastSyncAtUtc.HasValue
-            ? _syncOrchestrator.LastSyncAtUtc.Value.ToLocalTime().ToString("g")
-            : "Never";
-        CloudSyncStatus = _syncOrchestrator.LastError != null
-            ? $"Last error: {_syncOrchestrator.LastError}"
-            : $"Signed in as {_cloudClient.CurrentUserEmail}";
     }
 
     // ── Start-with-Windows helpers ────────────────────────────────────────────

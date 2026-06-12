@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
-using Optimizer.WinUI.Services.Cloud;
 
 namespace Optimizer.WinUI.Services;
 
@@ -9,14 +8,6 @@ public class HistoryService : IHistoryService
 {
     private readonly List<HistoryEntry> _entries = [];
     private static readonly string FilePath = AppPaths.GetDataFile("change-history.json");
-    private readonly ISyncTombstoneCollector? _tombstones;
-
-    public HistoryService() { }
-
-    public HistoryService(ISyncTombstoneCollector tombstones)
-    {
-        _tombstones = tombstones;
-    }
 
     public IReadOnlyList<HistoryEntry> Entries => _entries;
 
@@ -92,7 +83,7 @@ public class HistoryService : IHistoryService
         Save();
     }
 
-    /// <summary>Insert or replace an entry by its Id (used by cloud sync to apply remote history items).</summary>
+    /// <summary>Insert or replace an entry by its Id.</summary>
     public void UpsertEntry(HistoryEntry entry)
     {
         var idx = _entries.FindIndex(e => e.Id == entry.Id);
@@ -103,15 +94,12 @@ public class HistoryService : IHistoryService
         Save();
     }
 
-    /// <summary>Delete a history entry by Id; records a tombstone for cloud sync if configured.</summary>
+    /// <summary>Delete a history entry by Id.</summary>
     public bool DeleteEntry(string id)
     {
         var removed = _entries.RemoveAll(e => e.Id == id) > 0;
         if (removed)
-        {
             Save();
-            _tombstones?.Record("history", id);
-        }
         return removed;
     }
 

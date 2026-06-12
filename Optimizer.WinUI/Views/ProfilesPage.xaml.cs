@@ -1,7 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Navigation;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
@@ -11,49 +10,23 @@ using System.IO;
 namespace Optimizer.WinUI.Views;
 
 /// <summary>
-/// "Profiles" — the merged Profiles + Templates destination from the Automate hub.
-/// Hosts both <see cref="ViewModel"/> (ProfilesViewModel, drives presets + snapshots +
-/// auto-switching rules) and <see cref="TemplatesVM"/> (TemplatesViewModel, drives the
-/// DSC/Intune/WinGet template list). An in-page Segmented switches between them.
+/// "Profiles" — presets + snapshots + auto-switching rules in the Automate hub,
+/// driven by <see cref="ViewModel"/> (ProfilesViewModel).
 /// </summary>
 public sealed partial class ProfilesPage : Page
 {
     public ProfilesViewModel ViewModel { get; }
-    public TemplatesViewModel TemplatesVM { get; }
-
-    /// <summary>0 = Profiles &amp; Rules, 1 = Templates. See HubPage hub-aware navigation.</summary>
-    protected override void OnNavigatedTo(NavigationEventArgs e)
-    {
-        base.OnNavigatedTo(e);
-        if (e.Parameter is int idx && SectionSeg is not null
-            && idx >= 0 && idx < SectionSeg.Items.Count)
-        {
-            SectionSeg.SelectedIndex = idx;
-        }
-    }
 
     public ProfilesPage()
     {
-        ViewModel   = App.GetService<ProfilesViewModel>();
-        TemplatesVM = App.GetService<TemplatesViewModel>();
+        ViewModel = App.GetService<ProfilesViewModel>();
         InitializeComponent();
     }
 
-    private async void Page_Loaded(object sender, RoutedEventArgs e)
+    private void Page_Loaded(object sender, RoutedEventArgs e)
     {
         ViewModel.Load();
         UpdateEmptyStates();
-        await TemplatesVM.LoadCommand.ExecuteAsync(null);
-    }
-
-    // ── Section switcher ─────────────────────────────────────────────────────
-
-    private void Section_Changed(object sender, SelectionChangedEventArgs e)
-    {
-        if (PanelProfiles is null) return;
-        var i = SectionSeg.SelectedIndex;
-        PanelProfiles.Visibility  = i == 0 ? Visibility.Visible : Visibility.Collapsed;
-        PanelTemplates.Visibility = i == 1 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ── Presets ────────────────────────────────────────────────────────────
@@ -361,80 +334,6 @@ public sealed partial class ProfilesPage : Page
         tb.Text = rule.Trigger == RuleTrigger.TimeRange
             ? $"{rule.StartTime:hh\\:mm} – {rule.EndTime:hh\\:mm}"
             : $"When process running: {rule.ProcessName}";
-    }
-
-    // ── Templates (formerly TemplatesPage) ─────────────────────────────────
-
-    private async void TemplatesRefresh_Click(object sender, RoutedEventArgs e)
-        => await TemplatesVM.LoadCommand.ExecuteAsync(null);
-
-    private async void CreateTemplate_Click(object sender, RoutedEventArgs e)
-    {
-        var panel = new StackPanel { Spacing = 8, Width = 360 };
-        var tbName = new TextBox
-        {
-            Header          = "Template name",
-            PlaceholderText = "My Optimizer Config"
-        };
-        var tbDesc = new TextBox
-        {
-            Header          = "Description (optional)",
-            PlaceholderText = "Security + privacy hardening settings"
-        };
-        panel.Children.Add(tbName);
-        panel.Children.Add(tbDesc);
-
-        var dialog = new ContentDialog
-        {
-            Title             = "Create Configuration Template",
-            Content           = panel,
-            PrimaryButtonText = "Create",
-            CloseButtonText   = "Cancel",
-            DefaultButton     = ContentDialogButton.Primary,
-            XamlRoot          = XamlRoot
-        };
-
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-        {
-            TemplatesVM.NewTemplateName        = tbName.Text.Trim();
-            TemplatesVM.NewTemplateDescription = tbDesc.Text.Trim();
-            await TemplatesVM.CreateTemplateCommand.ExecuteAsync(null);
-        }
-    }
-
-    private async void ExportDsc_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is ConfigTemplate t)
-            await TemplatesVM.ExportDscCommand.ExecuteAsync(t);
-    }
-
-    private async void ExportIntune_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is ConfigTemplate t)
-            await TemplatesVM.ExportIntuneCommand.ExecuteAsync(t);
-    }
-
-    private async void ExportWinget_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is ConfigTemplate t)
-            await TemplatesVM.ExportWingetCommand.ExecuteAsync(t);
-    }
-
-    private async void TemplateDelete_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button btn || btn.Tag is not string id) return;
-
-        var dialog = new ContentDialog
-        {
-            Title             = "Delete Template?",
-            Content           = "This will permanently remove the template.",
-            PrimaryButtonText = "Delete",
-            CloseButtonText   = "Cancel",
-            DefaultButton     = ContentDialogButton.Close,
-            XamlRoot          = XamlRoot
-        };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-            await TemplatesVM.DeleteTemplateCommand.ExecuteAsync(id);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

@@ -3,7 +3,6 @@
     x:Class="Optimizer.WinUI.Views.ProfilesPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:tk="using:CommunityToolkit.WinUI.Controls"
     xmlns:converters="using:Optimizer.WinUI.Converters"
     xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:models="using:Optimizer.WinUI.Models"
@@ -26,7 +25,7 @@
                 <!-- ── Page header ──────────────────────────────────────────── -->
                 <hud:HudPageHeader Icon="{x:Bind ViewModel.CategoryIcon}"
                                    Title="{x:Bind ViewModel.CategoryName}"
-                                   Description="Save and apply optimization snapshots, auto-switch by time or process, and export to DSC/Intune/WinGet templates.">
+                                   Description="Save and apply optimization snapshots, and auto-switch by time or process.">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button Content="Save Snapshot" Style="{StaticResource AccentButtonStyle}"
                                 Click="SaveSnapshot_Click"/>
@@ -35,16 +34,8 @@
                     </StackPanel>
                 </hud:HudPageHeader>
 
-                <!-- ── Section switcher ─────────────────────────────────────── -->
-                <tk:Segmented x:Name="SectionSeg" SelectedIndex="0"
-                              SelectionChanged="Section_Changed"
-                              HorizontalAlignment="Left">
-                    <tk:SegmentedItem Content="Profiles &amp; Rules"/>
-                    <tk:SegmentedItem Content="Templates"/>
-                </tk:Segmented>
-
                 <!-- ═════════════════════════════════════════════════════════════
-                     PANEL A — Profiles (presets + snapshots + automation rules)
+                     Profiles (presets + snapshots + automation rules)
                 ═════════════════════════════════════════════════════════════ -->
                 <StackPanel x:Name="PanelProfiles" Spacing="16">
 
@@ -291,99 +282,6 @@
                             <TextBlock Text="Click Add Rule to automatically switch profiles based on time of day or running processes."
                                        FontSize="12" Foreground="{StaticResource MutedBrush}"
                                        HorizontalAlignment="Center"
-                                       TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <!-- ═════════════════════════════════════════════════════════════
-                     PANEL B — Templates (was TemplatesPage)
-                ═════════════════════════════════════════════════════════════ -->
-                <StackPanel x:Name="PanelTemplates" Visibility="Collapsed" Spacing="16">
-
-                    <TextBlock Text="Save current state as DSC, Intune, or WinGet configuration templates."
-                               Foreground="{StaticResource MutedBrush}" FontSize="12"/>
-
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Create from Current State" Click="CreateTemplate_Click"/>
-                        <Button Content="Refresh" Click="TemplatesRefresh_Click"/>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ProgressRing IsActive="{x:Bind TemplatesVM.IsLoading, Mode=OneWay}"
-                                      Width="20" Height="20"
-                                      Visibility="{x:Bind TemplatesVM.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
-                        <TextBlock Text="{x:Bind TemplatesVM.StatusMessage, Mode=OneWay}"
-                                   Foreground="{StaticResource MutedBrush}"
-                                   FontSize="12" VerticalAlignment="Center"/>
-                    </StackPanel>
-
-                    <ListView ItemsSource="{x:Bind TemplatesVM.Templates, Mode=OneWay}" SelectionMode="None">
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="Margin" Value="0,0,0,6"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:ConfigTemplate">
-                                <Border Background="{ThemeResource HudSurfaceAltBrush}"
-                                        CornerRadius="{StaticResource CardCornerRadius}" Padding="16,12"
-                                        BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
-                                    <Grid ColumnSpacing="12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind Name, Mode=OneWay}"
-                                                       FontWeight="SemiBold" FontSize="14"
-                                                       TextWrapping="Wrap" MaxLines="1" TextTrimming="CharacterEllipsis"
-                                                       ToolTipService.ToolTip="{x:Bind Name}"/>
-                                            <TextBlock Text="{x:Bind Description, Mode=OneWay}"
-                                                       FontSize="12" Foreground="{StaticResource MutedBrush}"
-                                                       TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
-                                                       ToolTipService.ToolTip="{x:Bind Description}"/>
-                                            <TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}">
-                                                <Run Text="Created: "/>
-                                                <Run Text="{x:Bind CreatedAt, Mode=OneWay}"/>
-                                                <Run Text=" · "/>
-                                                <Run Text="{x:Bind RegistryChanges.Count, Mode=OneWay}"/>
-                                                <Run Text=" registry entries"/>
-                                            </TextBlock>
-                                        </StackPanel>
-
-                                        <Button Grid.Column="1" Content="Export DSC" Tag="{x:Bind}"
-                                                Click="ExportDsc_Click" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="2" Content="Export Intune" Tag="{x:Bind}"
-                                                Click="ExportIntune_Click" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="3" Content="Export WinGet" Tag="{x:Bind}"
-                                                Click="ExportWinget_Click" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="4" Content="Delete" Tag="{x:Bind Id}"
-                                                Click="TemplateDelete_Click" VerticalAlignment="Center"
-                                                Foreground="{StaticResource DangerBrush}"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-
-                    <!-- Empty state -->
-                    <Border CornerRadius="{StaticResource CardCornerRadius}" Padding="32" Margin="0,8,0,0"
-                            Visibility="{x:Bind TemplatesVM.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                            Background="{ThemeResource HudSurfaceAltBrush}"
-                            BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
-                        <StackPanel HorizontalAlignment="Center" Spacing="12">
-                            <TextBlock Text="&#x1F4CB;" FontSize="48" HorizontalAlignment="Center" Opacity="0.6"/>
-                            <TextBlock Text="No templates yet" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                            <TextBlock Text="Click Create from Current State to save your settings as a DSC, Intune, or WinGet template."
-                                       FontSize="12" HorizontalAlignment="Center"
-                                       Foreground="{StaticResource MutedBrush}"
                                        TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center"/>
                         </StackPanel>
                     </Border>

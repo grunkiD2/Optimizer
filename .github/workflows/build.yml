@@ -7,7 +7,7 @@ on:
     branches: [main, master, "feature/**"]
 
 jobs:
-  # Core .NET projects: WinUI, Cli, Server + their tests.
+  # Core .NET projects: WinUI, Cli + their tests.
   build:
     name: Build & test (.NET)
     runs-on: windows-latest
@@ -29,8 +29,6 @@ jobs:
         dotnet restore Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj
         dotnet restore Optimizer.Cli/Optimizer.Cli.csproj
         dotnet restore Optimizer.Cli.Tests/Optimizer.Cli.Tests.csproj
-        dotnet restore Optimizer.Server/Optimizer.Server.csproj
-        dotnet restore Optimizer.Server.Tests/Optimizer.Server.Tests.csproj
 
     - name: Build WinUI
       run: dotnet build Optimizer.WinUI/Optimizer.WinUI.csproj -c Release --no-restore
@@ -44,20 +42,11 @@ jobs:
     - name: Build Cli tests
       run: dotnet build Optimizer.Cli.Tests/Optimizer.Cli.Tests.csproj -c Release --no-restore
 
-    - name: Build Server
-      run: dotnet build Optimizer.Server/Optimizer.Server.csproj -c Release --no-restore
-
-    - name: Build Server tests
-      run: dotnet build Optimizer.Server.Tests/Optimizer.Server.Tests.csproj -c Release --no-restore
-
     - name: Test WinUI
       run: dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj --no-build -c Release --logger "trx;LogFileName=winui.trx"
 
     - name: Test Cli
       run: dotnet test Optimizer.Cli.Tests/Optimizer.Cli.Tests.csproj --no-build -c Release --logger "trx;LogFileName=cli.trx"
-
-    - name: Test Server
-      run: dotnet test Optimizer.Server.Tests/Optimizer.Server.Tests.csproj --no-build -c Release --logger "trx;LogFileName=server.trx"
 
     - name: Publish WinUI
       run: dotnet publish Optimizer.WinUI/Optimizer.WinUI.csproj -c Release -r win-x64 --self-contained false -o publish

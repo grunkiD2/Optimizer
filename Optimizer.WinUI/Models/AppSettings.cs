@@ -66,15 +66,6 @@ public class AppSettings
     public int ApiPort { get; set; } = 8765;
     public string ApiToken { get; set; } = Guid.NewGuid().ToString();
 
-    // Cloud Sync
-    public bool CloudSyncEnabled { get; set; } = false;
-    public string CloudServerUrl { get; set; } = "http://localhost:5000";
-
-    // Privacy-Preserving Community Insights (Federated Learning scaffold)
-    // Default is FALSE — strictly opt-in. When enabled, only differentially-private
-    // aggregated statistics are shared. Raw preferences or system data are NEVER uploaded.
-    public bool FederatedLearningEnabled { get; set; } = false;
-
     // AI Assistant (Claude API — opt-in, bring-your-own-key; the key itself is stored
     // separately, encrypted via DPAPI, never in this settings file).
     public bool AssistantEnabled { get; set; } = false;

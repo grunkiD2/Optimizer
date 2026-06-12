@@ -22,7 +22,6 @@ public class AutoApplyPolicyTests : IAsyncLifetime, IDisposable
         public void Load() { }
         public void Save() => SettingsChanged?.Invoke();
         public void Reset() { }
-        public void ApplyRemoteSettings(AppSettings remote) { }
     }
 
     public async Task InitializeAsync()
