@@ -1,4 +1,4 @@
-const CACHE = 'optimizer-v1';
+const CACHE = 'optimizer-v2'; // v2: cooling/Fancontrol card — bump busts stale cached app.js/styles.css
 const ASSETS = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.json', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', e => {

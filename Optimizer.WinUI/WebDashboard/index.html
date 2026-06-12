@@ -85,6 +85,33 @@
           </div>
         </div>
 
+        <!-- Fancontrol federation (hidden unless /api/fancontrol is configured on the desktop) -->
+        <div class="cooling-card" id="cooling-card" style="display:none;">
+          <div class="cooling-header">
+            <span class="cooling-title">Cooling — Fancontrol</span>
+            <span class="cooling-pill ok" id="fc-mode">—</span>
+          </div>
+          <div class="sensor-grid">
+            <div class="sensor-pill">
+              <span class="sensor-label">Coolant</span>
+              <span class="sensor-value" id="fc-coolant">—</span>
+            </div>
+            <div class="sensor-pill">
+              <span class="sensor-label">Pump</span>
+              <span class="sensor-value" id="fc-pump">—</span>
+            </div>
+            <div class="sensor-pill">
+              <span class="sensor-label">Demand C/R</span>
+              <span class="sensor-value" id="fc-demands">—</span>
+            </div>
+            <div class="sensor-pill">
+              <span class="sensor-label">Profile</span>
+              <span class="sensor-value" id="fc-profile">—</span>
+            </div>
+          </div>
+          <div class="cooling-foot" id="fc-sentinel"></div>
+        </div>
+
         <div class="action-bar">
           <button class="action-btn" onclick="App.runCleanup()">🧹 Quick Cleanup</button>
         </div>

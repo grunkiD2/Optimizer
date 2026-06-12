@@ -113,6 +113,30 @@ const App = (() => {
       if (s.cpuPower != null) setText('s-cpupwr', `${s.cpuPower.toFixed(0)}W`);
       if (s.gpuPower != null) setText('s-gpupwr', `${s.gpuPower.toFixed(0)}W`);
     } catch (_) { /* sensors optional */ }
+
+    try {
+      const fc = await api('/api/fancontrol');
+      const card = document.getElementById('cooling-card');
+      if (card && fc.brain) {
+        card.style.display = 'block';
+        const b = fc.brain;
+        const pill = document.getElementById('fc-mode');
+        if (pill) {
+          pill.textContent = b.alarm ? 'ALARM' : b.stale ? 'STALE' : (b.mode || '—');
+          pill.className = 'cooling-pill ' + (b.alarm ? 'danger' : (b.stale || !b.lhmOk) ? 'warn' : 'ok');
+        }
+        if (b.coolant != null) setText('fc-coolant', `${b.coolant.toFixed(1)}°C`);
+        if (b.pumpRpm != null) setText('fc-pump', `${b.pumpRpm} RPM`);
+        setText('fc-demands', `${b.caseDemand ?? '—'} / ${b.radDemand ?? '—'}%`);
+        setText('fc-profile', (fc.profiles && fc.profiles.lastAppliedProfile) || '—');
+        const sn = fc.sentinel;
+        if (sn) {
+          const verdict = sn.stale ? 'stale' : (sn.pass && (!sn.issues || sn.issues.length === 0)) ? 'PASS' : `${(sn.issues || []).length} issue(s)`;
+          const t = new Date(sn.timestamp);
+          setText('fc-sentinel', `Health check ${verdict} · ${t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+        }
+      }
+    } catch (_) { /* 404 = federation not configured — card stays hidden */ }
   }
 
   // ── Profiles ──────────────────────────────────────────────────────────────
