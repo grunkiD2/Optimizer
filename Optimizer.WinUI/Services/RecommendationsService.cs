@@ -18,10 +18,14 @@ public class RecommendationsService : IRecommendationsService
 
     private readonly string _prefsFile = AppPaths.GetDataFile("rec-preferences.json");
 
-    public RecommendationsService(IDiagnosticsService diagnostics, IWindowsOptimizerService optimizer)
+    private readonly Optimizer.WinUI.Services.Power.IPowerInsightsService? _powerInsights;
+
+    public RecommendationsService(IDiagnosticsService diagnostics, IWindowsOptimizerService optimizer,
+        Optimizer.WinUI.Services.Power.IPowerInsightsService? powerInsights = null)
     {
         _diagnostics = diagnostics;
         _optimizer = optimizer;
+        _powerInsights = powerInsights;
         LoadDismissed();
         LoadPreferences();
     }
@@ -55,6 +59,32 @@ public class RecommendationsService : IRecommendationsService
                         _ => "Fix"
                     }
                 });
+            }
+        }
+        catch { }
+
+        // Power-drift suggestions (docs/POWER-INSIGHTS.md §3) — suggestion-only by contract:
+        // no QuickAction, the row just points the user at the offender.
+        try
+        {
+            if (_powerInsights is { Enabled: true })
+            {
+                var drift = await _powerInsights.GetRecentDriftAsync(hours: 4, limit: 10);
+                foreach (var ev in drift.Where(e => e.Classification == "anomalous")
+                                        .DistinctBy(e => (e.ProcessName, e.Context)))
+                {
+                    var id = $"power-drift-{ev.ProcessName}-{ev.Context}".ToLowerInvariant();
+                    if (_dismissedIds.Contains(id) || IsSnoozed(id, now) || IsPermanentlyHidden(id)) continue;
+                    recs.Add(new Recommendation
+                    {
+                        Id = id,
+                        Title = $"{ev.ProcessName} is drawing unusual power",
+                        Description = $"{ev.ProcessName} consumed {ev.ObservedW:F1} W in the {ev.Context} context vs a {ev.BaselineW:F1} W baseline (z={ev.ZScore:F1}). Estimated from CPU share × measured package watts.",
+                        Severity = FindingSeverity.Warning,
+                        Category = FindingCategory.Performance,
+                        ActionLabel = "Investigate",
+                    });
+                }
             }
         }
         catch { }

@@ -33,6 +33,7 @@ public static class HubRegistry
     public static readonly HubConfig Monitor = new("Monitor", "Monitor", new HubSection[]
     {
         new("Sensors & Inventory", typeof(HardwarePage)),
+        new("Power Insights", typeof(PowerInsightsPage)),
         new("Event Log", typeof(EventLogsPage)),
     });
 
@@ -110,6 +111,7 @@ public static class HubRouting
         {
             // Monitor
             ["Hardware"]        = Mk(HubRegistry.Monitor, "Sensors & Inventory"),
+            ["PowerInsights"]   = Mk(HubRegistry.Monitor, "Power Insights"),
             ["EventLogs"]       = Mk(HubRegistry.Monitor, "Event Log"),
 
             // Optimize

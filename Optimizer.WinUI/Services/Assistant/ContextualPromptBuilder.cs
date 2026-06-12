@@ -12,7 +12,8 @@ public class ContextualPromptBuilder(
     IContextDetectionService contextDetection,
     IActionAnalyticsService analytics,
     IPatternExtractionService patterns,
-    IAssistantFeedbackService feedback) : IContextualPromptBuilder
+    IAssistantFeedbackService feedback,
+    Optimizer.WinUI.Services.Power.IPowerInsightsService? powerInsights = null) : IContextualPromptBuilder
 {
     public const string BasePrompt =
         "You are the assistant inside Optimizer, a Windows PC optimization app. " +
@@ -82,6 +83,24 @@ public class ContextualPromptBuilder(
                 sb.Append($"The user has given positive feedback on: {string.Join(", ", liked)}.\n");
         }
         catch (Exception ex) { EngineLog.Error("Prompt: liked-tools section failed (skipped)", ex); }
+
+        // Top power drainers + drift state (POWER-INSIGHTS use case 7) — concrete, citable
+        // triage input for "why is my system slow/hot/loud?".
+        try
+        {
+            if (powerInsights is { Enabled: true, LatestSnapshot: not null })
+            {
+                var top = powerInsights.GetTopDrainers(3).Where(d => !d.Excluded).ToList();
+                if (top.Count > 0)
+                {
+                    sb.Append("Top power drainers right now (estimated): ");
+                    sb.Append(string.Join(", ", top.Select(d =>
+                        $"{d.Name} {d.EstimatedWatts:F1} W ({d.Drift})")));
+                    sb.Append(". Call get_power_drainers for the full picture.\n");
+                }
+            }
+        }
+        catch (Exception ex) { EngineLog.Error("Prompt: power-drainers section failed (skipped)", ex); }
 
         sb.Append("Use these as hints only — always honor the user's explicit request and confirm system changes.");
         return sb.ToString();
