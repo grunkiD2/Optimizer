@@ -33,6 +33,22 @@ public class FancontrolCommandService : IFancontrolCommandService
     private static readonly string[] NightModes = ["on", "off", "auto"];
     private static readonly TimeSpan CtlTimeout = TimeSpan.FromSeconds(45); // apply-profile drives DDC/HDR and can take ~20 s
 
+    // powershell.exe writes redirected stdout in the OEM codepage. .NET Core does not ship OEM
+    // encodings by default — they need CodePagesEncodingProvider, and Encoding.GetEncoding throws
+    // without it (live-found: an inline initializer 500'ed every command endpoint). Null → default
+    // decoding; only Danish prose would garble, the ASCII contract line never does.
+    private static readonly System.Text.Encoding? OemEncoding = ResolveOemEncoding();
+
+    private static System.Text.Encoding? ResolveOemEncoding()
+    {
+        try
+        {
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            return System.Text.Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
+        }
+        catch { return null; }
+    }
+
     private readonly string _root;
     private readonly Func<IReadOnlyList<string>, CancellationToken, Task<CtlResult>>? _runnerOverride;
 
@@ -90,6 +106,46 @@ public class FancontrolCommandService : IFancontrolCommandService
         return clean.Length > 0 ? RunCtlAsync(["ack-alerts", clean], ct) : RunCtlAsync(["ack-alerts"], ct);
     }
 
+    /// <summary>
+    /// R1 result contract (2026-06-13): ctl.ps1's LAST stdout line is always compact JSON
+    /// {ok,cmd,msg} and the exit code is real (0 ok / 1 fail). Parsed fail-closed: a missing or
+    /// garbled contract line counts as failure — the success flag must never be decorative again
+    /// (pre-R1 the engine never set exit codes, so ExitCode==0 reported success on every failure).
+    /// Only stdout is scanned (PowerShell writes its own error records to stderr).
+    /// </summary>
+    public static CtlResult ParseCtlResult(string stdout, string stderr, int exitCode)
+    {
+        var lines = (stdout ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var last = lines.Length > 0 ? lines[^1] : "";
+        if (last.StartsWith('{'))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(last);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("ok", out var okEl) &&
+                    (okEl.ValueKind == JsonValueKind.True || okEl.ValueKind == JsonValueKind.False))
+                {
+                    var ok = okEl.GetBoolean();
+                    var msg = root.TryGetProperty("msg", out var msgEl) && msgEl.ValueKind == JsonValueKind.String
+                        ? (msgEl.GetString() ?? "").Trim() : "";
+                    // ok:true with a non-zero exit code is contradictory (process died after
+                    // printing?) — fail closed on the conjunction.
+                    var success = ok && exitCode == 0;
+                    return new CtlResult(success, msg.Length > 0 ? msg : RawOutput(stdout, stderr, exitCode));
+                }
+            }
+            catch (JsonException) { /* fall through to fail-closed below */ }
+        }
+        return new CtlResult(false, $"(no R1 JSON result contract from ctl, exit {exitCode}) {RawOutput(stdout, stderr, exitCode)}");
+
+        static string RawOutput(string stdout, string stderr, int exitCode)
+        {
+            var combined = $"{stdout?.Trim()}\n{stderr?.Trim()}".Trim();
+            return combined.Length > 0 ? combined : $"(exit {exitCode})";
+        }
+    }
+
     private async Task<CtlResult> RunCtlAsync(IReadOnlyList<string> commandAndArg, CancellationToken ct)
     {
         if (!IsConfigured) return new CtlResult(false, "Fancontrol federation not configured (AppSettings.FancontrolStateDir).");
@@ -104,6 +160,10 @@ public class FancontrolCommandService : IFancontrolCommandService
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // OEM decoding so Danish prose survives (R1 review find); the JSON contract line
+            // itself is pure ASCII (\uXXXX-escaped by the engine) and never depends on this.
+            StandardOutputEncoding = OemEncoding,
+            StandardErrorEncoding = OemEncoding,
         };
         foreach (var a in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", CtlPath, "-Command", commandAndArg[0] })
             psi.ArgumentList.Add(a);
@@ -131,9 +191,9 @@ public class FancontrolCommandService : IFancontrolCommandService
                 EngineLog.Write($"[Fancontrol] ctl {commandAndArg[0]} timed out after {CtlTimeout.TotalSeconds:F0} s");
                 return new CtlResult(false, $"ctl.ps1 {commandAndArg[0]} timed out.");
             }
-            var output = $"{(await stdout).Trim()}\n{(await stderr).Trim()}".Trim();
-            EngineLog.Write($"[Fancontrol] ctl {string.Join(' ', commandAndArg)} → exit {proc.ExitCode}");
-            return new CtlResult(proc.ExitCode == 0, output.Length > 0 ? output : $"(exit {proc.ExitCode})");
+            var result = ParseCtlResult(await stdout, await stderr, proc.ExitCode);
+            EngineLog.Write($"[Fancontrol] ctl {string.Join(' ', commandAndArg)} → exit {proc.ExitCode}, ok={result.Success}: {result.Output}");
+            return result;
         }
         catch (Exception ex)
         {

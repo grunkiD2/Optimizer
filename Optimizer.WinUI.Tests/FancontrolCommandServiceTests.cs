@@ -121,6 +121,101 @@ public class FancontrolCommandServiceTests
         Assert.False((await svc.AckAlertsAsync(null)).Success);
     }
 
+    // ── R1 result contract: last stdout line is JSON {ok,cmd,msg} + real exit code ──
+
+    [Fact]
+    public void ParseCtlResult_trusts_ok_true_with_zero_exit()
+    {
+        var stdout = "kommando 'night on' afleveret - venter paa hjernens opsamling (<=12 s)\r\n" +
+                     "udfoert af hjernen efter 2.4 s\r\n" +
+                     """{"ok":true,"cmd":"night","msg":"'night on' udfoert af hjernen efter 2.4 s"}""";
+        var r = FancontrolCommandService.ParseCtlResult(stdout, "", 0);
+        Assert.True(r.Success);
+        Assert.Equal("'night on' udfoert af hjernen efter 2.4 s", r.Output);
+    }
+
+    [Fact]
+    public void ParseCtlResult_ok_false_fails_even_with_zero_exit()
+    {
+        var stdout = "afvist: 'BogusTask' er ikke i whitelisten\r\n" +
+                     """{"ok":false,"cmd":"run-task","msg":"afvist: 'BogusTask' er ikke i whitelisten"}""";
+        var r = FancontrolCommandService.ParseCtlResult(stdout, "", 0);
+        Assert.False(r.Success);
+        Assert.Contains("afvist", r.Output);
+    }
+
+    [Fact]
+    public void ParseCtlResult_ok_true_with_nonzero_exit_fails_closed()
+    {
+        var r = FancontrolCommandService.ParseCtlResult("""{"ok":true,"cmd":"reload","msg":"x"}""", "", 1);
+        Assert.False(r.Success);
+    }
+
+    [Fact]
+    public void ParseCtlResult_missing_contract_fails_closed()
+    {
+        // Pre-R1 engine (or a crash before the JSON line): prose only, exit 0 — must NOT count as success.
+        var r = FancontrolCommandService.ParseCtlResult("kommando 'night on' afleveret (hjernen samler op inden for 5 s)", "", 0);
+        Assert.False(r.Success);
+        Assert.Contains("no R1 JSON result contract", r.Output);
+    }
+
+    [Fact]
+    public void ParseCtlResult_garbled_json_fails_closed()
+    {
+        var r = FancontrolCommandService.ParseCtlResult("{not valid json", "", 0);
+        Assert.False(r.Success);
+    }
+
+    [Fact]
+    public void ParseCtlResult_handles_trailing_crlf_and_unicode_escapes()
+    {
+        // The real powershell.exe form: CRLF line endings INCLUDING a trailing one, and the
+        // engine \uXXXX-escapes all non-ASCII (verbatim live capture, 2026-06-13).
+        var stdout = "kommando 'night on' afleveret - venter paa hjernens opsamling (<=15 s)\r\n" +
+                     "udfoert af hjernen efter 2.4 s\r\n" +
+                     "{\"ok\":true,\"cmd\":\"night\",\"msg\":\"\\u0027night on\\u0027 udfoert af hjernen efter 2.4 s\"}\r\n";
+        var r = FancontrolCommandService.ParseCtlResult(stdout, "", 0);
+        Assert.True(r.Success);
+        Assert.Equal("'night on' udfoert af hjernen efter 2.4 s", r.Output);
+    }
+
+    [Fact]
+    public void ParseCtlResult_ok_false_with_exit_one_is_the_common_failure_form()
+    {
+        var stdout = "Unknown profile: Bogus\r\n" +
+                     "{\"ok\":false,\"cmd\":\"apply-profile\",\"msg\":\"ukendt profil: \\u0027Bogus\\u0027\"}\r\n";
+        var r = FancontrolCommandService.ParseCtlResult(stdout, "", 1);
+        Assert.False(r.Success);
+        Assert.Equal("ukendt profil: 'Bogus'", r.Output);
+    }
+
+    [Fact]
+    public void ParseCtlResult_json_without_ok_property_fails_closed()
+    {
+        // A state-file dump as last line (e.g. someone pipes `status` oddly) must not be mistaken for the contract.
+        var r = FancontrolCommandService.ParseCtlResult("""{"mode":"NIGHT","night":true}""", "", 0);
+        Assert.False(r.Success);
+    }
+
+    [Fact]
+    public void ParseCtlResult_stderr_noise_does_not_break_stdout_contract()
+    {
+        var r = FancontrolCommandService.ParseCtlResult(
+            """{"ok":true,"cmd":"ack-alerts","msg":"kvitteret: 2 alert(s)"}""",
+            "Some PowerShell warning on stderr", 0);
+        Assert.True(r.Success);
+        Assert.Equal("kvitteret: 2 alert(s)", r.Output);
+    }
+
+    [Fact]
+    public void ParseCtlResult_empty_msg_falls_back_to_raw_output()
+    {
+        var r = FancontrolCommandService.ParseCtlResult("prosa-linje\r\n" + """{"ok":true,"cmd":"x","msg":""}""", "", 0);
+        Assert.True(r.Success);
+        Assert.Contains("prosa-linje", r.Output);
+    }
+
     // ── Token hardening ────────────────────────────────────────────────────────
 
     [Theory]
