@@ -144,7 +144,17 @@ public partial class App : Application
                 services.AddSingleton<IReportService, ReportService>();
                 services.AddSingleton<ITuningService, TuningService>();
                 services.AddSingleton<ISystemRepairService, SystemRepairService>();
-                services.AddSingleton<ISensorService, SensorService>();
+                // Sensor source: external LHM web server when configured (single kernel-driver
+                // owner on federated machines — docs/MACHINE-OWNERSHIP.md), else in-process LHM.
+                // Settings are loaded in OnLaunched BEFORE AppHost.StartAsync()/MainWindow, so
+                // every resolution of ISensorService sees the loaded value.
+                services.AddSingleton<ISensorService>(sp =>
+                {
+                    var url = sp.GetRequiredService<ISettingsService>().Settings.ExternalSensorServerUrl;
+                    return string.IsNullOrWhiteSpace(url)
+                        ? new SensorService()
+                        : new ExternalLhmSensorService(url);
+                });
                 services.AddSingleton<IStressTestService, StressTestService>();
                 // GPU control backends (registered in priority order: NVAPI, ADL, Null)
                 services.AddSingleton<IGpuControlBackend, NvApiGpuBackend>();

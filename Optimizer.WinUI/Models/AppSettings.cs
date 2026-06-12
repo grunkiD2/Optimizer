@@ -39,6 +39,13 @@ public class AppSettings
     // (not just optimization/event-bus events). Defaults ON so the console shows everything.
     public bool VerboseConsole { get; set; } = true;
 
+    // External sensor source: when set, sensors are read from a LibreHardwareMonitor
+    // web server's /data.json endpoint instead of initializing LHM in-process. Use when
+    // another component on the machine already owns the LHM kernel driver (see
+    // docs/MACHINE-OWNERSHIP.md). Empty = in-process LHM (default). No silent fallback:
+    // if the server is down, sensors stay unavailable until it returns.
+    public string ExternalSensorServerUrl { get; set; } = "";
+
     // Remote API
     public bool ApiEnabled { get; set; } = false;
     public int ApiPort { get; set; } = 8765;
