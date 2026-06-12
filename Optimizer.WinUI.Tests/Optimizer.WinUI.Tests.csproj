@@ -34,4 +34,10 @@
     <ProjectReference Include="..\Optimizer.WinUI\Optimizer.WinUI.csproj"
                       PrivateAssets="all" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- R2: producer-generated Fancontrol contract fixtures — regenerate with
+         tools\Update-FancontrolFixtures.ps1 against the live machine. -->
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

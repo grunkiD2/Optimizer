@@ -72,6 +72,7 @@ public class FancontrolStatusService : IFancontrolStatusService
         var r = doc.RootElement;
         var status = new FancontrolBrainStatus
         {
+            SchemaVersion = (int?)GetDouble(r, "v"),
             Timestamp = GetTimestamp(r),
             Mode = GetString(r, "mode") ?? "",
             Game = GetBool(r, "game"),
@@ -111,6 +112,7 @@ public class FancontrolStatusService : IFancontrolStatusService
         var r = doc.RootElement;
         var status = new FancontrolProfileStatus
         {
+            SchemaVersion = (int?)GetDouble(r, "v"),
             Timestamp = GetTimestamp(r),
             LastAppliedProfile = GetString(r, "lastApplied"),
             Enabled = GetBool(r, "enabled"),
@@ -129,6 +131,7 @@ public class FancontrolStatusService : IFancontrolStatusService
         var r = doc.RootElement;
         var status = new FancontrolSentinelStatus
         {
+            SchemaVersion = (int?)GetDouble(r, "v"),
             Timestamp = GetTimestamp(r),
             Pass = GetBool(r, "pass"),
         };

@@ -16,6 +16,8 @@ public class FancontrolStatus
 /// <summary>fan_brain.ps1 heartbeat (brain_state.json, ~5 s cadence).</summary>
 public class FancontrolBrainStatus
 {
+    /// <summary>R2 contract version ("v" in the state file); null = pre-R2 producer.</summary>
+    public int? SchemaVersion { get; set; }
     public DateTimeOffset Timestamp { get; set; }
     public bool Stale { get; set; }
     public string Mode { get; set; } = "";
@@ -40,6 +42,8 @@ public class FancontrolBrainStatus
 /// <summary>foreground_watch.ps1 auto-profiler state (fgwatch_state.json, ~3 s cadence).</summary>
 public class FancontrolProfileStatus
 {
+    /// <summary>R2 contract version ("v" in the state file); null = pre-R2 producer.</summary>
+    public int? SchemaVersion { get; set; }
     public DateTimeOffset Timestamp { get; set; }
     public bool Stale { get; set; }
     public string? LastAppliedProfile { get; set; }
@@ -52,6 +56,8 @@ public class FancontrolProfileStatus
 /// <summary>Hourly sentinel health verdict (sentinel_state.json).</summary>
 public class FancontrolSentinelStatus
 {
+    /// <summary>R2 contract version ("v" in the state file); null = pre-R2 producer.</summary>
+    public int? SchemaVersion { get; set; }
     public DateTimeOffset Timestamp { get; set; }
     public bool Stale { get; set; }
     public bool Pass { get; set; }
