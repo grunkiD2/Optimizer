@@ -10,7 +10,7 @@ namespace Optimizer.WinUI.Services.Analytics;
 /// learned as a failure (via <see cref="IProfileContextService"/>).
 /// </summary>
 public class ContextAutomationService(
-    IContextDetectionService contextDetection,
+    IContextAuthority contextDetection,
     IProfileContextService profileContext,
     IProfileService profiles,
     ISettingsService settings) : IHostedService, IDisposable
@@ -46,6 +46,13 @@ public class ContextAutomationService(
     /// <summary>Internal: one evaluation cycle. Exposed for testing-friendly invocation.</summary>
     public async Task EvaluateAsync()
     {
+        // R4 HARD gate, before any settings check: when the Fancontrol federation owns context
+        // truth, fgwatch owns profile automation (docs/MACHINE-OWNERSHIP.md) — racing it with a
+        // second first-match automation breaks its manual-wins/veto guarantees. Deliberately NOT
+        // settings-gated: the documented settings-reset trap silently re-enables toggles, and a
+        // wiped settings file must never resurrect this race.
+        if (contextDetection.FederationOwnsContext) return;
+
         var s = settings.Settings;
         if (s.AutomationPaused || !s.AutoContextSwitchEnabled) return;
 

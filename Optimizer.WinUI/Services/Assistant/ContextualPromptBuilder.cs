@@ -34,7 +34,12 @@ public class ContextualPromptBuilder(
         catch { context = "Unknown"; }
 
         sb.Append("\n\n## Learned context\n");
-        sb.Append($"The user currently appears to be in **{context}** context.\n");
+        // R4: tell the assistant HOW we know — a federation-measured context is a fact about
+        // the machine; a process-list guess is only a hint.
+        var contextSource = contextDetection is IContextAuthority { LastSource: ContextSource.Federation }
+            ? "measured by the Fancontrol federation — authoritative"
+            : "heuristic guess from running processes";
+        sb.Append($"The user currently appears to be in **{context}** context ({contextSource}).\n");
 
         // Declared setup intent from Windows (HKCU CloudExperienceHost\Intent bitmask).
         // Useful as a stable hint about what the user wants this PC to be for.

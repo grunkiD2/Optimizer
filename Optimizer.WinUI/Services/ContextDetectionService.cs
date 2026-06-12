@@ -47,12 +47,24 @@ public interface IContextDetectionService
 }
 
 /// <summary>
+/// R4: the raw process/time/intent GUESS — only ContextAuthorityService should consume this.
+/// suppressGaming skips every Gaming-producing branch (process list, intent bit, night-hours
+/// fallback) so the authority can ask "what else could this be?" once the machine's measured
+/// state has already ruled gaming out.
+/// </summary>
+public interface IContextGuesser
+{
+    Task<string> GuessContextAsync(bool suppressGaming);
+    UserIntent UserIntent { get; }
+}
+
+/// <summary>
 /// Detects context from running processes (primary signal), time-of-day (fallback),
 /// and the Windows-stored "user intent" bitmask (bias). The intent bitmask never overrides
 /// a confident process match — it only breaks ties when processes are ambiguous, and it
 /// flows through to the assistant so prompts can reference the user's declared setup.
 /// </summary>
-public class ContextDetectionService : IContextDetectionService
+public class ContextDetectionService : IContextDetectionService, IContextGuesser
 {
     public UserIntent UserIntent { get; }
 
@@ -89,9 +101,11 @@ public class ContextDetectionService : IContextDetectionService
         UserIntent = ReadUserIntent();
     }
 
-    public Task<string> DetectContextAsync() => Task.FromResult(DetectByProcessesAndTime());
+    public Task<string> DetectContextAsync() => Task.FromResult(DetectByProcessesAndTime(suppressGaming: false));
 
-    private string DetectByProcessesAndTime()
+    public Task<string> GuessContextAsync(bool suppressGaming) => Task.FromResult(DetectByProcessesAndTime(suppressGaming));
+
+    private string DetectByProcessesAndTime(bool suppressGaming)
     {
         var now = DateTime.Now.TimeOfDay;
 
@@ -102,7 +116,8 @@ public class ContextDetectionService : IContextDetectionService
         var runningProcesses = GetRunningProcessNames();
 
         // Process-based detection (primary signal — most authoritative).
-        if (runningProcesses.Any(p => GamingProcesses.Any(g => p.Contains(g, StringComparison.OrdinalIgnoreCase))))
+        if (!suppressGaming &&
+            runningProcesses.Any(p => GamingProcesses.Any(g => p.Contains(g, StringComparison.OrdinalIgnoreCase))))
             return "Gaming";
 
         if (runningProcesses.Any(p => PlexProcesses.Any(pl => p.Contains(pl, StringComparison.OrdinalIgnoreCase))))
@@ -113,12 +128,12 @@ public class ContextDetectionService : IContextDetectionService
 
         // No confident process match — try declared user intent before falling through
         // to time-of-day. Map each intent bit to the closest existing context.
-        var intentContext = MapUserIntentToContext(UserIntent);
+        var intentContext = MapUserIntentToContext(UserIntent, suppressGaming);
         if (intentContext is not null)
             return intentContext;
 
         // Fallback to time-based heuristic
-        if (isGamingTime)
+        if (isGamingTime && !suppressGaming)
             return "Gaming";
 
         if (workTime)
@@ -132,9 +147,9 @@ public class ContextDetectionService : IContextDetectionService
     /// intent bit is set or the bits are ambiguous (no clear winner among non-Family bits).
     /// Family / Schoolwork have no analogue and are ignored.
     /// </summary>
-    private static string? MapUserIntentToContext(UserIntent intent)
+    private static string? MapUserIntentToContext(UserIntent intent, bool suppressGaming = false)
     {
-        if (intent.Gaming) return "Gaming";
+        if (intent.Gaming && !suppressGaming) return "Gaming";
         if (intent.Entertainment) return "Plex";
         // Business / Development / Creativity / DevMode all bias toward Work
         if (intent.Business || intent.Development || intent.Creativity || intent.DevModeEnabled)

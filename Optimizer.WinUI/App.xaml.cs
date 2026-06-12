@@ -209,7 +209,12 @@ public partial class App : Application
                 // Assistant learning services
                 services.AddSingleton<IAssistantActionLogger, AssistantActionLogger>();
                 services.AddSingleton<ISessionPersistence, SessionPersistence>();
-                services.AddSingleton<IContextDetectionService, ContextDetectionService>();
+                // R4: every consumer resolves the federation-first context AUTHORITY; the raw
+                // process/time guess (ContextDetectionService) is only its fallback seam.
+                services.AddSingleton<ContextDetectionService>();
+                services.AddSingleton<IContextGuesser>(sp => sp.GetRequiredService<ContextDetectionService>());
+                services.AddSingleton<IContextAuthority, ContextAuthorityService>();
+                services.AddSingleton<IContextDetectionService>(sp => sp.GetRequiredService<IContextAuthority>());
 
                 // Phase 2: Analytics, pattern recognition, feedback
                 services.AddSingleton<Optimizer.WinUI.Services.Analytics.IActionAnalyticsService,

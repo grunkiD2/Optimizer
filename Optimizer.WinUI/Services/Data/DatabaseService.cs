@@ -72,6 +72,26 @@ public class DatabaseService : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync();
         }
 
+        // R4 one-time drop-and-relearn: every Power/Metric baseline learned before the context
+        // AUTHORITY existed was keyed by the process-list GUESS (live audit: "Gaming" while the
+        // brain measured IDLE) — mislabeled rows poison drift detection for weeks. The 72 h
+        // half-life rebuilds clean baselines in days. Marker row makes this idempotent.
+        await using (var marker = conn.CreateCommand())
+        {
+            marker.CommandText = "SELECT COUNT(*) FROM Metadata WHERE Key = 'ContextAuthorityBaselineReset'";
+            if (Convert.ToInt32(await marker.ExecuteScalarAsync()) == 0)
+            {
+                await using var wipe = conn.CreateCommand();
+                wipe.CommandText = """
+                    DELETE FROM PowerBaselines;
+                    DELETE FROM MetricBaselines;
+                    INSERT INTO Metadata (Key, Value) VALUES ('ContextAuthorityBaselineReset', datetime('now'));
+                    """;
+                await wipe.ExecuteNonQueryAsync();
+                EngineLog.Write("R4: dropped Power/Metric baselines for relearn under the context authority");
+            }
+        }
+
         _initialized = true;
         EngineLog.Write("Database initialized successfully");
     }
