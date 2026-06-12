@@ -4,7 +4,10 @@ Parked opportunities, not yet scheduled.
 
 ## In flight / parked-but-designed
 
-- **Per-Process Power Intelligence (PPI)** — full design brief at [`docs/POWER-INSIGHTS.md`](POWER-INSIGHTS.md). ETW + Energy Estimation Engine + per-context drift detection. Read-only. Ready to schedule.
+- **Per-Process Power Intelligence (PPI)** — full design brief at [`docs/POWER-INSIGHTS.md`](POWER-INSIGHTS.md). ETW + Energy Estimation Engine + per-context drift detection. Read-only. Ready to schedule. *Federation note (2026-06-12): the Fancontrol system's brain wants exactly this signal to fix its focus≠load-source attribution bias — build PPI with a consumer contract in mind (see docs/MACHINE-OWNERSHIP.md).*
+- **Fancontrol federation, Phase 2 (command bridge)** — wrap Fancontrol's `ctl.ps1` (apply-profile, night, ack-alerts, status) as `IAppCommand`s so the REST API/PWA/assistant can drive it. BLOCKED ON: hardening the embedded API's Bearer token (plain string equality today) before exposing anything mutating. Phase 1 (read-only status + external LHM sensors) shipped 2026-06-12.
+- **Settings hard-reset sharp edge** — a malformed `app-settings.json` silently becomes full defaults (incl. a NEW ApiToken) via `SettingsService.Load`'s bare catch + the OnLaunched save. Found during federation livetests. Fix candidates: back up the rejected file, log the parse error, keep ApiToken stable across resets.
+- **Flaky test (unidentified)** — one 1/602 failure observed on a cold run 2026-06-12, did not reproduce in 4 reruns and the test name wasn't captured. If it fires again: capture the `[FAIL]` line; likely another static-EngineLog parallel leak (ConsoleViewModelTests had the same shape, fixed in 7afca70).
 
 ## From the Windows Settings reference (registry-backed)
 

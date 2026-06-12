@@ -31,6 +31,7 @@ This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol
 - When extending an interface (`IAssistantSettings`, `IContextDetectionService`, etc.), grep `: IInterfaceName` across `Optimizer.WinUI.Tests/` — there are typically 2-4 test fakes that need the new member or the build breaks late.
 - PowerShell `$pid` is a read-only automatic variable. Use `$ownerPid` / `$procId` instead when capturing a PID from `Get-NetTCPConnection` etc.
 - WinUI launch-time crashes write to `%LocalAppData%\Optimizer\crash.log` (plain text, latest at the bottom). Check there before re-launching when the process dies in < 3 s.
+- A malformed `app-settings.json` is SILENTLY replaced with full defaults (SettingsService.Load `catch { Settings = new(); }` + the OnLaunched save) — including a regenerated ApiToken. When editing the file from scripts, write with `[System.IO.File]::WriteAllText` after direct property assignment (a PowerShell `Add-Member`/`ConvertTo-Json` roundtrip has produced files the deserializer rejected), and verify the app actually loaded your values via the engine log.
 
 ## Conventions
 - Session handoff buffer at `.remember/remember.md`.

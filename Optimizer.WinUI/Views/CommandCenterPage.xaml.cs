@@ -22,6 +22,8 @@ public sealed partial class CommandCenterPage : Page
     private readonly ISettingsService _settings;
     private readonly IWindowsOptimizerService _optimizer;
     private readonly NavigationService _nav;
+    private readonly IFancontrolStatusService _fancontrol;
+    private DispatcherTimer? _fancontrolTimer;
 
     private const int TrendLength = 40;
     private readonly Queue<double> _cpuTrend = new();
@@ -37,6 +39,7 @@ public sealed partial class CommandCenterPage : Page
         _settings = App.GetService<ISettingsService>();
         _optimizer = App.GetService<IWindowsOptimizerService>();
         _nav = App.GetService<NavigationService>();
+        _fancontrol = App.GetService<IFancontrolStatusService>();
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -51,12 +54,23 @@ public sealed partial class CommandCenterPage : Page
         BuildAutomation();
         _ = LoadContextAsync();
         _ = LoadAttentionAsync();
+
+        if (_fancontrol.IsConfigured)
+        {
+            FancontrolCard.Visibility = Visibility.Visible;
+            RefreshFancontrol();
+            _fancontrolTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) }; // brain ticks every 5 s
+            _fancontrolTimer.Tick += (_, _) => RefreshFancontrol();
+            _fancontrolTimer.Start();
+        }
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         _bus.MetricsUpdated -= OnMetrics;
         _bus.SetSensorsActive(false);
+        _fancontrolTimer?.Stop();
+        _fancontrolTimer = null;
     }
 
     // ── Live metrics ──────────────────────────────────────────────────────────
@@ -246,6 +260,48 @@ public sealed partial class CommandCenterPage : Page
 
     internal static string CategoryTag(FindingCategory cat) =>
         CategoryRoutes.TryGetValue(cat, out var tag) ? tag : "Recommendations";
+
+    // ── Fancontrol federation (read-only — docs/MACHINE-OWNERSHIP.md) ─────────
+
+    private void RefreshFancontrol()
+    {
+        // State files live on disk; read them off the UI thread, render on it.
+        _ = Task.Run(() =>
+        {
+            var status = _fancontrol.GetStatus();
+            DispatcherQueue.TryEnqueue(() => RenderFancontrol(status));
+        });
+    }
+
+    private void RenderFancontrol(FancontrolStatus? status)
+    {
+        FancontrolList.Children.Clear();
+        if (status?.Brain is not { } b)
+        {
+            FancontrolList.Children.Add(AttentionRow(HudStatus.Warning, "NO DATA", "Fan brain state not readable."));
+            return;
+        }
+
+        var (brainStatus, brainPill) =
+            b.Alarm ? (HudStatus.Danger, "ALARM")
+            : b.Stale ? (HudStatus.Warning, "STALE")
+            : !b.LhmOk ? (HudStatus.Warning, b.Mode)
+            : (HudStatus.Success, b.Mode);
+        FancontrolList.Children.Add(AttentionRow(brainStatus, brainPill,
+            $"Coolant {b.Coolant:F1}°C · pump {b.PumpRpm} RPM · demand case {b.CaseDemand}/rad {b.RadDemand} · CPU {b.CpuTemp:F0}°C {b.CpuWatts:F0} W · GPU {b.GpuTemp:F0}°C {b.GpuWatts:F0} W"));
+
+        if (status.Profiles is { } p)
+            FancontrolList.Children.Add(AttentionRow(
+                p.Stale ? HudStatus.Warning : HudStatus.Accent,
+                p.LastAppliedProfile ?? "—",
+                $"Display profile · auto-profiler {(p.Enabled ? "on" : "off")} · {p.MappedPrograms} mapped apps"));
+
+        if (status.Sentinel is { } s)
+            FancontrolList.Children.Add(AttentionRow(
+                s.Stale ? HudStatus.Warning : s.Pass && s.Issues.Count == 0 ? HudStatus.Success : HudStatus.Warning,
+                s.Stale ? "STALE" : s.Pass && s.Issues.Count == 0 ? "PASS" : $"{s.Issues.Count} ISSUES",
+                $"Hourly health check · last run {s.Timestamp:HH:mm}"));
+    }
 
     // ── Quick actions ─────────────────────────────────────────────────────────
 

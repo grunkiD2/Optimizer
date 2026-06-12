@@ -82,6 +82,11 @@
                     </hud:HudCard>
                 </Grid>
 
+                <!-- Fancontrol federation (read-only; visible only when AppSettings.FancontrolStateDir is set) -->
+                <hud:HudCard x:Name="FancontrolCard" Header="COOLING — FANCONTROL" Visibility="Collapsed">
+                    <StackPanel x:Name="FancontrolList" Spacing="12"/>
+                </hud:HudCard>
+
             </StackPanel>
         </ScrollViewer>
     </hud:HudBackdrop>
