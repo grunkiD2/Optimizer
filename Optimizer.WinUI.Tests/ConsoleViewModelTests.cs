@@ -26,8 +26,9 @@ public class ConsoleViewModelTests
         var bus = new FakeBus();
         bus.Recent.Add(OptimizerEvent.Create(OptimizerEventType.ProfileApplied, "Applied Gaming", "ok"));
         var vm = new ConsoleViewModel(bus, dispatch: a => a());
-        Assert.Single(vm.Lines);
-        Assert.Contains("Applied Gaming", vm.Lines[0].Text);
+        // ConsoleViewModel also subscribes to the static EngineLog bus, so parallel
+        // tests can leak unrelated lines into Lines — assert on OUR line, not the count.
+        Assert.Single(vm.Lines, l => l.Text.Contains("Applied Gaming"));
     }
 
     [Fact]
@@ -36,8 +37,7 @@ public class ConsoleViewModelTests
         var bus = new FakeBus();
         var vm = new ConsoleViewModel(bus, dispatch: a => a());
         bus.Publish(OptimizerEvent.Create(OptimizerEventType.OptimizationApplied, "Disabled telemetry", "done"));
-        Assert.Single(vm.Lines);
-        Assert.Contains("Disabled telemetry", vm.Lines[0].Text);
+        Assert.Single(vm.Lines, l => l.Text.Contains("Disabled telemetry"));
     }
 
     [Fact]
@@ -47,6 +47,6 @@ public class ConsoleViewModelTests
         var vm = new ConsoleViewModel(bus, dispatch: a => a());
         bus.Publish(OptimizerEvent.Create(OptimizerEventType.OptimizationApplied, "x", "y"));
         vm.ClearCommand.Execute(null);
-        Assert.Empty(vm.Lines);
+        Assert.DoesNotContain(vm.Lines, l => l.Text.Contains("x — y"));
     }
 }
