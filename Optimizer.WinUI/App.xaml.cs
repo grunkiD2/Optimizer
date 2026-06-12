@@ -201,6 +201,9 @@ public partial class App : Application
                 // ── Phase 1: SQLite Database + Learning Foundation ──
                 // Database infrastructure
                 services.AddSingleton<DatabaseService>();
+                // R6: daily retention sweep (raw snapshots 14 d / events 90 d / telemetry copy 30 d) + VACUUM.
+                services.AddSingleton<Optimizer.WinUI.Services.Data.RetentionService>();
+                services.AddHostedService(sp => sp.GetRequiredService<Optimizer.WinUI.Services.Data.RetentionService>());
 
                 // Phase 4: Granular change sets with before/after snapshots
                 services.AddSingleton<IChangeSetService, ChangeSetService>();
