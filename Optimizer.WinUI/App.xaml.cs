@@ -208,9 +208,6 @@ public partial class App : Application
                 services.AddSingleton<Optimizer.WinUI.Services.Data.RetentionService>();
                 services.AddHostedService(sp => sp.GetRequiredService<Optimizer.WinUI.Services.Data.RetentionService>());
 
-                // Phase 4: Granular change sets with before/after snapshots
-                services.AddSingleton<IChangeSetService, ChangeSetService>();
-
                 // Phase 5: Scheduled optimizations (hosted background loop)
                 services.AddSingleton<IScheduledOptimizationService, ScheduledOptimizationService>();
                 services.AddHostedService(sp =>
