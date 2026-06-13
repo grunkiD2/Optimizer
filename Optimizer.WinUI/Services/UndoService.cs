@@ -15,8 +15,10 @@ public class UndoService : IUndoService
     private readonly object _gate = new();
 
     // The apply-scope's group id (a profile id), stamped onto every entry captured while a
-    // BeginGroup scope is open. Guarded by _gate. See BeginGroup.
-    private string? _currentGroupId;
+    // BeginGroup scope is open. AsyncLocal (not a plain field) so concurrent applies (e.g. the
+    // scheduler firing during a UI apply) don't cross-stamp each other, and so the value flows into
+    // the Task.Run the handlers capture on. See BeginGroup.
+    private readonly AsyncLocal<string?> _currentGroup = new();
 
     public int Count
     {
@@ -53,7 +55,7 @@ public class UndoService : IUndoService
             entry.PreviousValue = SerializeValue(existing, kind);
         }
 
-        lock (_gate) { entry.GroupId = _currentGroupId; _entries.Add(entry); }
+        lock (_gate) { entry.GroupId = _currentGroup.Value; _entries.Add(entry); }
     }
 
     private static string SerializeValue(object raw, RegistryValueKind kind) => kind switch
@@ -72,7 +74,7 @@ public class UndoService : IUndoService
                 Kind = UndoActionKind.ActivePowerScheme,
                 Description = description,
                 OptimizationId = optimizationId,
-                GroupId = _currentGroupId,
+                GroupId = _currentGroup.Value,
                 PreviousPowerSchemeGuid = previousGuid
             });
         }
@@ -80,15 +82,15 @@ public class UndoService : IUndoService
 
     public IDisposable BeginGroup(string groupId)
     {
-        string? previous;
-        lock (_gate) { previous = _currentGroupId; _currentGroupId = groupId; }
+        var previous = _currentGroup.Value;
+        _currentGroup.Value = groupId;
         return new GroupScope(this, previous);
     }
 
-    // Restores the prior group id on dispose so BeginGroup nests safely.
+    // Restores the prior group id on dispose so BeginGroup nests safely (AsyncLocal is per-flow).
     private sealed class GroupScope(UndoService owner, string? previous) : IDisposable
     {
-        public void Dispose() { lock (owner._gate) { owner._currentGroupId = previous; } }
+        public void Dispose() => owner._currentGroup.Value = previous;
     }
 
     public async Task<int> UndoAllAsync()
