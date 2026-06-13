@@ -54,7 +54,7 @@ public sealed partial class FancontrolPage : Page
         if (!_status.IsConfigured)
         {
             SetSingleRow(StatusList, HudStatus.Neutral, "OFF",
-                "Fancontrol federation not configured — set FancontrolStateDir under Settings.");
+                "Fancontrol federation not configured — set the state folder under Settings → Federation & Automation → Fancontrol state folder.");
             return;
         }
         RefreshStatus();

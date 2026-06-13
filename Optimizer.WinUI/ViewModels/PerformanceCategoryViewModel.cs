@@ -43,7 +43,10 @@ public partial class PerformanceCategoryViewModel : CategoryViewModelBase
         Ids.DisableAnimations,
         Ids.DisableVisualEffects,
         Ids.OptimizePowerSettings,
-        Ids.AdjustPageFileSize
+        Ids.AdjustPageFileSize,
+        // Audit Batch 2: these were registered + fully implemented but appeared on no page.
+        Ids.DisableTransparencyEffects,
+        Ids.EnableAccentTitleBars
     ];
 
     public PerformanceCategoryViewModel(

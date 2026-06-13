@@ -160,24 +160,27 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
 
     // ── DNS ────────────────────────────────────────────────────────────────────
 
+    // Audit Batch 2: these used to discard the bool result — failures (usually missing
+    // elevation) and even successes gave no feedback. Now they surface via the status InfoBar.
     [RelayCommand]
     public async Task ApplyDnsPresetAsync(DnsServerPreset preset)
     {
         var ok = await _netConfig.SetDnsAsync(preset.Primary, preset.Secondary);
-        if (ok)
-            CurrentDns = preset.Primary;
+        if (ok) { CurrentDns = preset.Primary; SetStatus($"DNS set to {preset.Name} ({preset.Primary}).", false); }
+        else SetStatus($"Couldn't set DNS to {preset.Name} — requires administrator.", true);
     }
 
     [RelayCommand]
     public async Task ResetDnsAsync()
     {
-        if (await _netConfig.ResetDnsToAutomaticAsync())
-            CurrentDns = "Automatic (ISP)";
+        if (await _netConfig.ResetDnsToAutomaticAsync()) { CurrentDns = "Automatic (ISP)"; SetStatus("DNS reset to automatic (ISP).", false); }
+        else SetStatus("Couldn't reset DNS — requires administrator.", true);
     }
 
     [RelayCommand]
     public async Task FlushDnsCacheAsync()
     {
         await _netConfig.FlushDnsAsync();
+        SetStatus("DNS resolver cache flushed.", false);
     }
 }

@@ -202,6 +202,43 @@
                         VerticalAlignment="Center"/>
             </settingsControls:SettingsCard>
 
+            <!-- ── FEDERATION & AUTOMATION (audit C9) ──────────────────────── -->
+            <TextBlock Text="FEDERATION &amp; AUTOMATION"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{StaticResource MutedBrush}"
+                       Margin="0,8,0,0"/>
+
+            <settingsControls:SettingsCard Header="Power Insights"
+                                           Description="Per-process power attribution + drift detection (Monitor → Power Insights). Off by default.">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.PpiEnabled, Mode=TwoWay}"
+                              OnContent="" OffContent="" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Fancontrol state folder"
+                                           Description="Path to the Fancontrol system's \state folder. Enables the Monitor → Fancontrol hub. Leave empty to disable the federation.">
+                <TextBox Text="{x:Bind ViewModel.FancontrolStateDir, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="L:\Users\Fancontrol\state"
+                         MinWidth="320" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Pause all automation"
+                                           Description="Global kill switch — stops context automation and auto-apply without changing their individual settings.">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.AutomationPaused, Mode=TwoWay}"
+                              OnContent="" OffContent="" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Auto-apply optimizations"
+                                           Description="Let the learning engine apply confidently-learned optimizations unattended. Off by default.">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.AutoApplyEnabled, Mode=TwoWay}"
+                              OnContent="" OffContent="" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
+            <settingsControls:SettingsCard Header="Auto context-switch profiles"
+                                           Description="Automatically apply the best-learned profile when context changes. On this machine fgwatch owns profile switching — leave OFF unless standalone.">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.AutoContextSwitchEnabled, Mode=TwoWay}"
+                              OnContent="" OffContent="" VerticalAlignment="Center"/>
+            </settingsControls:SettingsCard>
+
             <!-- ── REMOTE API ──────────────────────────────────────────────── -->
             <TextBlock Text="REMOTE API"
                        FontSize="11" FontWeight="SemiBold"

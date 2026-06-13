@@ -30,7 +30,11 @@ public sealed partial class SystemPage : Page
         {
             var setting = ViewModel.PrivacySettings.FirstOrDefault(s => s.Id == id);
             if (setting != null && setting.IsPrivacyFriendly != toggle.IsOn)
-                await ViewModel.ToggleAsync(setting, toggle.IsOn);
+            {
+                // Audit Batch 2: revert the switch when the change didn't apply (DevicesPage pattern).
+                var ok = await ViewModel.ToggleAsync(setting, toggle.IsOn);
+                if (!ok) toggle.IsOn = setting.IsPrivacyFriendly;
+            }
         }
     }
 

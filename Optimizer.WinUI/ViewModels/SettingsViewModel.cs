@@ -14,6 +14,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly IThemeService _themeService;
     private readonly IApiHostService _apiHost;
     private readonly IApiKeyStore _apiKeyStore;
+    private readonly ISystemMonitorService _monitor;
 
     // Flag to suppress partial-method saves while bulk-loading
     private bool _isLoading;
@@ -46,6 +47,13 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string apiToken = "";
     [ObservableProperty] private string apiStatus = "Stopped";
 
+    // Audit C9: features that gated on these settings but had no UI to toggle them.
+    [ObservableProperty] private bool ppiEnabled;                 // Power Insights
+    [ObservableProperty] private bool automationPaused;           // global kill switch
+    [ObservableProperty] private bool autoApplyEnabled;
+    [ObservableProperty] private bool autoContextSwitchEnabled;
+    [ObservableProperty] private string fancontrolStateDir = "";  // federation hub source
+
     // AI Assistant (Claude API, opt-in, bring-your-own-key)
     [ObservableProperty] private bool assistantEnabled;
     [ObservableProperty] private bool assistantAllowActions = true;
@@ -68,13 +76,15 @@ public partial class SettingsViewModel : ObservableObject
         IHistoryService historyService,
         IThemeService themeService,
         IApiHostService apiHost,
-        IApiKeyStore apiKeyStore)
+        IApiKeyStore apiKeyStore,
+        ISystemMonitorService monitor)
     {
         _settingsService = settingsService;
         _historyService = historyService;
         _themeService = themeService;
         _apiHost = apiHost;
         _apiKeyStore = apiKeyStore;
+        _monitor = monitor;
     }
 
     public void Load()
@@ -87,7 +97,15 @@ public partial class SettingsViewModel : ObservableObject
             SelectedBackdrop = s.BackdropMaterial ?? "Mica";
             AccentColorHex = s.AccentColor ?? "#3B82F6";
             MetricsRefreshSeconds = s.MetricsRefreshSeconds;
+            ApplyMetricsInterval(s.MetricsRefreshSeconds);   // audit: actually drive the monitor
             ChartHistorySeconds = s.ChartHistorySeconds;
+
+            // Federation & automation (audit C9)
+            PpiEnabled = s.PpiEnabled;
+            AutomationPaused = s.AutomationPaused;
+            AutoApplyEnabled = s.AutoApplyEnabled;
+            AutoContextSwitchEnabled = s.AutoContextSwitchEnabled;
+            FancontrolStateDir = s.FancontrolStateDir ?? "";
             ConfirmBeforeApply = s.ConfirmBeforeApply;
             MinimizeToTray = s.MinimizeToTray;
             StartMinimized = s.StartMinimized;
@@ -150,6 +168,47 @@ public partial class SettingsViewModel : ObservableObject
     {
         if (_isLoading) return;
         _settingsService.Settings.MetricsRefreshSeconds = value;
+        _settingsService.Save();
+        ApplyMetricsInterval(value);   // audit: the setting now actually changes the sampling rate
+    }
+
+    private void ApplyMetricsInterval(int seconds)
+        => _monitor.SampleInterval = TimeSpan.FromSeconds(Math.Clamp(seconds, 1, 60));
+
+    // ── Federation & automation (audit C9) ─────────────────────────────────────
+
+    partial void OnPpiEnabledChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.PpiEnabled = value;
+        _settingsService.Save();
+    }
+
+    partial void OnAutomationPausedChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.AutomationPaused = value;
+        _settingsService.Save();
+    }
+
+    partial void OnAutoApplyEnabledChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.AutoApplyEnabled = value;
+        _settingsService.Save();
+    }
+
+    partial void OnAutoContextSwitchEnabledChanged(bool value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.AutoContextSwitchEnabled = value;
+        _settingsService.Save();
+    }
+
+    partial void OnFancontrolStateDirChanged(string value)
+    {
+        if (_isLoading) return;
+        _settingsService.Settings.FancontrolStateDir = value?.Trim() ?? "";
         _settingsService.Save();
     }
 

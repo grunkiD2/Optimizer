@@ -53,7 +53,7 @@ public sealed partial class PowerInsightsPage : Page
             PackageTile.Value = "--";
             TopDrainTile.Value = "--";
             SetSingleRow(DrainerList, HudStatus.Neutral, "OFF",
-                "Power Insights is disabled — enable it under Settings (PpiEnabled).");
+                "Power Insights is disabled — turn it on under Settings → Federation & Automation → Power Insights.");
             return;
         }
 

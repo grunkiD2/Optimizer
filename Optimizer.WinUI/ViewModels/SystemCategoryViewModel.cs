@@ -22,7 +22,11 @@ public partial class SystemCategoryViewModel : CategoryViewModelBase
     [
         Ids.DisableTelemetry,
         Ids.DisableConsumerFeatures,
-        Ids.DisableHibernation
+        Ids.DisableHibernation,
+        // Audit Batch 2: previously orphaned (registered + implemented, but on no page).
+        Ids.ConfigureWindowsUpdateUX,
+        Ids.DisableAutoplay,
+        Ids.DisableUsbNotifications
     ];
 
     public SystemCategoryViewModel(
@@ -52,13 +56,19 @@ public partial class SystemCategoryViewModel : CategoryViewModelBase
         UpdatePrivacyScore();
     }
 
-    public async Task ToggleAsync(PrivacySetting setting, bool enableForPrivacy)
+    /// <summary>Returns false on failure so the page can revert the toggle (audit Batch 2:
+    /// a failed privacy change used to leave the switch showing a state that didn't apply).</summary>
+    public async Task<bool> ToggleAsync(PrivacySetting setting, bool enableForPrivacy)
     {
         if (await _privacyService.SetEnabledAsync(setting.Id, enableForPrivacy))
         {
             setting.IsPrivacyFriendly = enableForPrivacy;
             UpdatePrivacyScore();
+            SetStatus($"{setting.Name}: {(enableForPrivacy ? "privacy-friendly" : "default")}.", false);
+            return true;
         }
+        SetStatus($"Couldn't change \"{setting.Name}\" — requires administrator.", true);
+        return false;
     }
 
     public void RefreshMetrics()

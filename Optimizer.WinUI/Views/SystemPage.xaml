@@ -7,8 +7,13 @@
     xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
     xmlns:vm="using:Optimizer.WinUI.ViewModels"
     xmlns:services="using:Optimizer.WinUI.Services"
+    xmlns:converters="using:Optimizer.WinUI.Converters"
     Background="Transparent"
     Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <converters:BoolToInfoBarSeverityConverter x:Key="BoolToInfoBarSeverity"/>
+    </Page.Resources>
 
     <hud:HudBackdrop>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -47,6 +52,12 @@
                             Command="{x:Bind ViewModel.UndoCategoryCommand}"/>
                 </StackPanel>
             </Grid>
+
+            <!-- Audit Batch 2: privacy/optimization results are no longer silent. -->
+            <InfoBar IsOpen="{x:Bind ViewModel.HasStatus, Mode=OneWay}"
+                     Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                     Severity="{x:Bind ViewModel.StatusIsError, Mode=OneWay, Converter={StaticResource BoolToInfoBarSeverity}}"
+                     IsClosable="True"/>
 
             <!-- ── Local metrics strip ──────────────────────────────────── -->
             <Grid ColumnSpacing="12">

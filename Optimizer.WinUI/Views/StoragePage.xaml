@@ -15,6 +15,7 @@
     <Page.Resources>
         <converters:HealthScoreToColorConverter x:Key="HealthScoreToColor"/>
         <converters:BytesToStringConverter x:Key="BytesToString"/>
+        <converters:BoolToInfoBarSeverityConverter x:Key="BoolToInfoBarSeverity"/>
     </Page.Resources>
 
     <hud:HudBackdrop>
@@ -59,6 +60,12 @@
                             Command="{x:Bind ViewModel.UndoCategoryCommand}"/>
                 </StackPanel>
             </Grid>
+
+            <!-- Audit Batch 2: apply/undo results are no longer silent. -->
+            <InfoBar IsOpen="{x:Bind ViewModel.HasStatus, Mode=OneWay}"
+                     Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                     Severity="{x:Bind ViewModel.StatusIsError, Mode=OneWay, Converter={StaticResource BoolToInfoBarSeverity}}"
+                     IsClosable="True"/>
 
             <!-- ── Local metrics strip ──────────────────────────────────── -->
             <Grid ColumnSpacing="12">
