@@ -100,6 +100,43 @@ public partial class DevicesViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Restart a device by disabling then re-enabling it through the service (Batch 3).
+    /// Refuses critical devices. Reports progress via StatusMessage; if re-enable fails after
+    /// a successful disable, says so plainly so the user knows the device is left disabled.
+    /// </summary>
+    public async Task<bool> RestartDeviceAsync(PnpDevice device)
+    {
+        if (device.IsCritical)
+        {
+            StatusMessage = $"'{device.Name}' is a protected system device and cannot be restarted.";
+            return false;
+        }
+
+        IsLoading = true;
+        try
+        {
+            var off = await _deviceService.SetEnabledAsync(device.InstanceId, false);
+            if (!off)
+            {
+                StatusMessage = $"Failed to restart '{device.Name}' (could not disable it).";
+                return false;
+            }
+
+            var on = await _deviceService.SetEnabledAsync(device.InstanceId, true);
+            StatusMessage = on
+                ? $"'{device.Name}' restarted successfully."
+                : $"'{device.Name}' was disabled but FAILED to re-enable — re-enable it in Device Manager.";
+
+            await LoadAsync(); // refresh list to reflect the device's real state
+            return on;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
     partial void OnClassFilterChanged(string? value)
     {
         // Reload automatically when filter changes

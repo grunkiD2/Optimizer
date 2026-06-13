@@ -107,6 +107,13 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:EventLogEntryInfo">
                     <Grid ColumnSpacing="10">
+                        <Grid.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Kopiér detaljer" Click="EventCopy_Click"/>
+                                <MenuFlyoutItem Text="Åbn Event Viewer" Click="EventOpenViewer_Click"/>
+                                <MenuFlyoutItem Text="Søg på event-ID online" Click="EventSearch_Click"/>
+                            </MenuFlyout>
+                        </Grid.ContextFlyout>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="130"/>
                             <ColumnDefinition Width="60"/>

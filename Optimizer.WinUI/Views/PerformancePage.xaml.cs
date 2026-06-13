@@ -257,6 +257,29 @@ public sealed partial class PerformancePage : Page
         await dialog.ShowAsync();
     }
 
+    // ── Process row context menu (Batch 3) ──────────────────────────────────
+    private static ProcessPriorityInfo? ProcOf(object sender)
+        => (sender as FrameworkElement)?.DataContext as ProcessPriorityInfo;
+
+    private void ProcOpenLocation_Click(object sender, RoutedEventArgs e)
+    {
+        if (ProcOf(sender) is not { } p) return;
+        if (!RowActions.RevealProcessLocation(p.Pid))
+            _ = DialogHelper.InfoAsync(XamlRoot, "Åbn filplacering",
+                $"Kunne ikke finde filplaceringen for {p.Name} (PID {p.Pid}) — processen kan være beskyttet eller afsluttet.");
+    }
+
+    private async void ProcEndTask_Click(object sender, RoutedEventArgs e)
+    {
+        if (ProcOf(sender) is not { } p) return;
+        var confirm = await DialogHelper.ConfirmAsync(XamlRoot, "Afslut proces?",
+            $"Afslut {p.Name} (PID {p.Pid})? Ikke-gemt arbejde i processen går tabt.", "Afslut");
+        if (!confirm) return;
+        var (ok, msg) = RowActions.TryEndProcess(p.Pid);
+        await DialogHelper.InfoAsync(XamlRoot, "Afslut proces", msg);
+        if (ok) ViewModel.Load();
+    }
+
     // ── Panel B: Advanced Tuning ─────────────────────────────────────────────
 
     private void SyncBoostModeCombo()

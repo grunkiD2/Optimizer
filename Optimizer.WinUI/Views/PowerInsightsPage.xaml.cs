@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Controls.Hud;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Power;
 
@@ -92,7 +93,9 @@ public sealed partial class PowerInsightsPage : Page
             var name = d.InstanceCount > 1 ? $"{d.Name} (×{d.InstanceCount})" : d.Name;
             var detail = $"{d.EstimatedWatts:F1} W · {d.CpuShare:P1} CPU"
                 + (d.BaselineW is { } bw ? $" · baseline {bw:F1} W (z={d.ZScore:F1})" : "");
-            DrainerList.Children.Add(Row(status, pill, name, detail));
+            var row = Row(status, pill, name, detail);
+            row.ContextFlyout = BuildDrainerFlyout(d);
+            DrainerList.Children.Add(row);
         }
     }
 
@@ -117,13 +120,73 @@ public sealed partial class PowerInsightsPage : Page
                 {
                     var status = ev.Classification == "anomalous" ? HudStatus.Danger : HudStatus.Warning;
                     var when = DateTimeOffset.TryParse(ev.Ts, out var ts) ? ts.ToString("HH:mm") : ev.Ts;
-                    DriftList.Children.Add(Row(status, ev.Classification.ToUpperInvariant(),
+                    var row = Row(status, ev.Classification.ToUpperInvariant(),
                         $"{ev.ProcessName} · {ev.Context} · {when}",
-                        $"observed {ev.ObservedW:F1} W vs {ev.BaselineW:F1} W baseline · z={ev.ZScore:F1}"));
+                        $"observed {ev.ObservedW:F1} W vs {ev.BaselineW:F1} W baseline · z={ev.ZScore:F1}");
+                    row.ContextFlyout = BuildDriftFlyout(ev);
+                    DriftList.Children.Add(row);
                 }
             });
         }
         catch { /* page is best-effort */ }
+    }
+
+    // ── Row context menus (Batch 3) ──────────────────────────────────────────
+    // PpiProcessExclusions was findable in code but uneditable in the UI (audit P2).
+    // Right-click a drainer/drift row to exclude/include the process or copy its detail.
+
+    private MenuFlyout BuildDrainerFlyout(PowerDrainerRow d)
+    {
+        var flyout = new MenuFlyout();
+
+        var details = $"{d.Name} — {d.EstimatedWatts:F1} W"
+            + (d.BaselineW is { } bw ? $" (baseline {bw:F1} W, z={d.ZScore:F1})" : "")
+            + $", {d.CpuShare:P1} CPU, ×{d.InstanceCount}";
+
+        var excluded = IsExcluded(d.Name);
+        var toggle = new MenuFlyoutItem
+        {
+            Text = excluded ? $"Fjern “{d.Name}” fra ekskluderede" : $"Ekskludér “{d.Name}”",
+        };
+        toggle.Click += (_, _) => ToggleExclusion(d.Name);
+        flyout.Items.Add(toggle);
+
+        var copy = new MenuFlyoutItem { Text = "Kopiér detaljer" };
+        copy.Click += (_, _) => RowActions.CopyText(details);
+        flyout.Items.Add(copy);
+
+        return flyout;
+    }
+
+    private MenuFlyout BuildDriftFlyout(PowerDriftEvent ev)
+    {
+        var flyout = new MenuFlyout();
+
+        var copy = new MenuFlyoutItem { Text = "Kopiér hændelse" };
+        copy.Click += (_, _) => RowActions.CopyText(
+            $"{ev.Ts} · {ev.Context} · {ev.ProcessName}: observed {ev.ObservedW:F1} W vs {ev.BaselineW:F1} W baseline (z={ev.ZScore:F1}) [{ev.Classification}]");
+        flyout.Items.Add(copy);
+
+        var exclude = new MenuFlyoutItem { Text = $"Ekskludér “{ev.ProcessName}”" };
+        exclude.Click += (_, _) => ToggleExclusion(ev.ProcessName);
+        flyout.Items.Add(exclude);
+
+        return flyout;
+    }
+
+    private bool IsExcluded(string name)
+        => _settings.Settings.PpiProcessExclusions
+            .Any(e => string.Equals(e, name, StringComparison.OrdinalIgnoreCase));
+
+    private void ToggleExclusion(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        var list = _settings.Settings.PpiProcessExclusions;
+        var existing = list.FirstOrDefault(e => string.Equals(e, name, StringComparison.OrdinalIgnoreCase));
+        if (existing != null) list.Remove(existing);
+        else list.Add(name);
+        _settings.Save();
+        Render(); // EXCL pill + flyout label refresh on the next attribution window
     }
 
     private static void SetSingleRow(StackPanel panel, HudStatus status, string pill, string text)

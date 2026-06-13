@@ -94,6 +94,13 @@
                              Message column is Width="*" so it wraps instead of
                              expanding horizontally and breaking the scroll. -->
                         <Grid ColumnSpacing="8">
+                            <Grid.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Kopiér linje" Click="ActivityCopyLine_Click"/>
+                                    <MenuFlyoutItem Text="Kopiér alt" Click="ActivityCopyAll_Click"/>
+                                    <MenuFlyoutItem Text="Gem log…" Click="ActivitySaveLog_Click"/>
+                                </MenuFlyout>
+                            </Grid.ContextFlyout>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -140,7 +147,15 @@
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="m:ChatMessage">
                         <TextBlock Text="{x:Bind Text, Mode=OneWay}"
-                                   TextWrapping="Wrap" Margin="0,2"/>
+                                   TextWrapping="Wrap" Margin="0,2"
+                                   IsTextSelectionEnabled="True">
+                            <TextBlock.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Kopiér besked" Click="ChatCopy_Click"/>
+                                    <MenuFlyoutItem Text="Kopiér alt" Click="ChatCopyAll_Click"/>
+                                </MenuFlyout>
+                            </TextBlock.ContextFlyout>
+                        </TextBlock>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>

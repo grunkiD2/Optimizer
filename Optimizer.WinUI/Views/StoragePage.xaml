@@ -220,6 +220,12 @@
                         <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="8" Padding="14,10"
                                 BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
+                            <Border.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Kopiér sti" Click="LargeFileCopyPath_Click"/>
+                                    <MenuFlyoutItem Text="Slet fil…" Click="LargeFileDelete_Click"/>
+                                </MenuFlyout>
+                            </Border.ContextFlyout>
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

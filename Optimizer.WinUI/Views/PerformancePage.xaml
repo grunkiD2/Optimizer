@@ -150,6 +150,12 @@
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="models:ProcessPriorityInfo">
                                         <Border Padding="6,8" BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="0,0,0,1">
+                                            <Border.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Åbn filplacering" Click="ProcOpenLocation_Click"/>
+                                                    <MenuFlyoutItem Text="Afslut proces" Click="ProcEndTask_Click"/>
+                                                </MenuFlyout>
+                                            </Border.ContextFlyout>
                                             <Grid ColumnSpacing="10">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>

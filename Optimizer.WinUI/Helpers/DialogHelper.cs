@@ -22,4 +22,17 @@ public static class DialogHelper
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
+
+    /// <summary>Single-button informational dialog (used by list-row context menus, Batch 3).</summary>
+    public static async Task InfoAsync(XamlRoot root, string title, string content)
+    {
+        var dialog = new ContentDialog
+        {
+            Title = title,
+            Content = content,
+            CloseButtonText = "OK",
+            XamlRoot = root
+        };
+        await dialog.ShowAsync();
+    }
 }

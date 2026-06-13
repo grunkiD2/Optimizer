@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
 
@@ -72,5 +73,32 @@ public sealed partial class DevicesPage : Page
             // Revert toggle on failure
             toggle.IsOn = device.IsEnabled;
         }
+    }
+
+    // ── Row context menu (Batch 3) ───────────────────────────────────────────
+    private static PnpDevice? DeviceOf(object sender)
+        => (sender as FrameworkElement)?.DataContext as PnpDevice;
+
+    private void DeviceOpenManager_Click(object sender, RoutedEventArgs e)
+        => RowActions.ShellOpen("devmgmt.msc");
+
+    private void DeviceCopyId_Click(object sender, RoutedEventArgs e)
+    {
+        if (DeviceOf(sender) is { } d) RowActions.CopyText(d.InstanceId);
+    }
+
+    private async void DeviceRestart_Click(object sender, RoutedEventArgs e)
+    {
+        if (DeviceOf(sender) is not { } d) return;
+        if (d.IsCritical)
+        {
+            await DialogHelper.InfoAsync(XamlRoot, "Genstart enhed",
+                $"'{d.Name}' er en beskyttet systemenhed og kan ikke genstartes.");
+            return;
+        }
+        var confirm = await DialogHelper.ConfirmAsync(XamlRoot, "Genstart enhed?",
+            $"Deaktivér og genaktivér '{d.Name}'? Enheden er kortvarigt utilgængelig.", "Genstart");
+        if (!confirm) return;
+        await ViewModel.RestartDeviceAsync(d);
     }
 }

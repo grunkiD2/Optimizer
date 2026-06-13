@@ -82,6 +82,13 @@
                     <DataTemplate x:DataType="services:PnpDevice">
                         <Border Background="{ThemeResource HudSurfaceAltBrush}"
                                 CornerRadius="6" Padding="12,8" Margin="0,0,0,2">
+                            <Border.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Genstart enhed" Click="DeviceRestart_Click"/>
+                                    <MenuFlyoutItem Text="Åbn Enhedshåndtering" Click="DeviceOpenManager_Click"/>
+                                    <MenuFlyoutItem Text="Kopiér enheds-ID" Click="DeviceCopyId_Click"/>
+                                </MenuFlyout>
+                            </Border.ContextFlyout>
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

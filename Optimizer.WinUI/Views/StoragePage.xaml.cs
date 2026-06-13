@@ -60,4 +60,30 @@ public sealed partial class StoragePage : Page
             };
             await dlg.ShowAsync();
         }, XamlRoot, "CHKDSK");
+
+    // ── Large-file row context menu (Batch 3) ────────────────────────────────
+
+    private void LargeFileCopyPath_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is LargeFile f)
+            RowActions.CopyText(f.FullPath);
+    }
+
+    private async void LargeFileDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not LargeFile f) return;
+        var confirm = await DialogHelper.ConfirmAsync(XamlRoot, "Slet fil?",
+            $"Slet permanent:\n{f.FullPath}\n\nDenne handling kan ikke fortrydes.", "Slet");
+        if (!confirm) return;
+        try
+        {
+            System.IO.File.Delete(f.FullPath);
+            ViewModel.LargeFiles.Remove(f);
+            await DialogHelper.InfoAsync(XamlRoot, "Slet fil", "Filen blev slettet.");
+        }
+        catch (Exception ex)
+        {
+            await DialogHelper.InfoAsync(XamlRoot, "Slet fil", $"Kunne ikke slette filen: {ex.Message}");
+        }
+    }
 }

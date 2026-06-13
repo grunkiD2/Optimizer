@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Optimizer.WinUI.Helpers;
+using Optimizer.WinUI.Models;
 using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
@@ -112,5 +114,30 @@ public sealed partial class StartupPage : Page
                 }
             }
         }
+    }
+
+    // ── Row context menus (Batch 3) ──────────────────────────────────────────
+
+    private void StartupOpenLocation_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not StartupEntry en) return;
+        var path = RowActions.ExtractExecutablePath(en.Command);
+        if (string.IsNullOrEmpty(path))
+            _ = DialogHelper.InfoAsync(XamlRoot, "Åbn filplacering",
+                $"Kunne ikke udlede en filsti fra kommandoen:\n{en.Command}");
+        else
+            RowActions.RevealInExplorer(path);
+    }
+
+    private void ServiceOpenMsc_Click(object sender, RoutedEventArgs e)
+        => RowActions.ShellOpen("services.msc");
+
+    private async void ServiceShowRecommendation_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not WindowsServiceInfo svc) return;
+        var reason = string.IsNullOrWhiteSpace(svc.RecommendationReason)
+            ? "(ingen begrundelse registreret)"
+            : svc.RecommendationReason;
+        await DialogHelper.InfoAsync(XamlRoot, $"{svc.DisplayName} — {svc.Recommendation}", reason);
     }
 }

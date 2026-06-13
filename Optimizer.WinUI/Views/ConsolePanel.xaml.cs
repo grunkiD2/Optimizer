@@ -1,9 +1,12 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
+using Optimizer.WinUI.Helpers;
+using Optimizer.WinUI.Models;
 using Optimizer.WinUI.ViewModels;
 using Windows.System;
 
@@ -72,4 +75,43 @@ public sealed partial class ConsolePanel : UserControl
 
     private void PopOut_Click(object sender, RoutedEventArgs e)   => PopOutRequested?.Invoke(this, EventArgs.Empty);
     private void Collapse_Click(object sender, RoutedEventArgs e) => CollapseRequested?.Invoke(this, EventArgs.Empty);
+
+    // ── Console / chat context menus (Batch 3) ───────────────────────────────
+
+    private void ActivityCopyLine_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ConsoleLine line)
+            RowActions.CopyText($"{line.TimeText} {line.Glyph} {line.Text}");
+    }
+
+    private void ActivityCopyAll_Click(object sender, RoutedEventArgs e)
+        => RowActions.CopyText(string.Join(Environment.NewLine,
+            ConsoleVM.Lines.Select(l => $"{l.TimeText} {l.Glyph} {l.Text}")));
+
+    private async void ActivitySaveLog_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            AppPaths.EnsureFolderExists();
+            var path = AppPaths.GetDataFile($"activity-{DateTime.Now:yyyyMMdd-HHmmss}.log");
+            var text = string.Join(Environment.NewLine,
+                ConsoleVM.Lines.Select(l => $"{l.TimeText} {l.Glyph} {l.Text}"));
+            await System.IO.File.WriteAllTextAsync(path, text);
+            RowActions.RevealInExplorer(path);
+        }
+        catch (Exception ex)
+        {
+            await DialogHelper.InfoAsync(this.XamlRoot, "Gem log", $"Kunne ikke gemme loggen: {ex.Message}");
+        }
+    }
+
+    private void ChatCopy_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ChatMessage msg)
+            RowActions.CopyText(msg.Text);
+    }
+
+    private void ChatCopyAll_Click(object sender, RoutedEventArgs e)
+        => RowActions.CopyText(string.Join(Environment.NewLine + Environment.NewLine,
+            AssistantVM.Messages.Select(m => m.Text)));
 }

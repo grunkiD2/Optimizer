@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.ViewModels;
 
@@ -32,5 +33,25 @@ public sealed partial class EventLogsPage : Page
     {
         if (e.Key == Windows.System.VirtualKey.Enter)
             await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    // ── Row context menu (Batch 3) ───────────────────────────────────────────
+    private static EventLogEntryInfo? EntryOf(object sender)
+        => (sender as FrameworkElement)?.DataContext as EventLogEntryInfo;
+
+    private void EventCopy_Click(object sender, RoutedEventArgs e)
+    {
+        if (EntryOf(sender) is not { } en) return;
+        RowActions.CopyText(
+            $"{en.TimeText}  [{en.Level}]  {en.Source}  (Event {en.EventId}, {en.LogName})\n{en.Message}");
+    }
+
+    private void EventOpenViewer_Click(object sender, RoutedEventArgs e)
+        => RowActions.ShellOpen("eventvwr.msc");
+
+    private void EventSearch_Click(object sender, RoutedEventArgs e)
+    {
+        if (EntryOf(sender) is not { } en) return;
+        RowActions.SearchOnline($"Windows Event ID {en.EventId} {en.Source}");
     }
 }

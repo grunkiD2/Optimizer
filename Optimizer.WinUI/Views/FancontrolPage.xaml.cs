@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Controls;
 using Optimizer.WinUI.Controls.Hud;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
 using Windows.UI;
@@ -309,8 +310,31 @@ public sealed partial class FancontrolPage : Page
                     "ctl" => HudStatus.Info,
                     _ => HudStatus.Neutral,
                 };
-            LogList.Children.Add(Row(status, ev.Src, ev.Msg, ev.Ts.ToString("HH:mm:ss")));
+            var row = Row(status, ev.Src, ev.Msg, ev.Ts.ToString("HH:mm:ss"));
+            row.ContextFlyout = BuildLogFlyout(ev);
+            LogList.Children.Add(row);
         }
+    }
+
+    // Right-click a log line (Batch 3): copy it, or open the raw events.jsonl it came from.
+    private MenuFlyout BuildLogFlyout(FancontrolEvent ev)
+    {
+        var flyout = new MenuFlyout();
+
+        var copy = new MenuFlyoutItem { Text = "Kopiér linje" };
+        copy.Click += (_, _) => RowActions.CopyText($"{ev.Ts:yyyy-MM-dd HH:mm:ss} [{ev.Src}] {ev.Msg}");
+        flyout.Items.Add(copy);
+
+        var open = new MenuFlyoutItem { Text = "Åbn events.jsonl" };
+        open.Click += (_, _) =>
+        {
+            var dir = App.GetService<ISettingsService>().Settings.FancontrolStateDir;
+            if (!string.IsNullOrWhiteSpace(dir))
+                RowActions.RevealInExplorer(System.IO.Path.Combine(dir, "events.jsonl"));
+        };
+        flyout.Items.Add(open);
+
+        return flyout;
     }
 
     // ── Shared row helpers (PowerInsightsPage pattern) ───────────────────────
