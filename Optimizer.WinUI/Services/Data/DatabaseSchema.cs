@@ -3,7 +3,7 @@ namespace Optimizer.WinUI.Services.Data;
 /// <summary>SQL schema definitions for Optimizer SQLite database.</summary>
 public static class DatabaseSchema
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public static readonly string[] Tables = new[]
     {
@@ -514,6 +514,46 @@ public static class DatabaseSchema
             CaseDemand INTEGER, RadDemand INTEGER,
             App TEXT
         )
+        """,
+
+        // ────────────────────────────────────────────────────────────────
+        // Profile verification loop (Profil 2.0 — Fase 2)
+        // ProfileTimeline = profile-active intervals (one row per fgwatch
+        //   profile switch; EndTs NULL = still active, set when the NEXT
+        //   profile starts). ProfileOutcomes = per-interval rollups
+        //   (coolant-p95 from FancontrolTelemetry + fps-1%-low from PresentMon).
+        // Both start empty and fill forward — no data migration.
+        // ────────────────────────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS ProfileTimeline (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ProfileName TEXT NOT NULL,
+            StartTs TEXT NOT NULL,
+            EndTs TEXT,
+            Exe TEXT
+        )
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS IX_ProfileTimeline_Profile
+            ON ProfileTimeline(ProfileName, StartTs)
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS ProfileOutcomes (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ProfileName TEXT NOT NULL,
+            RecordedAtUtc TEXT NOT NULL,
+            DurationMinutes INTEGER NOT NULL,
+            SampleCount INTEGER NOT NULL,
+            CoolantP95 REAL,
+            GpuFps1Low REAL
+        )
+        """,
+
+        """
+        CREATE INDEX IF NOT EXISTS IX_ProfileOutcomes_Profile
+            ON ProfileOutcomes(ProfileName, RecordedAtUtc)
         """
     };
 
