@@ -121,6 +121,107 @@ public class FancontrolCommandServiceTests
         Assert.False((await svc.AckAlertsAsync(null)).Success);
     }
 
+    // ── Profil 2.0 CRUD bridge ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CreateProfile_invokes_ctl_with_name_and_rejects_bad_tokens()
+    {
+        var (svc, calls, root) = MakeService();
+        try
+        {
+            Assert.True((await svc.CreateProfileAsync("Movie Night")).Success);
+            Assert.Equal(["create-profile", "Movie Night"], calls.Single());
+            calls.Clear();
+            Assert.False((await svc.CreateProfileAsync("bad|name")).Success);  // pipe = separator
+            Assert.False((await svc.CreateProfileAsync("  ")).Success);
+            Assert.Empty(calls);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task CloneAndRename_join_with_pipe_separator()
+    {
+        var (svc, calls, root) = MakeService();
+        try
+        {
+            Assert.True((await svc.CloneProfileAsync("Desktop", "Desk2")).Success);
+            Assert.Equal(["clone-profile", "Desktop|Desk2"], calls[^1]);
+            Assert.True((await svc.RenameProfileAsync("Desk2", "Desk3")).Success);
+            Assert.Equal(["rename-profile", "Desk2|Desk3"], calls[^1]);
+            calls.Clear();
+            Assert.False((await svc.CloneProfileAsync("Desktop", "bad|x")).Success);
+            Assert.False((await svc.RenameProfileAsync("", "x")).Success);
+            Assert.Empty(calls);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task EditProfile_passes_raw_json_patch_and_rejects_invalid_json()
+    {
+        var (svc, calls, root) = MakeService();
+        try
+        {
+            var ok = await svc.EditProfileAsync("AAA-HDR", """{"display":{"bright":80},"optimizer":"preset-x"}""");
+            Assert.True(ok.Success);
+            Assert.Equal("edit-profile", calls.Single()[0]);
+            Assert.Equal("""AAA-HDR|{"display":{"bright":80},"optimizer":"preset-x"}""", calls.Single()[1]);
+            calls.Clear();
+            Assert.False((await svc.EditProfileAsync("AAA-HDR", "not json")).Success);
+            Assert.False((await svc.EditProfileAsync("AAA-HDR", "  ")).Success);
+            Assert.False((await svc.EditProfileAsync("bad|name", """{"power":"x"}""")).Success);
+            Assert.Empty(calls);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task DeleteProfile_invokes_ctl_with_name()
+    {
+        var (svc, calls, root) = MakeService();
+        try
+        {
+            Assert.True((await svc.DeleteProfileAsync("Competitive")).Success);
+            Assert.Equal(["delete-profile", "Competitive"], calls.Single());
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public void GetProfiles_parses_full_v2_fields()
+    {
+        var root = Directory.CreateTempSubdirectory("fcroot").FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "profiles"));
+            File.WriteAllText(Path.Combine(root, "profiles", "profiles.json"),
+                """
+                {"v":2,"profiles":{
+                  "AAA-HDR":{"display":{"dc":8,"bright":100,"hdr":true},"power":"36531193-92c9-4772-911e-af2fa6f81bb0","lyd":"Kraken V4 Pro - Game","lys":{"mode":"static","color":"#8C00FF"},"optimizer":"preset-gaming","ui":{"icon":"G","desc":"AAA HDR"},"gamingClass":true},
+                  "Night":{"display":{"dc":10,"bright":20,"hdr":false},"power":"a1841308-3541-4fab-bc81-f71556f20b4a","lyd":"","lys":{"mode":"off"},"optimizer":"","ui":{"icon":"","desc":""},"gamingClass":false}
+                }}
+                """);
+            var svc = new FancontrolCommandService(Path.Combine(root, "state"),
+                (args, ct) => Task.FromResult(new CtlResult(true, "ok")));
+            var profiles = svc.GetProfiles();
+            Assert.Equal(2, profiles.Count);
+            var hdr = profiles.Single(p => p.Name == "AAA-HDR");
+            Assert.Equal(8, hdr.Dc);
+            Assert.Equal(100, hdr.Bright);
+            Assert.True(hdr.Hdr);
+            Assert.Equal("static", hdr.LysMode);
+            Assert.Equal("#8C00FF", hdr.LysColor);
+            Assert.Equal("preset-gaming", hdr.Optimizer);
+            Assert.True(hdr.GamingClass);
+            var night = profiles.Single(p => p.Name == "Night");
+            Assert.Equal("off", night.LysMode);
+            Assert.Null(night.LysColor);   // no color key on mode=off
+            Assert.False(night.GamingClass);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
     // ── R1 result contract: last stdout line is JSON {ok,cmd,msg} + real exit code ──
 
     [Fact]

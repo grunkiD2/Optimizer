@@ -5,6 +5,21 @@ namespace Optimizer.WinUI.Services;
 
 public record CtlResult(bool Success, string Output);
 
+/// <summary>
+/// Full Profil 2.0 (v2) profile record from profiles.json. Lag 2 = user-owned/editable
+/// (display dc/bright/hdr, power GUID, lyd device-substring, lys mode/color, optimizer preset-link,
+/// ui icon/desc); Lag 1 = system-owned read-only (gamingClass).
+/// </summary>
+public record FancontrolProfile(
+    string Name,
+    int Dc, int Bright, bool Hdr,
+    string Power,
+    string Lyd,
+    string LysMode, string? LysColor,
+    string Optimizer,
+    string UiIcon, string UiDesc,
+    bool GamingClass);
+
 public interface IFancontrolCommandService
 {
     /// <summary>True when the federation is configured AND engine\ctl.ps1 exists.</summary>
@@ -13,7 +28,18 @@ public interface IFancontrolCommandService
     /// <summary>Profile names from profiles\profiles.json (empty when unreadable).</summary>
     IReadOnlyList<string> GetProfileNames();
 
+    /// <summary>Full lag-2 + lag-1 profile data from profiles.json (empty when unreadable).</summary>
+    IReadOnlyList<FancontrolProfile> GetProfiles();
+
     Task<CtlResult> ApplyProfileAsync(string profileName, CancellationToken ct = default);
+
+    // ── Profil 2.0 P2.0-b CRUD bridge (all mutations via ctl.ps1; never write profiles.json directly) ──
+    Task<CtlResult> CreateProfileAsync(string name, CancellationToken ct = default);
+    Task<CtlResult> CloneProfileAsync(string source, string newName, CancellationToken ct = default);
+    /// <param name="patchJson">JSON object of editable lag-2 fields, e.g. {"display":{"bright":80},"optimizer":"preset-x"}. gamingClass is rejected by the engine.</param>
+    Task<CtlResult> EditProfileAsync(string name, string patchJson, CancellationToken ct = default);
+    Task<CtlResult> RenameProfileAsync(string oldName, string newName, CancellationToken ct = default);
+    Task<CtlResult> DeleteProfileAsync(string name, CancellationToken ct = default);
 
     /// <summary>mode must be one of on/off/auto.</summary>
     Task<CtlResult> SetNightAsync(string mode, CancellationToken ct = default);
@@ -81,6 +107,91 @@ public class FancontrolCommandService : IFancontrolCommandService
         }
         catch { /* unreadable → empty; ApplyProfileAsync then refuses (fail-closed) */ }
         return [];
+    }
+
+    public IReadOnlyList<FancontrolProfile> GetProfiles()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(_root, "profiles", "profiles.json")));
+            if (!doc.RootElement.TryGetProperty("profiles", out var profs) || profs.ValueKind != JsonValueKind.Object)
+                return [];
+            var list = new List<FancontrolProfile>();
+            foreach (var po in profs.EnumerateObject())
+            {
+                var p = po.Value;
+                var display = ObjOrDefault(p, "display");
+                var lys = ObjOrDefault(p, "lys");
+                var ui = ObjOrDefault(p, "ui");
+                string? lysColor = (lys.ValueKind == JsonValueKind.Object && lys.TryGetProperty("color", out var col)
+                    && col.ValueKind == JsonValueKind.String) ? col.GetString() : null;
+                list.Add(new FancontrolProfile(
+                    po.Name,
+                    GetInt(display, "dc"), GetInt(display, "bright"), GetBool(display, "hdr"),
+                    GetStr(p, "power"), GetStr(p, "lyd"),
+                    GetStr(lys, "mode"), lysColor,
+                    GetStr(p, "optimizer"),
+                    GetStr(ui, "icon"), GetStr(ui, "desc"),
+                    p.TryGetProperty("gamingClass", out var g) && g.ValueKind == JsonValueKind.True));
+            }
+            return list;
+        }
+        catch { return []; }
+    }
+
+    private static JsonElement ObjOrDefault(JsonElement parent, string name)
+        => parent.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Object ? v : default;
+    private static int GetInt(JsonElement parent, string name)
+        => parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var v) && v.TryGetInt32(out var i) ? i : 0;
+    private static bool GetBool(JsonElement parent, string name)
+        => parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+    private static string GetStr(JsonElement parent, string name)
+        => parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
+
+    // A profile name/token may never contain the '|' ctl arg-separator or control chars (the engine
+    // also ASCII/length-gates; this fails fast + keeps the separator unambiguous).
+    private static bool BadToken(string? s) => string.IsNullOrWhiteSpace(s) || s.Contains('|') || s.Any(char.IsControl);
+
+    public Task<CtlResult> CreateProfileAsync(string name, CancellationToken ct = default)
+    {
+        var n = (name ?? "").Trim();
+        if (BadToken(n)) return Task.FromResult(new CtlResult(false, $"Invalid profile name '{name}'."));
+        return RunCtlAsync(["create-profile", n], ct);
+    }
+
+    public Task<CtlResult> CloneProfileAsync(string source, string newName, CancellationToken ct = default)
+    {
+        var s = (source ?? "").Trim();
+        var n = (newName ?? "").Trim();
+        if (BadToken(s) || BadToken(n)) return Task.FromResult(new CtlResult(false, "Invalid source or new profile name."));
+        return RunCtlAsync(["clone-profile", $"{s}|{n}"], ct);
+    }
+
+    public Task<CtlResult> EditProfileAsync(string name, string patchJson, CancellationToken ct = default)
+    {
+        var n = (name ?? "").Trim();
+        if (BadToken(n)) return Task.FromResult(new CtlResult(false, $"Invalid profile name '{name}'."));
+        var patch = (patchJson ?? "").Trim();
+        if (patch.Length == 0) return Task.FromResult(new CtlResult(false, "Empty edit patch."));
+        try { using var _ = JsonDocument.Parse(patch); }
+        catch (JsonException) { return Task.FromResult(new CtlResult(false, "Edit patch is not valid JSON.")); }
+        // Raw JSON survives .NET ArgumentList → powershell.exe -Args intact (verified 2026-06-13); no escaping needed.
+        return RunCtlAsync(["edit-profile", $"{n}|{patch}"], ct);
+    }
+
+    public Task<CtlResult> RenameProfileAsync(string oldName, string newName, CancellationToken ct = default)
+    {
+        var o = (oldName ?? "").Trim();
+        var n = (newName ?? "").Trim();
+        if (BadToken(o) || BadToken(n)) return Task.FromResult(new CtlResult(false, "Invalid old or new profile name."));
+        return RunCtlAsync(["rename-profile", $"{o}|{n}"], ct);
+    }
+
+    public Task<CtlResult> DeleteProfileAsync(string name, CancellationToken ct = default)
+    {
+        var n = (name ?? "").Trim();
+        if (BadToken(n)) return Task.FromResult(new CtlResult(false, $"Invalid profile name '{name}'."));
+        return RunCtlAsync(["delete-profile", n], ct);
     }
 
     public Task<CtlResult> ApplyProfileAsync(string profileName, CancellationToken ct = default)
