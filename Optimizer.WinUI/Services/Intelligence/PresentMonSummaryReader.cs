@@ -15,7 +15,7 @@ public sealed record PresentMonSummary(
     [property: JsonPropertyName("start")] string Start,
     [property: JsonPropertyName("end")] string End);
 
-/// <summary>Reads engine-owned PresentMon summaries from <c>{root}\presentmon\summary-*.json</c>.
+/// <summary>Reads engine-owned PresentMon summaries from <c>{state dir}\presentmon\summary-*.json</c>.
 /// Uses FileShare.ReadWrite so a mid-write by the engine daemon never throws (analyze.ps1 lesson).
 /// Path-injectable for tests; the "measured perf" tier of the intelligence picture.</summary>
 public sealed class PresentMonSummaryReader
@@ -23,8 +23,8 @@ public sealed class PresentMonSummaryReader
     private readonly string _dir;
     private static readonly JsonSerializerOptions Opts = new() { PropertyNameCaseInsensitive = true };
 
-    public PresentMonSummaryReader(string fancontrolRoot)
-        => _dir = Path.Combine(fancontrolRoot, "presentmon");
+    public PresentMonSummaryReader(string stateDir)
+        => _dir = Path.Combine(stateDir, "presentmon");
 
     private IEnumerable<PresentMonSummary> ReadAll(string exe)
     {
@@ -44,6 +44,7 @@ public sealed class PresentMonSummaryReader
     }
 
     /// <summary>Newest summary for an exe by capture end timestamp, or null if none.</summary>
+    // Ordinal sort assumes timestamps share a consistent local offset (ordinal == chronological within a play period).
     public PresentMonSummary? LatestForApp(string exe)
         => ReadAll(exe).OrderByDescending(s => s.End, StringComparer.Ordinal).FirstOrDefault();
 
