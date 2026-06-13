@@ -12,7 +12,7 @@
         <!-- Center readout overlaid on top -->
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="-2">
             <TextBlock x:Name="ScoreText" Style="{StaticResource HudDisplayStyle}" HorizontalAlignment="Center"/>
-            <TextBlock Text="SYSTEM HEALTH" Style="{StaticResource HudMicroStyle}" HorizontalAlignment="Center"/>
+            <TextBlock Text="HEADROOM" Style="{StaticResource HudMicroStyle}" HorizontalAlignment="Center"/>
         </StackPanel>
     </Grid>
 </UserControl>

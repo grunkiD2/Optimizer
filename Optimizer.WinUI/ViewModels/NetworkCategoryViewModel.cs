@@ -18,7 +18,6 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
     // ── Live traffic metrics (existing) ──────────────────────────────────────
     [ObservableProperty] private string downloadSpeedText = "0 B/s";
     [ObservableProperty] private string uploadSpeedText = "0 B/s";
-    [ObservableProperty] private string latencyText = "N/A";
 
     // ── DNS ───────────────────────────────────────────────────────────────────
     [ObservableProperty] private string currentDns = "Loading...";
@@ -89,7 +88,6 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
         var snapshot = _dataBus.LatestMetrics ?? _monitor.CollectSnapshot();
         DownloadSpeedText = ByteFormatter.FormatSpeed(snapshot.NetworkInSpeed);
         UploadSpeedText   = ByteFormatter.FormatSpeed(snapshot.NetworkOutSpeed);
-        LatencyText       = "N/A";
     }
 
     // ── Speed test ─────────────────────────────────────────────────────────────
@@ -130,6 +128,7 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
         if (_latencyActive) return;
         _latencyActive = true;
         _dataBus.LatencyUpdated += OnLatencyUpdated;
+        _dataBus.MetricsUpdated += OnMetricsUpdated; // live download/upload (Batch 4a: were frozen snapshots)
         _dataBus.SetLatencyActive(true);
     }
 
@@ -139,7 +138,17 @@ public partial class NetworkCategoryViewModel : CategoryViewModelBase
         if (!_latencyActive) return;
         _latencyActive = false;
         _dataBus.LatencyUpdated -= OnLatencyUpdated;
+        _dataBus.MetricsUpdated -= OnMetricsUpdated;
         _dataBus.SetLatencyActive(false);
+    }
+
+    private void OnMetricsUpdated(Optimizer.WinUI.Models.SystemResource m)
+    {
+        _dispatcherQueue?.TryEnqueue(() =>
+        {
+            DownloadSpeedText = ByteFormatter.FormatSpeed(m.NetworkInSpeed);
+            UploadSpeedText   = ByteFormatter.FormatSpeed(m.NetworkOutSpeed);
+        });
     }
 
     private void OnLatencyUpdated(double ms)

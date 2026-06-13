@@ -9,6 +9,7 @@
 
     <UserControl.Resources>
         <!-- BoolToVisibility is a global converter in App.xaml -->
+        <converters:StringToSolidColorBrushConverter x:Key="LineBrush"/>
 
         <!-- Breathing animation for the live-status dot -->
         <Storyboard x:Key="LivePulse" RepeatBehavior="Forever">
@@ -108,7 +109,8 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="{x:Bind TimeText}"
                                        Foreground="{StaticResource MutedBrush}"/>
-                            <TextBlock Grid.Column="1" Text="{x:Bind Glyph}"/>
+                            <TextBlock Grid.Column="1" Text="{x:Bind Glyph}"
+                                       Foreground="{x:Bind Color, Converter={StaticResource LineBrush}}"/>
                             <TextBlock Grid.Column="2" Text="{x:Bind Text}"
                                        TextWrapping="Wrap"/>
                         </Grid>

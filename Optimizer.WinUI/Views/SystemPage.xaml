@@ -92,12 +92,13 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Hibernation placeholder -->
+                <!-- Privacy score (Batch 4a: was a hardcoded "Sleep" placeholder) -->
                 <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
-                        <TextBlock Text="Hibernation" FontSize="12" Foreground="#34D399"/>
-                        <TextBlock Text="Sleep" FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
-                        <TextBlock Text="power state" FontSize="11"
+                        <TextBlock Text="Privacy Score" FontSize="12" Foreground="#34D399"/>
+                        <TextBlock Text="{x:Bind ViewModel.PrivacyScoreText, Mode=OneWay}"
+                                   FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
+                        <TextBlock Text="privacy-friendly settings" FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>

@@ -190,7 +190,7 @@ public class TuningService : ITuningService
         {
             Id             = "intel-max-perf",
             Name           = "Intel: Maximum Performance",
-            Description    = "100% min state, all-core max boost, unlimited PL1/PL2 hint — maximum heat and power draw.",
+            Description    = "100% min state, all-core max boost — maximum heat and power draw. (PL1/PL2 require a kernel driver and are not changed by this app.)",
             Risk           = "High",
             CpuVendor      = "Intel",
             PowerLimitWatts = null,   // uncapped

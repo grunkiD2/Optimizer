@@ -101,9 +101,9 @@
                 <Border Grid.Column="2" CornerRadius="8" Padding="16,12" Background="{ThemeResource HudSurfaceAltBrush}">
                     <StackPanel Spacing="6">
                         <TextBlock Text="LATENCY" FontSize="12" Foreground="#A78BFA"/>
-                        <TextBlock Text="{x:Bind ViewModel.LatencyText, Mode=OneWay}"
+                        <TextBlock Text="{x:Bind ViewModel.CurrentPingText, Mode=OneWay}"
                                    FontSize="22" FontWeight="Bold" FontFamily="Consolas"/>
-                        <TextBlock Text="ping" FontSize="11"
+                        <TextBlock Text="ms · live ping" FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                 </Border>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
@@ -20,17 +21,54 @@ public sealed partial class ConsolePanel : UserControl
     public event EventHandler? PopOutRequested;
     public event EventHandler? CollapseRequested;
 
+    // Activity-driven live dot (Batch 4a): green + pulsing only while the console is actually
+    // receiving lines; dims to muted ~6 s after the last line instead of faking "always live".
+    private readonly DispatcherTimer _liveTimer = new() { Interval = TimeSpan.FromSeconds(6) };
+    private bool? _isLive;
+
     public ConsolePanel()
     {
         InitializeComponent();
         AssistantVM.ConfirmHandler = ConfirmAsync;
+        _liveTimer.Tick += (_, _) => { _liveTimer.Stop(); SetLive(false); };
         Loaded += OnLoaded;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        ConsoleVM.Lines.CollectionChanged += OnLinesChanged;
+        if (ConsoleVM.Lines.Count > 0) { SetLive(true); _liveTimer.Start(); }
+        else SetLive(false);
+    }
+
+    private void OnLinesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action != NotifyCollectionChangedAction.Add) return;
+        SetLive(true);
+        _liveTimer.Stop();
+        _liveTimer.Start();
+    }
+
+    private void SetLive(bool live)
+    {
+        if (LiveDot is null || live == _isLive) return;
+        _isLive = live;
+
+        // Crash-safe brush lookup: prefer the theme resource, fall back to literals so a missing
+        // key can never throw on console load.
+        var key = live ? "SuccessBrush" : "MutedBrush";
+        LiveDot.Fill = Application.Current.Resources.TryGetValue(key, out var res)
+            && res is Microsoft.UI.Xaml.Media.Brush brush
+                ? brush
+                : new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                    live ? Microsoft.UI.ColorHelper.FromArgb(0xFF, 0x22, 0xC5, 0x5E)
+                         : Microsoft.UI.ColorHelper.FromArgb(0xFF, 0x9C, 0xA3, 0xAF));
+
         if (Resources["LivePulse"] is Storyboard sb)
-            sb.Begin();
+        {
+            if (live) sb.Begin();
+            else { sb.Stop(); LiveDot.Opacity = 0.4; }
+        }
     }
 
     /// <summary>Switch to the Assistant tab and focus the input box.</summary>

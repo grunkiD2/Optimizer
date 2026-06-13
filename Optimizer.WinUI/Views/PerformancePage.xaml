@@ -398,7 +398,8 @@
                                             </Border>
                                             <TextBlock Text="Laptop-friendly" FontSize="10"
                                                        Foreground="{StaticResource AccentCyanBrush}"
-                                                       VerticalAlignment="Center"/>
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{x:Bind RecommendedForLaptop, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"/>
                                         </StackPanel>
 
                                         <Button Grid.Row="3" Content="Apply" Tag="{x:Bind Id}"
