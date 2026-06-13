@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services.Commands;
 using Optimizer.WinUI.ViewModels;
 using Windows.System;
 
@@ -36,10 +37,22 @@ public sealed partial class ConsolePanel : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        // Load today's persisted chat (Batch 4a: LoadSessionAsync was never called, so
+        // history never restored and _currentSessionId stayed null → events weren't saved).
+        // Guarded inside the VM so the dock + a pop-out panel don't double-load.
+        _ = AssistantVM.LoadSessionAsync();
+
         ConsoleVM.Lines.CollectionChanged += OnLinesChanged;
         if (ConsoleVM.Lines.Count > 0) { SetLive(true); _liveTimer.Start(); }
         else SetLive(false);
     }
+
+    /// <summary>Re-point the shared AssistantViewModel's confirm prompt back at THIS panel.
+    /// Called on re-dock so a closed pop-out window's XamlRoot is no longer used (Batch 4a).</summary>
+    public void ReassertConfirmHandler() => AssistantVM.ConfirmHandler = ConfirmAsync;
+
+    private void OpenSettings_Click(object sender, RoutedEventArgs e)
+        => App.GetService<IPageNavigator>().NavigateTo("Settings");
 
     private void OnLinesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {

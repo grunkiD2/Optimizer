@@ -322,7 +322,14 @@ public sealed partial class MainWindow : Window
     {
         SetConsoleVisible(false);
         _popOut = new ConsoleWindow();
-        _popOut.ReDockRequested += (_, _) => { _popOut = null; SetConsoleVisible(true); };
+        _popOut.ReDockRequested += (_, _) =>
+        {
+            _popOut = null;
+            SetConsoleVisible(true);
+            // Batch 4a: the pop-out panel hijacked the shared ConfirmHandler; re-point it at the
+            // dock panel so confirm dialogs don't render on the closed pop-out's XamlRoot.
+            _dockPanel?.ReassertConfirmHandler();
+        };
         _popOut.Activate();
     }
 

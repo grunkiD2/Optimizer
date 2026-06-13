@@ -50,6 +50,7 @@ public partial class AssistantViewModel : ObservableObject
     /// <summary>Load today's session history (called by MainWindow or View).</summary>
     public async Task LoadSessionAsync()
     {
+        if (_currentSessionId != null) return; // already loaded — don't clear/reload (e.g. pop-out panel)
         try
         {
             var session = await _sessionPersistence.GetOrCreateTodaySessionAsync();

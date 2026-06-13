@@ -131,12 +131,24 @@
         <!-- ── Assistant pane (AI chat) ──────────────────────────────── -->
         <Grid x:Name="PaneAssistant" Grid.Row="1" Visibility="Collapsed">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>   <!-- API-key prompt -->
+                <RowDefinition Height="*"/>      <!-- messages -->
+                <RowDefinition Height="Auto"/>   <!-- feedback bar -->
+                <RowDefinition Height="Auto"/>   <!-- input -->
             </Grid.RowDefinitions>
 
-            <ListView Grid.Row="0"
+            <!-- API-key prompt (Batch 4a): NeedsApiKey was computed but never surfaced -->
+            <InfoBar Grid.Row="0"
+                     IsOpen="{x:Bind AssistantVM.NeedsApiKey, Mode=OneWay}"
+                     Severity="Warning" IsClosable="False"
+                     Title="API key required"
+                     Message="Add your Claude API key in Settings to use the assistant.">
+                <InfoBar.ActionButton>
+                    <Button Content="Open Settings" Click="OpenSettings_Click"/>
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <ListView Grid.Row="1"
                       x:Name="AssistantList"
                       ItemsSource="{x:Bind AssistantVM.Messages}"
                       SelectionMode="None"
@@ -163,7 +175,7 @@
             </ListView>
 
             <!-- Feedback bar — visible only after a tool-using turn -->
-            <StackPanel Grid.Row="1"
+            <StackPanel Grid.Row="2"
                         Orientation="Horizontal" Spacing="6" Padding="10,4"
                         Visibility="{x:Bind AssistantVM.CanRateLastTurn, Mode=OneWay}"
                         BorderThickness="0,1,0,0"
@@ -179,11 +191,12 @@
             </StackPanel>
 
             <!-- Input row -->
-            <Grid Grid.Row="2" Padding="8"
+            <Grid Grid.Row="3" Padding="8"
                   BorderThickness="0,1,0,0"
                   BorderBrush="{ThemeResource HudHairlineBrush}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox Grid.Column="0" x:Name="InputBox"
@@ -192,6 +205,9 @@
                          KeyDown="Input_KeyDown"/>
                 <Button Grid.Column="1" Content="Send" Margin="8,0,0,0"
                         Command="{x:Bind AssistantVM.SendCommand}"/>
+                <Button Grid.Column="2" Content="Clear" Margin="8,0,0,0"
+                        Command="{x:Bind AssistantVM.ClearCommand}"
+                        ToolTipService.ToolTip="Clear the conversation"/>
             </Grid>
         </Grid>
 
