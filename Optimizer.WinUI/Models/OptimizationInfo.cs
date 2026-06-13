@@ -36,6 +36,15 @@ public class OptimizationInfo
     /// <summary>True if a sign-out or restart is needed before the change fully takes effect.</summary>
     public bool RequiresRestart { get; set; }
 
+    /// <summary>
+    /// True when this makes a bulk, hard-to-anticipate change (e.g. removing ALL per-user startup
+    /// entries at once). Destructive optimizations are SKIPPED on headless/bundled surfaces (tray
+    /// quick-action, REST, scheduler, assistant, onboarding) and run only when a caller explicitly
+    /// opts in after an interactive confirmation. Orthogonal to <see cref="Reversible"/> — a
+    /// destructive change can still be undoable.
+    /// </summary>
+    public bool IsDestructive { get; set; }
+
     /// <summary>The optimization's author. Empty for built-in optimizations.</summary>
     public string Author { get; set; } = string.Empty;
 

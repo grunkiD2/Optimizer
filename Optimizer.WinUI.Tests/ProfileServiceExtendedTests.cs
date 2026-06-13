@@ -25,8 +25,8 @@ public class ProfileServiceExtendedTests
         mock.Setup(o => o.GetAvailableOptimizationsAsync())
             .ReturnsAsync(optimizations ?? new List<string> { "opt-a", "opt-b" });
         mock.Setup(o => o.IsOptimizationApplied(It.IsAny<string>())).Returns(false);
-        mock.Setup(o => o.ApplyProfileAsync(It.IsAny<string>())).ReturnsAsync(true);
-        mock.Setup(o => o.ApplyOptimizationAsync(It.IsAny<string>()))
+        mock.Setup(o => o.ApplyProfileAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(true);
+        mock.Setup(o => o.ApplyOptimizationAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new OptimizationResult { Success = true });
         return mock;
     }

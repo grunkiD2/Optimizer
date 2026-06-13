@@ -5,14 +5,6 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e088</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e088</value></resheader>
 
-  <!-- Dashboard -->
-  <data name="Dashboard_Title.Text"><value>System Dashboard</value></data>
-  <data name="Dashboard_HealthLabel.Text"><value>Health Score</value></data>
-  <data name="Dashboard_TopProcesses.Text"><value>Top Processes</value></data>
-  <data name="Dashboard_IOActivity.Text"><value>I/O Activity</value></data>
-  <data name="Dashboard_ApplySafeTune.Content"><value>Apply Safe Tune</value></data>
-  <data name="Dashboard_UndoAll.Content"><value>Undo All</value></data>
-
   <!-- Performance -->
   <data name="Performance_Title.Text"><value>Performance</value></data>
   <data name="Performance_PowerPlan.Text"><value>Power Plan</value></data>

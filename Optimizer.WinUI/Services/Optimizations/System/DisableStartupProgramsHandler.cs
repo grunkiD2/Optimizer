@@ -22,7 +22,10 @@ public sealed class DisableStartupProgramsHandler : OptimizationHandlerBase
         Recommendation = "Prefer the Startup tab for per-item control. This bulk action removes everything at once; use Undo to restore if needed.",
         SuggestedImplementation = "The Startup tab lets you toggle individual entries (HKCU + HKLM Run) one by one instead of this all-or-nothing action.",
         RequiresAdmin = false,
-        Reversible = true
+        Reversible = true,
+        // Wipes EVERY per-user Run entry in one shot — gated so it can't run from a bundled/headless
+        // surface (tray Quick Cleanup, REST, scheduler, assistant) without explicit confirmation.
+        IsDestructive = true
     };
 
     public override bool? IsApplied() => null; // not deterministic without enumerating the key

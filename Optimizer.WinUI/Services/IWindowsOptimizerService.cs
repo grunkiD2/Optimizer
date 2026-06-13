@@ -7,14 +7,16 @@ public interface IWindowsOptimizerService
     /// <summary>Built-in read-only preset profiles the user can apply or copy into their own profiles.</summary>
     IReadOnlyList<SettingsProfile> GetBuiltInPresets();
 
-    Task<bool> ApplyProfileAsync(string profileId);
+    Task<bool> ApplyProfileAsync(string profileId, bool includeDestructive = false);
 
     /// <summary>
     /// Audit C6: applies a profile and reports the per-optimization outcome instead of a flat
     /// bool that was true even when every bundled optimization failed. UI surfaces should call
-    /// this and show "X of Y applied".
+    /// this and show "X of Y applied". <paramref name="includeDestructive"/> defaults false so
+    /// destructive optimizations are skipped+reported on headless/bundled surfaces; interactive
+    /// surfaces pass true after confirming (Safe-Tune gate, audit 4b).
     /// </summary>
-    Task<ProfileApplyResult> ApplyProfileDetailedAsync(string profileId);
+    Task<ProfileApplyResult> ApplyProfileDetailedAsync(string profileId, bool includeDestructive = false);
 
     Task<bool> RevertProfileAsync(string profileId);
 
@@ -22,7 +24,7 @@ public interface IWindowsOptimizerService
     Task<IEnumerable<SystemResource>> GetResourceHistoryAsync(int sampleCount);
 
     Task<IEnumerable<string>> GetAvailableOptimizationsAsync();
-    Task<OptimizationResult> ApplyOptimizationAsync(string optimizationId);
+    Task<OptimizationResult> ApplyOptimizationAsync(string optimizationId, bool includeDestructive = false);
 
     /// <summary>Returns a human-readable explanation of an optimization, or null if unknown.</summary>
     OptimizationInfo? GetOptimizationInfo(string optimizationId);
@@ -49,6 +51,12 @@ public interface IWindowsOptimizerService
 public class OptimizationResult
 {
     public bool Success { get; set; }
+
+    /// <summary>True when the optimization was intentionally NOT applied (a destructive change on a
+    /// headless surface, or a federated setting) — distinct from a failure (<see cref="Success"/>=false
+    /// without Skipped means it was attempted and failed).</summary>
+    public bool Skipped { get; set; }
+
     public string Message { get; set; } = string.Empty;
     public List<string> Warnings { get; set; } = new();
     public List<string> Errors { get; set; } = new();
@@ -60,21 +68,32 @@ public class ProfileApplyResult
     public bool ProfileFound { get; set; } = true;
     public int Applied { get; set; }
     public int Failed { get; set; }
+
+    /// <summary>Optimizations intentionally not applied — destructive items deferred for confirmation
+    /// on a headless/bundled surface (Safe-Tune gate, audit 4b). Not failures.</summary>
+    public int Skipped { get; set; }
+
     public List<string> Errors { get; set; } = new();
 
-    /// <summary>True only when the profile was found and nothing failed.</summary>
+    /// <summary>Titles of the destructive optimizations that were skipped (confirm in the app to apply).</summary>
+    public List<string> SkippedDestructive { get; set; } = new();
+
+    /// <summary>True only when the profile was found and nothing failed (skips are not failures).</summary>
     public bool Success => ProfileFound && Failed == 0;
 
-    /// <summary>One-line summary for the UI, e.g. "3 of 5 applied — 2 need administrator".</summary>
+    /// <summary>One-line summary for the UI, e.g. "3 of 5 applied — 2 failed — 1 skipped".</summary>
     public string Summary
     {
         get
         {
             if (!ProfileFound) return "Profile not found.";
-            var total = Applied + Failed;
+            var total = Applied + Failed + Skipped;
             if (total == 0) return "Nothing to apply.";
-            if (Failed == 0) return $"Applied all {Applied} optimization(s).";
-            return $"{Applied} of {total} applied — {Failed} failed (often: needs administrator).";
+            if (Failed == 0 && Skipped == 0) return $"Applied all {Applied} optimization(s).";
+            var parts = new List<string> { $"{Applied} of {total} applied" };
+            if (Failed > 0) parts.Add($"{Failed} failed (often: needs administrator)");
+            if (Skipped > 0) parts.Add($"{Skipped} skipped (destructive — confirm in the app)");
+            return string.Join(" — ", parts);
         }
     }
 }

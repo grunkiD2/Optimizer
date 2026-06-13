@@ -263,7 +263,6 @@ public partial class App : Application
 
                 // ViewModels
                 services.AddTransient<OnboardingViewModel>();
-                services.AddSingleton<DashboardViewModel>();
                 services.AddTransient<PerformanceCategoryViewModel>();
                 services.AddSingleton<NetworkCategoryViewModel>();
                 services.AddTransient<StorageCategoryViewModel>();

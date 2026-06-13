@@ -29,12 +29,12 @@ public class AppCommandsMutatingTests
     public async Task ApplyProfile_routes_id_to_service()
     {
         var opt = new Mock<IWindowsOptimizerService>();
-        opt.Setup(o => o.ApplyProfileAsync("preset-privacy")).ReturnsAsync(true);
+        opt.Setup(o => o.ApplyProfileAsync("preset-privacy", It.IsAny<bool>())).ReturnsAsync(true);
         var cmd = new ApplyProfileCommand(opt.Object);
         var args = SchemaJson.Parse("""{"profile_id":"preset-privacy"}""");
         var result = await cmd.ExecuteAsync(args, default);
         Assert.True(result.Success);
-        opt.Verify(o => o.ApplyProfileAsync("preset-privacy"), Times.Once);
+        opt.Verify(o => o.ApplyProfileAsync("preset-privacy", It.IsAny<bool>()), Times.Once);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class AppCommandsMutatingTests
         var cmd = new ApplyProfileCommand(opt.Object);
         var result = await cmd.ExecuteAsync(SchemaJson.Empty, default);
         Assert.False(result.Success);
-        opt.Verify(o => o.ApplyProfileAsync(It.IsAny<string>()), Times.Never);
+        opt.Verify(o => o.ApplyProfileAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]

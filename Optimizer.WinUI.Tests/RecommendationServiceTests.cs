@@ -24,7 +24,7 @@ public class RecommendationServiceTests
 
         var optimizerMock = new Mock<IWindowsOptimizerService>();
         optimizerMock.Setup(o => o.GetBuiltInPresets()).Returns(new List<SettingsProfile>());
-        optimizerMock.Setup(o => o.ApplyProfileAsync(It.IsAny<string>())).ReturnsAsync(true);
+        optimizerMock.Setup(o => o.ApplyProfileAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(true);
 
         return (new RecommendationsService(diagMock.Object, optimizerMock.Object), diagMock);
     }

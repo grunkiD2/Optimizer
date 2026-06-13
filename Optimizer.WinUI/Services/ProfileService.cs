@@ -36,17 +36,19 @@ public class ProfileService : IProfileService
     }
 
     /// <summary>Apply a built-in preset by its profile ID.</summary>
-    public Task<bool> ApplyPresetAsync(string profileId)
+    public Task<bool> ApplyPresetAsync(string profileId, bool includeDestructive = false)
     {
         EngineLog.Write($"[ProfileService] Applying preset '{profileId}'");
-        return _optimizer.ApplyProfileAsync(profileId);
+        return _optimizer.ApplyProfileAsync(profileId, includeDestructive);
     }
 
-    /// <summary>Apply a preset and report the per-optimization outcome (audit C6).</summary>
-    public Task<ProfileApplyResult> ApplyPresetDetailedAsync(string profileId)
+    /// <summary>Apply a preset and report the per-optimization outcome (audit C6). Destructive
+    /// optimizations are skipped unless <paramref name="includeDestructive"/> is set after an
+    /// interactive confirmation (Safe-Tune gate, audit 4b).</summary>
+    public Task<ProfileApplyResult> ApplyPresetDetailedAsync(string profileId, bool includeDestructive = false)
     {
         EngineLog.Write($"[ProfileService] Applying preset '{profileId}' (detailed)");
-        return _optimizer.ApplyProfileDetailedAsync(profileId);
+        return _optimizer.ApplyProfileDetailedAsync(profileId, includeDestructive);
     }
 
     /// <summary>Capture the currently-applied optimizations as a named snapshot.</summary>

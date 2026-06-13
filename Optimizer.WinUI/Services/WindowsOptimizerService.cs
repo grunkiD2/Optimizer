@@ -118,7 +118,7 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         }
     }
 
-    public async Task<OptimizationResult> ApplyOptimizationAsync(string optimizationId)
+    public async Task<OptimizationResult> ApplyOptimizationAsync(string optimizationId, bool includeDestructive = false)
     {
         try
         {
@@ -144,6 +144,22 @@ public class WindowsOptimizerService : IWindowsOptimizerService
                     {
                         Success = false,
                         Errors = new List<string> { $"Unknown optimization ID: {optimizationId}" }
+                    };
+                }
+
+                // Destructive gate (Safe-Tune, audit 4b): a destructive optimization (e.g. wiping ALL
+                // per-user startup entries) never runs from a headless/bundled surface (tray Quick
+                // Cleanup, REST, scheduler, assistant, onboarding). It runs only when a caller
+                // explicitly opts in after an interactive confirmation. Same skip-and-report shape as
+                // the federation ownership gate above.
+                if (!includeDestructive && handler.Info.IsDestructive)
+                {
+                    EngineLog.Write($"Skipped destructive optimization '{optimizationId}' — needs explicit confirmation");
+                    return new OptimizationResult
+                    {
+                        Success = false,
+                        Skipped = true,
+                        Message = $"Skipped: \"{handler.Info.Title}\" makes a destructive change and needs confirmation in the app.",
                     };
                 }
 
@@ -180,10 +196,10 @@ public class WindowsOptimizerService : IWindowsOptimizerService
 
     // ---------------------------------------------------------------- Profiles
 
-    public async Task<bool> ApplyProfileAsync(string profileId)
-        => (await ApplyProfileDetailedAsync(profileId)).Success;
+    public async Task<bool> ApplyProfileAsync(string profileId, bool includeDestructive = false)
+        => (await ApplyProfileDetailedAsync(profileId, includeDestructive)).Success;
 
-    public async Task<ProfileApplyResult> ApplyProfileDetailedAsync(string profileId)
+    public async Task<ProfileApplyResult> ApplyProfileDetailedAsync(string profileId, bool includeDestructive = false)
     {
         var agg = new ProfileApplyResult();
         try
@@ -227,8 +243,13 @@ public class WindowsOptimizerService : IWindowsOptimizerService
             // Run the optimization IDs bundled into this profile — aggregate each result (C6).
             foreach (var optId in profile.Optimizations)
             {
-                var r = await ApplyOptimizationAsync(optId);
+                var r = await ApplyOptimizationAsync(optId, includeDestructive);
                 if (r.Success) agg.Applied++;
+                else if (r.Skipped)
+                {
+                    agg.Skipped++;
+                    agg.SkippedDestructive.Add(GetOptimizationInfo(optId)?.Title ?? optId);
+                }
                 else { agg.Failed++; agg.Errors.Add(r.Errors?.Count > 0 ? string.Join("; ", r.Errors) : (r.Message ?? optId)); }
             }
 

@@ -35,9 +35,9 @@ public class ProfileServiceTests
             .ReturnsAsync(optimizations ?? new List<string> { "opt-a", "opt-b" });
         mock.Setup(o => o.IsOptimizationApplied(It.IsAny<string>()))
             .Returns(false);
-        mock.Setup(o => o.ApplyProfileAsync(It.IsAny<string>()))
+        mock.Setup(o => o.ApplyProfileAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(true);
-        mock.Setup(o => o.ApplyOptimizationAsync(It.IsAny<string>()))
+        mock.Setup(o => o.ApplyOptimizationAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new OptimizationResult { Success = true });
         return mock;
     }
@@ -193,12 +193,12 @@ public class ProfileServiceTests
     public async Task ApplyPresetAsync_DelegatesToOptimizer()
     {
         var mock = BuildOptimizerMock();
-        mock.Setup(o => o.ApplyProfileAsync("gaming")).ReturnsAsync(true);
+        mock.Setup(o => o.ApplyProfileAsync("gaming", It.IsAny<bool>())).ReturnsAsync(true);
         var service = new ProfileService(mock.Object);
 
         var result = await service.ApplyPresetAsync("gaming");
 
         Assert.True(result);
-        mock.Verify(o => o.ApplyProfileAsync("gaming"), Times.Once);
+        mock.Verify(o => o.ApplyProfileAsync("gaming", It.IsAny<bool>()), Times.Once);
     }
 }
