@@ -52,6 +52,11 @@ public class AppSettings
     // never WRITES anything there — see docs/MACHINE-OWNERSHIP.md.
     public string FancontrolStateDir { get; set; } = "";
 
+    // Profil 2.0 P2.0-d: when true, the active Fancontrol profile's "optimizer" preset-link is applied
+    // automatically (with undo, EngineLog only) when the profile changes. Opt-in / ship-dark; read live
+    // each poll so the toggle takes effect without a restart. Needs FancontrolStateDir set to do anything.
+    public bool FancontrolFollowerEnabled { get; set; } = false;
+
     // ── Per-Process Power Intelligence (docs/POWER-INSIGHTS.md) — read-only,
     // suggestions only. Off by default until shaken out (ship-dark policy).
     public bool PpiEnabled { get; set; } = false;

@@ -173,6 +173,15 @@ public partial class App : Application
                         sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 services.AddSingleton<IFancontrolTelemetryService>(sp => sp.GetRequiredService<FancontrolTelemetryService>());
                 services.AddHostedService(sp => sp.GetRequiredService<FancontrolTelemetryService>());
+                // Profil 2.0 P2.0-d: automatic preset FOLLOWER — applies the active profile's "optimizer"
+                // preset-link on profile change (opt-in via FancontrolFollowerEnabled, undo + EngineLog only).
+                services.AddSingleton<FancontrolProfileFollowerService>(sp =>
+                    new FancontrolProfileFollowerService(
+                        sp.GetRequiredService<IFancontrolStatusService>(),
+                        sp.GetRequiredService<IFancontrolCommandService>(),
+                        sp.GetRequiredService<IProfileService>(),
+                        () => sp.GetRequiredService<ISettingsService>().Settings.FancontrolFollowerEnabled));
+                services.AddHostedService(sp => sp.GetRequiredService<FancontrolProfileFollowerService>());
                 // Per-Process Power Intelligence (docs/POWER-INSIGHTS.md) — read-only attribution + drift.
                 services.AddSingleton<Optimizer.WinUI.Services.Power.IPowerAttributionService, Optimizer.WinUI.Services.Power.PowerAttributionService>();
                 services.AddSingleton<Optimizer.WinUI.Services.Power.PowerInsightsService>();
