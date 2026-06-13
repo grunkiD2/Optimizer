@@ -7,7 +7,10 @@ This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol
 
 ## Build & run
 - Build: `dotnet build Optimizer.WinUI/Optimizer.WinUI.csproj -c Debug -p:Platform=x64`. **Always pass `-p:Platform=x64`** — Win2D fails on AnyCPU.
+- **STOP the running app before building** (`Stop-Process -Name Optimizer.WinUI -Force`) — otherwise the build fails on a locked `apphost.exe`/`Optimizer.WinUI.exe`.
 - Tests: `dotnet test Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj -c Debug -p:Platform=x64`.
+- **Changing a service/interface signature → update the test doubles too**: Moq `.Setup()/.Callback()/.Verify()` are arity-bound (a 5th param on `CaptureRegistry` broke every setup), and hand-written fakes must add the new member. Build the **test** project, not just the app, after any interface edit.
+- **ViewModels stay UI-type-free** — no `Microsoft.UI.Xaml` types in `ViewModels/`; expose plain values/bools and convert in XAML (pattern: `Converters/BoolToInfoBarSeverityConverter`). Keeps VMs unit-testable.
 - Every `IOptimizationHandler` is auto-exercised by `OptimizationHandlersSmokeTests` (xUnit `MemberData` enumerates types via reflection) against 5 rules: ctor doesn't throw, Info has non-empty metadata + Id matches Info.Id, inherits `OptimizationHandlerBase`, returns `Success=false` + zero undo captures when `Info.RequiresAdmin=true` against an unelevated fake, `Info.Changes` non-empty. A new handler tomorrow is tested automatically — don't write a parallel per-handler test.
 - Exe: `Optimizer.WinUI/bin/x64/Debug/net10.0-windows10.0.22621.0/Optimizer.WinUI.exe`.
 - DEBUG builds auto-start the REST API on port 8765 (`ApiEnabled` is **not** persisted). `/openapi/v1.json` is unauth; `/api/*` is auth-gated.
