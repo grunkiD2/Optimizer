@@ -152,6 +152,31 @@ public class FancontrolCommandService : IFancontrolCommandService
     // also ASCII/length-gates; this fails fast + keeps the separator unambiguous).
     private static bool BadToken(string? s) => string.IsNullOrWhiteSpace(s) || s.Contains('|') || s.Any(char.IsControl);
 
+    /// <summary>
+    /// Builds the lag-2 edit-patch JSON the editor sends to EditProfileAsync (the engine deep-merges +
+    /// validates it). lys.color is included only when it is a valid #RRGGBB (the engine rejects a bad
+    /// color and the roundtrip principle keeps colorless modes colorless). gamingClass is NEVER emitted
+    /// — it is lag-1 (system-owned, read-only).
+    /// </summary>
+    public static string BuildProfilePatch(int dc, int bright, bool hdr, string power, string lyd,
+        string lysMode, string? lysColor, string optimizer, string uiIcon, string uiDesc)
+    {
+        var lys = new Dictionary<string, object> { ["mode"] = lysMode ?? "synapse" };
+        if (!string.IsNullOrWhiteSpace(lysColor) &&
+            System.Text.RegularExpressions.Regex.IsMatch(lysColor, "^#[0-9A-Fa-f]{6}$"))
+            lys["color"] = lysColor;
+        var patch = new Dictionary<string, object>
+        {
+            ["display"] = new Dictionary<string, object> { ["dc"] = dc, ["bright"] = bright, ["hdr"] = hdr },
+            ["power"] = power ?? "",
+            ["lyd"] = lyd ?? "",
+            ["lys"] = lys,
+            ["optimizer"] = optimizer ?? "",
+            ["ui"] = new Dictionary<string, object> { ["icon"] = uiIcon ?? "", ["desc"] = uiDesc ?? "" },
+        };
+        return JsonSerializer.Serialize(patch);
+    }
+
     public Task<CtlResult> CreateProfileAsync(string name, CancellationToken ct = default)
     {
         var n = (name ?? "").Trim();

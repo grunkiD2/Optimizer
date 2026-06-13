@@ -53,6 +53,24 @@
                         <Run Text=" saved snapshots"/>
                     </TextBlock>
 
+                    <!-- ═══ FANCONTROL PROFILES (Profil 2.0) ═══ -->
+                    <Grid x:Name="FancontrolSection" Margin="0,8,0,0" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="FANCONTROL PROFILES" Style="{StaticResource HudMicroStyle}"/>
+                            <TextBlock FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" MaxWidth="640"
+                                       Text="Display / power / lighting / audio profiles owned by the Fancontrol engine. Edits go through ctl.ps1 — never written directly. Link a profile to an Optimizer preset to auto-apply it on switch."/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button Content="New Profile" Style="{StaticResource AccentButtonStyle}" Click="FcNewProfile_Click"/>
+                            <Button Content="Refresh" Click="FcRefresh_Click"/>
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel x:Name="FancontrolProfilesPanel" Spacing="4"/>
+
                     <!-- BUILT-IN PRESETS -->
                     <TextBlock Text="BUILT-IN PRESETS" Style="{StaticResource HudMicroStyle}" Margin="0,8,0,0"/>
 

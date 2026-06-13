@@ -222,6 +222,26 @@ public class FancontrolCommandServiceTests
         finally { Directory.Delete(root, recursive: true); }
     }
 
+    [Fact]
+    public void BuildProfilePatch_emits_lag2_only_and_omits_color_when_blank()
+    {
+        var withColor = FancontrolCommandService.BuildProfilePatch(5, 70, true,
+            "36531193-92c9-4772-911e-af2fa6f81bb0", "Kraken", "static", "#8C00FF", "preset-gaming", "G", "AAA");
+        using var d1 = System.Text.Json.JsonDocument.Parse(withColor);
+        var r1 = d1.RootElement;
+        Assert.Equal(5, r1.GetProperty("display").GetProperty("dc").GetInt32());
+        Assert.True(r1.GetProperty("display").GetProperty("hdr").GetBoolean());
+        Assert.Equal("#8C00FF", r1.GetProperty("lys").GetProperty("color").GetString());
+        Assert.Equal("preset-gaming", r1.GetProperty("optimizer").GetString());
+        Assert.False(r1.TryGetProperty("gamingClass", out _));  // lag-1 never emitted
+
+        var noColor = FancontrolCommandService.BuildProfilePatch(10, 20, false,
+            "a1841308-3541-4fab-bc81-f71556f20b4a", "", "off", "", "", "", "");
+        using var d2 = System.Text.Json.JsonDocument.Parse(noColor);
+        Assert.Equal("off", d2.RootElement.GetProperty("lys").GetProperty("mode").GetString());
+        Assert.False(d2.RootElement.GetProperty("lys").TryGetProperty("color", out _));  // colorless mode stays colorless
+    }
+
     // ── R1 result contract: last stdout line is JSON {ok,cmd,msg} + real exit code ──
 
     [Fact]
