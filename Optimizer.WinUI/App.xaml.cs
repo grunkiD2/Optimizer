@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Assistant;
+using Optimizer.WinUI.Services.Intelligence;
 using Optimizer.WinUI.Services.Data;
 using Optimizer.WinUI.Services.Diagnostics;
 using Optimizer.WinUI.Services.Plugins;
@@ -160,6 +161,16 @@ public partial class App : Application
                 // Command bridge: mutations go through Fancontrol's own ctl.ps1 contract only.
                 services.AddSingleton<IFancontrolCommandService>(sp =>
                     new FancontrolCommandService(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
+                // Profil 2.0 Fase 2: intelligence picture builder — MEASURED on-machine data
+                // (learned per-app stats + PresentMon summaries) + optional EXTERNAL web tier.
+                // Measurement always outranks external; the web tier (IAppWebLookup, Task 8) is
+                // resolved with GetService (optional) so the app works without it.
+                services.AddSingleton(sp => new PresentMonSummaryReader(
+                    sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir ?? ""));
+                services.AddSingleton<IProfileIntelligenceService>(sp => new ProfileIntelligenceService(
+                    sp.GetRequiredService<IFancontrolCommandService>(),
+                    sp.GetRequiredService<PresentMonSummaryReader>(),
+                    sp.GetService<IAppWebLookup>()));   // GetService (ikke Required): web-tier'en er valgfri/opt-in
                 // R5 alarm-egress: urgent findings → the user's phone via the federation's
                 // ntfy channel (engine\notify.ps1); informational stays in the UI.
                 services.AddSingleton<IUrgentAlertEgress>(sp =>
