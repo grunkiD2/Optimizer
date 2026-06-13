@@ -21,6 +21,17 @@ public class ApiHostService : IApiHostService
         _appServices = services;
     }
 
+    // Shared shell for the Profil 2.0 profile-CRUD endpoints: resolve the bridge, fail-closed when the
+    // federation isn't configured, run the op, return {success, output} from the ctl R1 result.
+    private async Task<IResult> RunProfileCtl(Func<IFancontrolCommandService, Task<CtlResult>> op)
+    {
+        var fc = _appServices.GetService<IFancontrolCommandService>();
+        if (fc == null || !fc.IsConfigured)
+            return Results.NotFound(new { error = "Fancontrol federation not configured" });
+        var r = await op(fc);
+        return Results.Ok(new { success = r.Success, output = r.Output });
+    }
+
     public async Task StartAsync(int port, string token)
     {
         if (_app != null) return;
@@ -227,6 +238,38 @@ public class ApiHostService : IApiHostService
         .WithName("FancontrolAckAlerts")
         .WithTags("Fancontrol")
         .WithOpenApi();
+
+        // ── Profil 2.0 P2.0-c: profile-CRUD over the ctl bridge (full read + create/clone/edit/rename/delete) ──
+        app.MapGet("/api/fancontrol/profiles/full", () =>
+        {
+            var fc = _appServices.GetService<IFancontrolCommandService>();
+            if (fc == null || !fc.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            return Results.Ok(new { schemaVersion = 1, profiles = fc.GetProfiles() });
+        })
+        .WithName("GetFancontrolProfilesFull")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
+        app.MapPost("/api/fancontrol/profile/create", async (FancontrolProfileNameRequest req, CancellationToken ct) =>
+            await RunProfileCtl(fc => fc.CreateProfileAsync(req.Name ?? "", ct)))
+        .WithName("FancontrolCreateProfile").WithTags("Fancontrol").WithOpenApi();
+
+        app.MapPost("/api/fancontrol/profile/clone", async (FancontrolCloneRequest req, CancellationToken ct) =>
+            await RunProfileCtl(fc => fc.CloneProfileAsync(req.Source ?? "", req.NewName ?? "", ct)))
+        .WithName("FancontrolCloneProfile").WithTags("Fancontrol").WithOpenApi();
+
+        app.MapPost("/api/fancontrol/profile/edit", async (FancontrolEditRequest req, CancellationToken ct) =>
+            await RunProfileCtl(fc => fc.EditProfileAsync(req.Name ?? "", req.Patch ?? "", ct)))
+        .WithName("FancontrolEditProfile").WithTags("Fancontrol").WithOpenApi();
+
+        app.MapPost("/api/fancontrol/profile/rename", async (FancontrolRenameRequest req, CancellationToken ct) =>
+            await RunProfileCtl(fc => fc.RenameProfileAsync(req.OldName ?? "", req.NewName ?? "", ct)))
+        .WithName("FancontrolRenameProfile").WithTags("Fancontrol").WithOpenApi();
+
+        app.MapPost("/api/fancontrol/profile/delete", async (FancontrolProfileNameRequest req, CancellationToken ct) =>
+            await RunProfileCtl(fc => fc.DeleteProfileAsync(req.Name ?? "", ct)))
+        .WithName("FancontrolDeleteProfile").WithTags("Fancontrol").WithOpenApi();
 
         // ── Etape 1: live-log + alarm-respons (restart-kommandoerne verificerer frisk state) ──
         app.MapGet("/api/fancontrol/events", (int? count) =>
@@ -511,6 +554,18 @@ public sealed record FancontrolNightRequest(string? Mode);
 
 /// <summary>Body for POST /api/fancontrol/ack-alerts.</summary>
 public sealed record FancontrolAckRequest(string? Note);
+
+/// <summary>Body for POST /api/fancontrol/profile/create and .../delete.</summary>
+public sealed record FancontrolProfileNameRequest(string? Name);
+
+/// <summary>Body for POST /api/fancontrol/profile/clone.</summary>
+public sealed record FancontrolCloneRequest(string? Source, string? NewName);
+
+/// <summary>Body for POST /api/fancontrol/profile/edit — Patch is a JSON object of editable lag-2 fields.</summary>
+public sealed record FancontrolEditRequest(string? Name, string? Patch);
+
+/// <summary>Body for POST /api/fancontrol/profile/rename.</summary>
+public sealed record FancontrolRenameRequest(string? OldName, string? NewName);
 
 /// <summary>Request item for POST /api/apply/batch.</summary>
 public sealed class BatchApplyItem
