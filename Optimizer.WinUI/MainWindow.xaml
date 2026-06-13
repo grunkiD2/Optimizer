@@ -27,13 +27,77 @@
         </Grid.KeyboardAccelerators>
 
         <!-- Custom title bar: with ExtendsContentIntoTitleBar the top reads as one continuous
-             glass (Mica) surface; the system caption buttons float at the right. -->
+             glass (Mica) surface; the system caption buttons float at the right. The menu bar
+             (Batch 3) sits left-of-centre; TitleBarDragRegion fills the rest and is the actual
+             drag region (SetTitleBar points at it in code-behind — pointing at the whole grid
+             would swallow the menu's clicks). -->
         <Grid x:Name="AppTitleBar" Grid.Row="0" Grid.ColumnSpan="3" Height="44" Background="Transparent">
-            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="16,0,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>   <!-- logo + wordmark -->
+                <ColumnDefinition Width="Auto"/>   <!-- menu bar -->
+                <ColumnDefinition Width="*"/>      <!-- drag region (also clears the caption buttons) -->
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="16,0,14,0">
                 <TextBlock Text="&#x25C9;" Foreground="{StaticResource AccentCyanBrush}" FontSize="14" VerticalAlignment="Center"/>
                 <TextBlock Text="OPTIMIZER" FontWeight="SemiBold" FontSize="13" CharacterSpacing="120"
                            Foreground="{ThemeResource HudTextPrimaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
+
+            <MenuBar Grid.Column="1" x:Name="AppMenuBar" Background="Transparent" VerticalAlignment="Center">
+                <MenuBarItem Title="Filer">
+                    <MenuFlyoutItem Text="Eksportér rapport…" Click="MenuExportReport_Click">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEDE1;"/></MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+                    <MenuFlyoutItem Text="Indstillinger" Click="MenuSettings_Click">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;"/></MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem Text="Afslut" Click="MenuExit_Click">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7E8;"/></MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+                </MenuBarItem>
+
+                <MenuBarItem Title="Vis">
+                    <MenuFlyoutItem Text="Konsol-dock" Click="MenuToggleConsole_Click" KeyboardAcceleratorTextOverride="Ctrl+`"/>
+                    <MenuFlyoutItem Text="Pop konsol ud" Click="MenuPopOutConsole_Click"/>
+                    <MenuFlyoutItem Text="Spørg assistenten…" Click="MenuAskAssistant_Click" KeyboardAcceleratorTextOverride="Ctrl+K"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutSubItem Text="Tema">
+                        <MenuFlyoutItem Text="System" Tag="Default" Click="MenuTheme_Click"/>
+                        <MenuFlyoutItem Text="Lyst" Tag="Light" Click="MenuTheme_Click"/>
+                        <MenuFlyoutItem Text="Mørkt" Tag="Dark" Click="MenuTheme_Click"/>
+                    </MenuFlyoutSubItem>
+                    <MenuFlyoutSubItem Text="Baggrund">
+                        <MenuFlyoutItem Text="Mica" Tag="Mica" Click="MenuBackdrop_Click"/>
+                        <MenuFlyoutItem Text="Mica Alt" Tag="MicaAlt" Click="MenuBackdrop_Click"/>
+                        <MenuFlyoutItem Text="Akryl" Tag="Acrylic" Click="MenuBackdrop_Click"/>
+                        <MenuFlyoutItem Text="Ingen" Tag="None" Click="MenuBackdrop_Click"/>
+                    </MenuFlyoutSubItem>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem Text="Maksimér / gendan" Click="MenuMaximize_Click"/>
+                </MenuBarItem>
+
+                <MenuBarItem Title="Værktøjer">
+                    <MenuFlyoutItem Text="Kør oprydning" Click="MenuRunCleanup_Click"/>
+                    <MenuFlyoutItem Text="Profil-presets" Click="MenuProfiles_Click"/>
+                    <MenuFlyoutItem Text="Registrér kontekst igen" Click="MenuRedetectContext_Click"/>
+                    <MenuFlyoutItem Text="Fortryd seneste optimering" Click="MenuUndoLast_Click"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem Text="Stresstest" Click="MenuStressTest_Click"/>
+                    <MenuFlyoutItem Text="Netværks-hastighedstest" Click="MenuNetworkSpeed_Click"/>
+                    <MenuFlyoutItem Text="Systemreparation" Click="MenuSystemRepair_Click"/>
+                </MenuBarItem>
+
+                <MenuBarItem Title="Hjælp">
+                    <MenuFlyoutItem Text="Tastaturgenveje" Click="MenuShortcuts_Click"/>
+                    <MenuFlyoutItem Text="Vis app.log" Click="MenuShowLog_Click"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem Text="Om Optimizer" Click="MenuAbout_Click"/>
+                </MenuBarItem>
+            </MenuBar>
+
+            <Border Grid.Column="2" x:Name="TitleBarDragRegion" Background="Transparent"/>
         </Grid>
 
         <InfoBar

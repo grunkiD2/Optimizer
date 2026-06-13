@@ -10,6 +10,10 @@ public interface ITrayIconService
     void Initialize(Window window);
     void Show();
     void Hide();
+
+    /// <summary>Genuine exit (used by the menu bar's File ▸ Exit): runs the same teardown as
+    /// the tray "Exit" item so the process actually stops regardless of MinimizeToTray.</summary>
+    void RequestExit();
 }
 
 public class TrayIconService : ITrayIconService
@@ -194,6 +198,8 @@ public class TrayIconService : ITrayIconService
             catch { /* non-fatal */ }
         }
     }
+
+    public void RequestExit() => ExitApplication();
 
     private void ExitApplication()
     {

@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Commands;
 using Optimizer.WinUI.Views;
@@ -40,7 +42,9 @@ public sealed partial class MainWindow : Window
 
         // Immersive chrome: extend content into the title bar so the top is one glass surface.
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
+        // Drag region is the spacer to the right of the menu bar — NOT the whole title bar,
+        // which would swallow the menu's clicks (Batch 3).
+        SetTitleBar(TitleBarDragRegion);
         StyleCaptionButtons();
 
         // Capture the UI-thread dispatcher so background-thread events (event bus) can marshal to UI.
@@ -322,15 +326,29 @@ public sealed partial class MainWindow : Window
         _popOut.Activate();
     }
 
+    /// <summary>Menu entry point for "Pop console out": reuse the existing pop-out window if
+    /// one is already open instead of spawning a second (View ▸ Pop console out, Batch 3).</summary>
+    public void RequestConsolePopOut()
+    {
+        if (_popOut != null) { _popOut.Activate(); return; }
+        PopOutConsole();
+    }
+
     private void ConsoleAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         ToggleConsole();
         args.Handled = true;
     }
 
-    private async void OmniboxAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    private void OmniboxAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
+        _ = ShowOmniboxAsync();
+    }
+
+    /// <summary>The Ctrl+K omnibox flow, shared by the accelerator and the View ▸ menu (Batch 3).</summary>
+    private async Task ShowOmniboxAsync()
+    {
         var box = new TextBox { PlaceholderText = "Ask the assistant…", MinWidth = 360 };
         var dialog = new ContentDialog
         {
@@ -371,5 +389,139 @@ public sealed partial class MainWindow : Window
             if (elevationService.TryRelaunchElevated())
                 Close();
         }
+    }
+
+    // ── Menu bar (Batch 3) ──────────────────────────────────────────────────────
+    // Discoverability layer over features that already exist. Every item DOES something
+    // (UX P1: nothing clickable without effect) and lands somewhere real (P2): atomic
+    // actions run inline here; multi-step features navigate to the page that already hosts
+    // them with its own progress UI. NavigateByTag() reuses the hub-aware routing so the
+    // slim rail stays honest — no duplicated route map.
+
+    private void MenuExportReport_Click(object sender, RoutedEventArgs e) => NavigateByTag("Reports");
+    private void MenuSettings_Click(object sender, RoutedEventArgs e) => NavigateByTag("Settings");
+    private void MenuExit_Click(object sender, RoutedEventArgs e) => App.GetService<ITrayIconService>().RequestExit();
+
+    private void MenuToggleConsole_Click(object sender, RoutedEventArgs e) => ToggleConsole();
+    private void MenuPopOutConsole_Click(object sender, RoutedEventArgs e) => RequestConsolePopOut();
+    private void MenuAskAssistant_Click(object sender, RoutedEventArgs e) => _ = ShowOmniboxAsync();
+
+    private void MenuTheme_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string theme) return;
+        _settingsService.Settings.Theme = theme;
+        _settingsService.Save();
+        App.GetService<IThemeService>().ApplyTheme(theme);
+    }
+
+    private void MenuBackdrop_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string material) return;
+        _settingsService.Settings.BackdropMaterial = material;
+        _settingsService.Save();
+        App.GetService<IThemeService>().ApplyBackdrop(material);
+    }
+
+    private void MenuMaximize_Click(object sender, RoutedEventArgs e)
+    {
+        if (AppWindow.Presenter is OverlappedPresenter p)
+        {
+            if (p.State == OverlappedPresenterState.Maximized) p.Restore();
+            else p.Maximize();
+        }
+    }
+
+    private void MenuRunCleanup_Click(object sender, RoutedEventArgs e) => NavigateByTag("Storage");
+    private void MenuProfiles_Click(object sender, RoutedEventArgs e) => NavigateByTag("Profiles");
+    private void MenuStressTest_Click(object sender, RoutedEventArgs e) => NavigateByTag("Performance");
+    private void MenuNetworkSpeed_Click(object sender, RoutedEventArgs e) => NavigateByTag("Network");
+    private void MenuSystemRepair_Click(object sender, RoutedEventArgs e) => NavigateByTag("System");
+
+    private async void MenuRedetectContext_Click(object sender, RoutedEventArgs e)
+    {
+        string body;
+        try
+        {
+            var svc = App.GetService<IContextDetectionService>();
+            var ctx = await svc.DetectContextAsync();
+            var src = svc is IContextAuthority auth
+                ? (auth.LastSource == ContextSource.Federation ? "Fancontrol-federationen (målt)" : "lokalt gæt (processer + tid)")
+                : "lokalt gæt (processer + tid)";
+            body = $"Aktuel kontekst: {(string.IsNullOrWhiteSpace(ctx) ? "Unknown" : ctx).ToUpperInvariant()}\nKilde: {src}";
+        }
+        catch (Exception ex) { body = $"Kunne ikke registrere kontekst: {ex.Message}"; }
+        await ShowInfoDialogAsync("Kontekst registreret igen", body);
+    }
+
+    private async void MenuUndoLast_Click(object sender, RoutedEventArgs e)
+    {
+        var undo = App.GetService<IUndoService>();
+        var entries = undo.Entries;
+        if (entries.Count == 0)
+        {
+            await ShowInfoDialogAsync("Fortryd", "Der er ingen optimeringer at fortryde.");
+            return;
+        }
+
+        // The most recent optimization may have captured several registry values (audit C5):
+        // revert ALL entries sharing its OptimizationId, not just the single last one.
+        var last = entries[entries.Count - 1];
+        var group = !string.IsNullOrEmpty(last.OptimizationId)
+            ? entries.Where(en => en.OptimizationId == last.OptimizationId).ToList()
+            : new List<UndoEntry> { last };
+
+        var confirm = new ContentDialog
+        {
+            Title = "Fortryd seneste optimering?",
+            Content = $"Ruller {group.Count} registreret ændring(er) tilbage:\n\"{last.Description}\".",
+            PrimaryButtonText = "Fortryd",
+            CloseButtonText = "Annullér",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = Content.XamlRoot,
+        };
+        if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+
+        var reverted = 0;
+        foreach (var en in Enumerable.Reverse(group))
+            if (await undo.UndoAsync(en)) reverted++;
+
+        await ShowInfoDialogAsync("Fortryd",
+            reverted == group.Count
+                ? $"{reverted} ændring(er) blev rullet tilbage."
+                : $"{reverted} af {group.Count} ændring(er) blev rullet tilbage — resten fejlede (se app.log).");
+    }
+
+    private async void MenuShortcuts_Click(object sender, RoutedEventArgs e)
+        => await ShowInfoDialogAsync("Tastaturgenveje",
+            "Ctrl+K\tSpørg assistenten (omnibox)\nCtrl+`\tVis/skjul konsol-dock");
+
+    private void MenuShowLog_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            AppPaths.EnsureFolderExists();
+            Process.Start(new ProcessStartInfo { FileName = AppPaths.AppDataFolder, UseShellExecute = true });
+        }
+        catch (Exception ex) { _ = ShowInfoDialogAsync("Kunne ikke åbne log", ex.Message); }
+    }
+
+    private async void MenuAbout_Click(object sender, RoutedEventArgs e)
+    {
+        var v = typeof(App).Assembly.GetName().Version;
+        await ShowInfoDialogAsync("Om Optimizer",
+            $"Optimizer{(v != null ? $" v{v}" : "")}\n\nStøj-først maskinekontrol. Fans, strømplan og profiler ejes af Fancontrol-federationen (read-only her).");
+    }
+
+    /// <summary>Single-button informational dialog used by the menu bar's atomic actions.</summary>
+    private async Task ShowInfoDialogAsync(string title, string body)
+    {
+        var dlg = new ContentDialog
+        {
+            Title = title,
+            Content = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap },
+            CloseButtonText = "OK",
+            XamlRoot = Content.XamlRoot,
+        };
+        await dlg.ShowAsync();
     }
 }
