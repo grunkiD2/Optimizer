@@ -166,7 +166,7 @@ public partial class App : Application
                 // Measurement always outranks external; the web tier (IAppWebLookup, Task 8) is
                 // resolved with GetService (optional) so the app works without it.
                 services.AddSingleton(sp => new PresentMonSummaryReader(
-                    sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir ?? ""));
+                    sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 services.AddSingleton<IProfileIntelligenceService>(sp => new ProfileIntelligenceService(
                     sp.GetRequiredService<IFancontrolCommandService>(),
                     sp.GetRequiredService<PresentMonSummaryReader>(),

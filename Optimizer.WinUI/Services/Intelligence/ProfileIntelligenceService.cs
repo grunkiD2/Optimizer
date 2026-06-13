@@ -52,7 +52,6 @@ public sealed class ProfileIntelligenceService : IProfileIntelligenceService
         // ── Ydelse (målt) ──────────────────────────────────────────────────────────
         var perf = new List<EvidenceLine>();
         var summary = _presentmon.LatestForApp(appExe);
-        int pmCount = _presentmon.CountForApp(appExe);
         if (summary is not null)
         {
             perf.Add(new EvidenceLine("FPS (gns.)", summary.FpsAvg.ToString("0"), "PresentMon, seneste session", ConfidenceTier.Measured));
@@ -85,7 +84,7 @@ public sealed class ProfileIntelligenceService : IProfileIntelligenceService
         }
 
         int have = (summary is not null ? 1 : 0) + (prog?.LearnedSamples is > 0 ? 1 : 0);
-        int maturityHave = System.Math.Min(System.Math.Max(have, pmCount > 0 ? 1 : 0), BaselineTarget);
+        int maturityHave = System.Math.Min(have, BaselineTarget);
         return new IntelligencePicture(appExe, profileName, groups, maturityHave, BaselineTarget);
     }
 
