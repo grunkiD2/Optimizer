@@ -1,6 +1,6 @@
 # Optimizer
 
-WinUI 3 desktop app for Windows. Active project: `Optimizer.WinUI/`. Tests: `Optimizer.WinUI.Tests/` (558 xUnit tests).
+WinUI 3 desktop app for Windows. Active project: `Optimizer.WinUI/`. Tests: `Optimizer.WinUI.Tests/` (599 xUnit tests).
 
 ## ⛔ This machine: Fancontrol federation
 This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol`). **Read [`docs/MACHINE-OWNERSHIP.md`](docs/MACHINE-OWNERSHIP.md) before touching sensors, power plans, profiles, or automation** — Optimizer is the UI/diagnostics shell in that federation, never a competing controller. Sensors come from the external LHM server (`http://localhost:8085/data.json`), power plans belong to Process Lasso, profile switching belongs to fgwatch/`ctl.ps1`.
@@ -18,7 +18,7 @@ This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol
 
 ## Design system
 - Product intent + durable constraints in [`docs/VISION.md`](docs/VISION.md) (single-user, local-only, AI-for-analysis-not-chat, everything toggleable/reversible). IA ideology locked in [`docs/REDESIGN-IA.md`](docs/REDESIGN-IA.md). Parked work in [`docs/BACKLOG.md`](docs/BACKLOG.md).
-- Hub IA (1 home + 4 hubs + Settings) lives in `Optimizer.WinUI/Views/HubRegistry.cs`. Navigation goes through `HubRouting.Resolve(tag)` (same file), which routes any tag to the right hub + section + sub-section so the slim rail stays in sync. Code-behinds + ViewModels should call `App.GetService<IPageNavigator>().NavigateTo(tag)` — never `NavigationService.NavigateTo(typeof(X))` directly, that bypasses the hub.
+- Hub IA (1 home + 4 hubs + Settings) lives in `Optimizer.WinUI/Views/HubRegistry.cs`. Navigation goes through `HubRouting.Resolve(tag)` (same file), which routes any tag to the right hub + section + sub-section so the slim rail stays in sync. Code-behinds + ViewModels should call `App.GetService<IPageNavigator>().NavigateTo(tag)` — never `NavigationService.NavigateTo(typeof(X))` directly, that bypasses the hub. For finding/recommendation → page routing, reuse `CommandCenterPage.CategoryTag(FindingCategory)` (the single route map) — never duplicate it.
 - Tokens in `Optimizer.WinUI/Styles/Tokens.xaml`. **Surfaces use `ThemeResource`** (`HudSurfaceBrush`, `HudSurfaceAltBrush`, `HudHairlineBrush`). **Semantic + accent brushes use `StaticResource`** (`MutedBrush`, `AccentCyanBrush`, `SuccessBrush`, `DangerBrush`, `WarningBrush`, `InfoBrush`, `VioletBrush`).
 - Calm page pattern: wrap content in `<hud:HudBackdrop>` (xmlns: `using:Optimizer.WinUI.Controls.Hud`); use `<hud:HudPageHeader Icon Title Description>` and group with `<hud:HudCard>`.
 - Merged-page pattern (Performance+Tuning, Startup+Services): host page owns both VMs, a `tk:Segmented` + `Section_Changed` handler toggles `Visibility` on named `StackPanel` panes. Canonical example: `Optimizer.WinUI/Views/PerformancePage.xaml.cs`.
@@ -27,6 +27,7 @@ This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol
 - Power Insights (`Services/Power/`) attributes MEASURED package watts by CPU-time share — deliberately NOT the ETW Energy-Estimation-Engine path (no per-process energy on battery-less desktops, and ETW needs elevation). It is read-only by contract; `PpiReadOnlyTests` audits the source for mutating calls — keep new Power code clean of `.Kill(`/`SetValue(`/priority/affinity/powercfg.
 - The correct ease class is `<SineEase EasingMode="EaseInOut"/>` — there is no `SineEaseInOut`.
 - `Cursor=` is **not** a XAML attribute. For draggable splitters use `tk:GridSplitter` (it sets the cursor itself).
+- **`ItemsRepeater` does NOT set `DataContext` on realized rows** (only `ListView`/`ListViewItem` do). So `(sender as FrameworkElement).DataContext` is null in a Click/`ContextFlyout` handler on an ItemsRepeater row → the handler no-ops **silently** (a clickable-with-no-effect bug). Carry the item on `Tag="{x:Bind}"` (empty path = the item itself) and read `sender.Tag` — works for visible buttons, `MenuFlyoutItem` inside a `ContextFlyout`, and BOTH container types. Codebase idiom: `PowerPlan_Click`, `LargeFileOpenLocation_Click`. Code-behind-built rows (PowerInsights/Fancontrol) sidestep this entirely via lambdas that close over the item.
 - `Optimizer.WinUI.Tests/Optimizer.WinUI.Tests.csproj` has `ImplicitUsings` off — test files need explicit `using` statements.
 - After XAML edits, build with the x64 flag before claiming green — XAML markup errors surface only at build.
 - Toolkit packages already referenced: `Segmented`, `Sizers` (GridSplitter), `Animations`, `SettingsControls`, `Converters` — no new package needed for these.
@@ -38,6 +39,8 @@ This machine runs a live autonomous machine-control system (`L:\Users\Fancontrol
 - The repeated "my settings got wiped" mystery (2026-06-12) was the TEST SUITE: SettingsService tests used the parameterless ctor = the real `%LocalAppData%` file, and `Reset()`/`Save()` on an unloaded instance wrote full defaults (incl. a fresh ApiToken) on every `dotnet test`. Fixed: path-injectable ctor + isolated temp files in tests + a `.rejected` forensics copy on parse failure. NEVER construct `new SettingsService()` in a test.
 
 ## Conventions
+- **Push after committing — no confirmation needed** (`git push` straight after each commit; `master` tracks `origin/master` here and batches land on `master`). Ordinary push only — never force-push, branch-delete, or other destructive remote ops without an explicit ask. (Project-scoped: the Fancontrol repo has its own commit discipline.)
+- Big/multi-part changes go cluster-by-cluster: recon first (read-only), implement one cluster at a time, then **build + test + commit + push per cluster** — don't stack unverified tweaks.
 - Session handoff buffer at `.remember/remember.md`.
 - Hub-section page files are auto-discovered by the WinUI SDK — no `.csproj` edits needed when adding or removing pages.
 - Any service that does user-invokable work should `EngineLog.Write("[ServiceName] What it's doing")` at entry — `ConsoleViewModel.Lines` subscribes to `EngineLog.LineWritten` and the Activity console feeds off that. New `IOptimizationHandler`s get this for free via `OptimizationHandlerBase.SetRegistryValue`; bypass the base and undo + visibility both break.
