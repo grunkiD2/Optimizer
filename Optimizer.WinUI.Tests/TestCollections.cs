@@ -24,3 +24,14 @@ public class SettingsServiceCollection { }
 /// </summary>
 [CollectionDefinition("RegistryTests", DisableParallelization = true)]
 public class RegistryTestsCollection { }
+
+/// <summary>
+/// Serialises test classes whose assertions depend on the global static <c>EngineLog.LineWritten</c>
+/// bus (e.g. ConsoleViewModel subscribes to it; the assistant console test captures it). xUnit runs
+/// classes in parallel, and many unrelated tests emit EngineLog lines — those fire on foreign
+/// threads into the same static event, racing the (non-thread-safe) ObservableCollection/List these
+/// tests inspect and dropping the test's own line. DisableParallelization runs them in isolation so
+/// no foreign EngineLog emission overlaps. (Observed flake 2026-06-13.)
+/// </summary>
+[CollectionDefinition("EngineLog", DisableParallelization = true)]
+public class EngineLogCollection { }

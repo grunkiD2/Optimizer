@@ -16,6 +16,7 @@ namespace Optimizer.WinUI.Tests;
 ///   • Bug B — every tool call required user approval even when the whole process was
 ///     already elevated.
 /// </summary>
+[Collection("EngineLog")]
 public class AssistantConsoleAndElevationTests
 {
     // ── shared test plumbing ────────────────────────────────────────────────

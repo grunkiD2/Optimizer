@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Optimizer.WinUI.Tests;
 
+[Collection("EngineLog")]
 public class ConsoleViewModelTests
 {
     private sealed class FakeBus : IEventBus
