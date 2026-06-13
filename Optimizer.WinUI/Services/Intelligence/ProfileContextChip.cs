@@ -8,6 +8,11 @@ public enum ChipKind { Unknown, AppBound, Mood }
 /// <summary>The persistent state-chip atop the editor (Profil 2.0 §1): is the live context
 /// app-bound (fgwatch auto-applied a profile because the foreground exe is mapped) or a manual mood?
 /// Pure derivation from the federation status + the mapped-exe set; one-click convert is wired in UI.</summary>
+/// <summary>Derived context-chip state. Per-<see cref="Kind"/> field semantics:
+/// <list type="bullet">
+/// <item><c>AppExe</c> — the mapped foreground exe; set only when <c>Kind == AppBound</c> (null otherwise).</item>
+/// <item><c>ProfileName</c> — a profile-or-mode label: the last-applied profile, or (in the Mood branch) the brain mode as fallback.</item>
+/// </list></summary>
 public sealed record ContextChip(ChipKind Kind, string? AppExe, string? ProfileName, bool Stale);
 
 public static class ProfileContextChip

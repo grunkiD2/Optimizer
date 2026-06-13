@@ -10,11 +10,12 @@ namespace Optimizer.WinUI.Tests;
 public class ProfileContextChipTests
 {
     // Bygger en minimal FancontrolStatus. Felt-navnene matcher Models\FancontrolStatus.cs verificeret
-    // (Brain {Mode, ActiveApp, Stale}, Profiles {Enabled, LastAppliedProfile, ForegroundExe, Stale}).
+    // (Brain {Mode, Stale}, Profiles {Enabled, LastAppliedProfile, ForegroundExe, Stale}).
+    // Derive læser foregrunden fra Profiles.ForegroundExe — ikke Brain.ActiveApp — så den sættes ikke her.
     private static FancontrolStatus Status(string mode, bool enabled, string? lastProfile, string? fgExe, bool stale = false)
         => new()
         {
-            Brain = new FancontrolBrainStatus { Mode = mode, ActiveApp = fgExe, Stale = stale },
+            Brain = new FancontrolBrainStatus { Mode = mode, Stale = stale },
             Profiles = new FancontrolProfileStatus { Enabled = enabled, LastAppliedProfile = lastProfile, ForegroundExe = fgExe, Stale = stale },
             Sentinel = new FancontrolSentinelStatus { Pass = true },
         };
