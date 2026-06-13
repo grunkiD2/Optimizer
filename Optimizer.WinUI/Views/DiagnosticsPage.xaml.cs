@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Optimizer.WinUI.Helpers;
+using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services.Commands;
 using Optimizer.WinUI.ViewModels;
 
 namespace Optimizer.WinUI.Views;
@@ -47,4 +49,40 @@ public sealed partial class DiagnosticsPage : Page
 
     private void OpenDisplayTest_Click(object sender, RoutedEventArgs e)
         => ViewModel.OpenDisplayTestCommand.Execute(null);
+
+    // ── Inert-result couplings (Batch 3): C11 findings, disk-health, bottlenecks ──
+
+    // ItemsRepeater does not set DataContext on realized children (unlike ListView), so we
+    // carry the item on Tag="{x:Bind}" and read sender.Tag — the codebase's ItemsRepeater idiom.
+    private void FindingGoTo_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not DiagnosticFinding f) return;
+        App.GetService<IPageNavigator>().NavigateTo(CommandCenterPage.CategoryTag(f.Category));
+    }
+
+    private async void FindingQuickFix_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not DiagnosticFinding { QuickFix: { } fix } f) return;
+        var ok = await fix();
+        await DialogHelper.InfoAsync(XamlRoot, f.Title,
+            ok ? "Rettelsen blev anvendt." : "Rettelsen kunne ikke gennemføres automatisk.");
+    }
+
+    // The disk-health forecast carries no drive letter (model/serial only), so we route to
+    // Storage where the CHKDSK launcher + drive picker live rather than guess a drive.
+    private void DiskScheduleChkdsk_Click(object sender, RoutedEventArgs e)
+        => App.GetService<IPageNavigator>().NavigateTo("Storage");
+
+    private async void BottleneckEnd_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not ProcessBottleneck b) return;
+        var confirm = await DialogHelper.ConfirmAsync(XamlRoot, "Afslut proces?",
+            $"Afslut {b.ProcessName} (PID {b.Pid})? Ikke-gemt arbejde i processen går tabt.", "Afslut");
+        if (!confirm) return;
+        var (_, msg) = RowActions.TryEndProcess(b.Pid);
+        await DialogHelper.InfoAsync(XamlRoot, "Afslut proces", msg);
+    }
+
+    private void BottleneckView_Click(object sender, RoutedEventArgs e)
+        => App.GetService<IPageNavigator>().NavigateTo("Performance");
 }

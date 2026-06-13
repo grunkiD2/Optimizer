@@ -192,6 +192,13 @@
                                                    Foreground="{StaticResource MutedBrush}"/>
                                         <TextBlock Text="{x:Bind Recommendation, Mode=OneWay}"
                                                    TextWrapping="Wrap" FontSize="12"/>
+                                        <!-- Batch 3 (audit C11): the recommendation is no longer
+                                             dead text — act on it or jump to where the fix lives. -->
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                                            <Button Content="Ret nu" Tag="{x:Bind}" Click="FindingQuickFix_Click"
+                                                    Visibility="{x:Bind HasQuickFix, Converter={StaticResource BoolToVisibility}}"/>
+                                            <Button Content="Gå til løsning" Tag="{x:Bind}" Click="FindingGoTo_Click"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -315,6 +322,12 @@
                             <DataTemplate x:DataType="models:ProcessBottleneck">
                                 <Border Background="{ThemeResource HudSurfaceBrush}"
                                         CornerRadius="6" Padding="12">
+                                    <Border.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Afslut proces" Tag="{x:Bind}" Click="BottleneckEnd_Click"/>
+                                            <MenuFlyoutItem Text="Vis i Performance" Click="BottleneckView_Click"/>
+                                        </MenuFlyout>
+                                    </Border.ContextFlyout>
                                     <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -553,6 +566,11 @@
                                                        FontSize="10" FontWeight="Bold"
                                                        HorizontalAlignment="Right"
                                                        Foreground="{x:Bind RiskColor, Converter={StaticResource StringToSolidColorBrush}}"/>
+                                            <!-- Batch 3: at-risk disks get a path to CHKDSK
+                                                 (the launcher + drive picker live on Storage). -->
+                                            <Button Content="Planlæg CHKDSK" Click="DiskScheduleChkdsk_Click"
+                                                    Visibility="{x:Bind AtRisk, Converter={StaticResource BoolToVisibility}}"
+                                                    Margin="0,4,0,0" Padding="10,4" HorizontalAlignment="Right"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>

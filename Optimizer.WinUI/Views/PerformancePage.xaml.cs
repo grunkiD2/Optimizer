@@ -259,7 +259,7 @@ public sealed partial class PerformancePage : Page
 
     // ── Process row context menu (Batch 3) ──────────────────────────────────
     private static ProcessPriorityInfo? ProcOf(object sender)
-        => (sender as FrameworkElement)?.DataContext as ProcessPriorityInfo;
+        => (sender as FrameworkElement)?.Tag as ProcessPriorityInfo;
 
     private void ProcOpenLocation_Click(object sender, RoutedEventArgs e)
     {

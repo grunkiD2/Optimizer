@@ -80,7 +80,7 @@ public sealed partial class ConsolePanel : UserControl
 
     private void ActivityCopyLine_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is ConsoleLine line)
+        if ((sender as FrameworkElement)?.Tag is ConsoleLine line)
             RowActions.CopyText($"{line.TimeText} {line.Glyph} {line.Text}");
     }
 
@@ -107,7 +107,7 @@ public sealed partial class ConsolePanel : UserControl
 
     private void ChatCopy_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is ChatMessage msg)
+        if ((sender as FrameworkElement)?.Tag is ChatMessage msg)
             RowActions.CopyText(msg.Text);
     }
 

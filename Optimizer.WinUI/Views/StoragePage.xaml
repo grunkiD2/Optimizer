@@ -222,8 +222,8 @@
                                 BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                             <Border.ContextFlyout>
                                 <MenuFlyout>
-                                    <MenuFlyoutItem Text="Kopiér sti" Click="LargeFileCopyPath_Click"/>
-                                    <MenuFlyoutItem Text="Slet fil…" Click="LargeFileDelete_Click"/>
+                                    <MenuFlyoutItem Text="Kopiér sti" Tag="{x:Bind}" Click="LargeFileCopyPath_Click"/>
+                                    <MenuFlyoutItem Text="Slet fil…" Tag="{x:Bind}" Click="LargeFileDelete_Click"/>
                                 </MenuFlyout>
                             </Border.ContextFlyout>
                             <Grid ColumnSpacing="12">

@@ -133,7 +133,7 @@
                                         BorderBrush="{ThemeResource HudHairlineBrush}" BorderThickness="1">
                                     <Border.ContextFlyout>
                                         <MenuFlyout>
-                                            <MenuFlyoutItem Text="Åbn filplacering" Click="StartupOpenLocation_Click"/>
+                                            <MenuFlyoutItem Text="Åbn filplacering" Tag="{x:Bind}" Click="StartupOpenLocation_Click"/>
                                         </MenuFlyout>
                                     </Border.ContextFlyout>
                                     <Grid ColumnSpacing="12">
@@ -225,7 +225,7 @@
                                     <Border.ContextFlyout>
                                         <MenuFlyout>
                                             <MenuFlyoutItem Text="Åbn services.msc" Click="ServiceOpenMsc_Click"/>
-                                            <MenuFlyoutItem Text="Vis anbefaling" Click="ServiceShowRecommendation_Click"/>
+                                            <MenuFlyoutItem Text="Vis anbefaling" Tag="{x:Bind}" Click="ServiceShowRecommendation_Click"/>
                                         </MenuFlyout>
                                     </Border.ContextFlyout>
                                     <Grid ColumnSpacing="12">

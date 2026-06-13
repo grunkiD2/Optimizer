@@ -77,7 +77,7 @@ public sealed partial class DevicesPage : Page
 
     // ── Row context menu (Batch 3) ───────────────────────────────────────────
     private static PnpDevice? DeviceOf(object sender)
-        => (sender as FrameworkElement)?.DataContext as PnpDevice;
+        => (sender as FrameworkElement)?.Tag as PnpDevice;
 
     private void DeviceOpenManager_Click(object sender, RoutedEventArgs e)
         => RowActions.ShellOpen("devmgmt.msc");

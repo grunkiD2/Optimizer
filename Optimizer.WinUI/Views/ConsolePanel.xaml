@@ -96,7 +96,7 @@
                         <Grid ColumnSpacing="8">
                             <Grid.ContextFlyout>
                                 <MenuFlyout>
-                                    <MenuFlyoutItem Text="Kopiér linje" Click="ActivityCopyLine_Click"/>
+                                    <MenuFlyoutItem Text="Kopiér linje" Tag="{x:Bind}" Click="ActivityCopyLine_Click"/>
                                     <MenuFlyoutItem Text="Kopiér alt" Click="ActivityCopyAll_Click"/>
                                     <MenuFlyoutItem Text="Gem log…" Click="ActivitySaveLog_Click"/>
                                 </MenuFlyout>
@@ -151,7 +151,7 @@
                                    IsTextSelectionEnabled="True">
                             <TextBlock.ContextFlyout>
                                 <MenuFlyout>
-                                    <MenuFlyoutItem Text="Kopiér besked" Click="ChatCopy_Click"/>
+                                    <MenuFlyoutItem Text="Kopiér besked" Tag="{x:Bind}" Click="ChatCopy_Click"/>
                                     <MenuFlyoutItem Text="Kopiér alt" Click="ChatCopyAll_Click"/>
                                 </MenuFlyout>
                             </TextBlock.ContextFlyout>

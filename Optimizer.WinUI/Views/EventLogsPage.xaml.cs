@@ -36,8 +36,10 @@ public sealed partial class EventLogsPage : Page
     }
 
     // ── Row context menu (Batch 3) ───────────────────────────────────────────
+    // Item is carried on Tag="{x:Bind}" rather than read from DataContext: reliable for both
+    // ListView and ItemsRepeater rows and for MenuFlyoutItems inside a ContextFlyout (Batch 3).
     private static EventLogEntryInfo? EntryOf(object sender)
-        => (sender as FrameworkElement)?.DataContext as EventLogEntryInfo;
+        => (sender as FrameworkElement)?.Tag as EventLogEntryInfo;
 
     private void EventCopy_Click(object sender, RoutedEventArgs e)
     {

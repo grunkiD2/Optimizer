@@ -23,6 +23,7 @@ public sealed partial class CommandCenterPage : Page
     private readonly IWindowsOptimizerService _optimizer;
     private readonly NavigationService _nav;
     private readonly IFancontrolStatusService _fancontrol;
+    private readonly IFancontrolCommandService _fancontrolCommands;
     private DispatcherTimer? _fancontrolTimer;
 
     private const int TrendLength = 40;
@@ -40,6 +41,7 @@ public sealed partial class CommandCenterPage : Page
         _optimizer = App.GetService<IWindowsOptimizerService>();
         _nav = App.GetService<NavigationService>();
         _fancontrol = App.GetService<IFancontrolStatusService>();
+        _fancontrolCommands = App.GetService<IFancontrolCommandService>();
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -287,20 +289,63 @@ public sealed partial class CommandCenterPage : Page
             : b.Stale ? (HudStatus.Warning, "STALE")
             : !b.LhmOk ? (HudStatus.Warning, b.Mode)
             : (HudStatus.Success, b.Mode);
-        FancontrolList.Children.Add(AttentionRow(brainStatus, brainPill,
-            $"Coolant {b.Coolant:F1}°C · pump {b.PumpRpm} RPM · demand case {b.CaseDemand}/rad {b.RadDemand} · CPU {b.CpuTemp:F0}°C {b.CpuWatts:F0} W · GPU {b.GpuTemp:F0}°C {b.GpuWatts:F0} W"));
+        // Batch 3: Fancontrol rows were inert. Tap any row → open the Fancontrol page;
+        // right-click → navigate, plus acknowledge alerts where there's an alarm/issue.
+        var brainRow = AttentionRow(brainStatus, brainPill,
+            $"Coolant {b.Coolant:F1}°C · pump {b.PumpRpm} RPM · demand case {b.CaseDemand}/rad {b.RadDemand} · CPU {b.CpuTemp:F0}°C {b.CpuWatts:F0} W · GPU {b.GpuTemp:F0}°C {b.GpuWatts:F0} W");
+        WireFancontrolRow(brainRow, offerAck: b.Alarm);
+        FancontrolList.Children.Add(brainRow);
 
         if (status.Profiles is { } p)
-            FancontrolList.Children.Add(AttentionRow(
+        {
+            var profRow = AttentionRow(
                 p.Stale ? HudStatus.Warning : HudStatus.Accent,
                 p.LastAppliedProfile ?? "—",
-                $"Display profile · auto-profiler {(p.Enabled ? "on" : "off")} · {p.MappedPrograms} mapped apps"));
+                $"Display profile · auto-profiler {(p.Enabled ? "on" : "off")} · {p.MappedPrograms} mapped apps");
+            WireFancontrolRow(profRow, offerAck: false);
+            FancontrolList.Children.Add(profRow);
+        }
 
         if (status.Sentinel is { } s)
-            FancontrolList.Children.Add(AttentionRow(
+        {
+            var sentRow = AttentionRow(
                 s.Stale ? HudStatus.Warning : s.Pass && s.Issues.Count == 0 ? HudStatus.Success : HudStatus.Warning,
                 s.Stale ? "STALE" : s.Pass && s.Issues.Count == 0 ? "PASS" : $"{s.Issues.Count} ISSUES",
-                $"Hourly health check · last run {s.Timestamp:HH:mm}"));
+                $"Hourly health check · last run {s.Timestamp:HH:mm}");
+            WireFancontrolRow(sentRow, offerAck: s.Issues.Count > 0);
+            FancontrolList.Children.Add(sentRow);
+        }
+    }
+
+    private void WireFancontrolRow(FrameworkElement row, bool offerAck)
+    {
+        if (row is Panel panel)
+            panel.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent); // hit-test the whole row
+
+        var flyout = new MenuFlyout();
+        var go = new MenuFlyoutItem { Text = "Gå til Fancontrol" };
+        go.Click += (_, _) => App.GetService<IPageNavigator>().NavigateTo("Fancontrol");
+        flyout.Items.Add(go);
+        if (offerAck)
+        {
+            var ack = new MenuFlyoutItem { Text = "Kvittér alarmer" };
+            ack.Click += async (_, _) => await AckFancontrolAsync();
+            flyout.Items.Add(ack);
+        }
+        row.ContextFlyout = flyout;
+        row.Tapped += (_, _) => App.GetService<IPageNavigator>().NavigateTo("Fancontrol");
+    }
+
+    private async Task AckFancontrolAsync()
+    {
+        SetStatus("Kvitterer Fancontrol-alarmer…");
+        try
+        {
+            var r = await _fancontrolCommands.AckAlertsAsync(null);
+            SetStatus(r.Success ? $"Alarmer kvitteret. {r.Output}" : $"Kunne ikke kvittere: {r.Output}");
+        }
+        catch { SetStatus("Kvittering af alarmer fejlede."); }
+        RefreshFancontrol();
     }
 
     // ── Quick actions ─────────────────────────────────────────────────────────

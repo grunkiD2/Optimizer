@@ -120,7 +120,7 @@ public sealed partial class StartupPage : Page
 
     private void StartupOpenLocation_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not StartupEntry en) return;
+        if ((sender as FrameworkElement)?.Tag is not StartupEntry en) return;
         var path = RowActions.ExtractExecutablePath(en.Command);
         if (string.IsNullOrEmpty(path))
             _ = DialogHelper.InfoAsync(XamlRoot, "Åbn filplacering",
@@ -134,7 +134,7 @@ public sealed partial class StartupPage : Page
 
     private async void ServiceShowRecommendation_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not WindowsServiceInfo svc) return;
+        if ((sender as FrameworkElement)?.Tag is not WindowsServiceInfo svc) return;
         var reason = string.IsNullOrWhiteSpace(svc.RecommendationReason)
             ? "(ingen begrundelse registreret)"
             : svc.RecommendationReason;

@@ -63,15 +63,17 @@ public sealed partial class StoragePage : Page
 
     // ── Large-file row context menu (Batch 3) ────────────────────────────────
 
+    // LargeFiles is an ItemsRepeater — its realized rows don't get DataContext set (unlike a
+    // ListView), so carry the item on Tag="{x:Bind}" and read sender.Tag (matches OpenLocation).
     private void LargeFileCopyPath_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is LargeFile f)
+        if ((sender as FrameworkElement)?.Tag is LargeFile f)
             RowActions.CopyText(f.FullPath);
     }
 
     private async void LargeFileDelete_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not LargeFile f) return;
+        if ((sender as FrameworkElement)?.Tag is not LargeFile f) return;
         var confirm = await DialogHelper.ConfirmAsync(XamlRoot, "Slet fil?",
             $"Slet permanent:\n{f.FullPath}\n\nDenne handling kan ikke fortrydes.", "Slet");
         if (!confirm) return;

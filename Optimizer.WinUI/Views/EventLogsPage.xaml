@@ -109,9 +109,9 @@
                     <Grid ColumnSpacing="10">
                         <Grid.ContextFlyout>
                             <MenuFlyout>
-                                <MenuFlyoutItem Text="Kopiér detaljer" Click="EventCopy_Click"/>
+                                <MenuFlyoutItem Text="Kopiér detaljer" Tag="{x:Bind}" Click="EventCopy_Click"/>
                                 <MenuFlyoutItem Text="Åbn Event Viewer" Click="EventOpenViewer_Click"/>
-                                <MenuFlyoutItem Text="Søg på event-ID online" Click="EventSearch_Click"/>
+                                <MenuFlyoutItem Text="Søg på event-ID online" Tag="{x:Bind}" Click="EventSearch_Click"/>
                             </MenuFlyout>
                         </Grid.ContextFlyout>
                         <Grid.ColumnDefinitions>
