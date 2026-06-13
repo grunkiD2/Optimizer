@@ -505,15 +505,23 @@ public sealed partial class ProfilesPage : Page
     }
 
     private const string FcNoPreset = "(no preset)";
-    private sealed record FcFormControls(TextBox Dc, TextBox Bright, CheckBox Hdr, ComboBox Power,
-        TextBox Lyd, ComboBox LysMode, TextBox LysColor, ComboBox Optimizer, TextBox UiIcon, TextBox UiDesc);
+    private sealed record FcFormControls(ComboBox Mode, TextBox RawDc, TextBox Bright, CheckBox Hdr,
+        ComboBox HdrType, ComboBox Power, TextBox Lyd, ComboBox LysMode, TextBox LysColor,
+        Microsoft.UI.Xaml.Shapes.Rectangle Swatch, ComboBox Optimizer, TextBox UiIcon, TextBox UiDesc);
 
     // Shared lag-2 form for the Edit and the "new from situation" dialogs — pre-filled from p (or defaults when null).
     private (StackPanel Panel, FcFormControls C) BuildFcForm(FancontrolProfile? p)
     {
-        var dc = new TextBox { Text = (p?.Dc ?? 10).ToString(), Width = 110 };
+        // Skærm-mode (named) + raw dc behind Avanceret
+        int dcVal = p?.Dc ?? 10;
+        var mode = new ComboBox { MinWidth = 200 };
+        foreach (var m in GameVisualMode.NamedModes) mode.Items.Add(m.Name);
+        var unknownLabel = GameVisualMode.NameForDc(dcVal) is null ? GameVisualMode.Label(dcVal) : null;
+        if (unknownLabel != null) mode.Items.Add(unknownLabel);
+        mode.SelectedItem = GameVisualMode.NameForDc(dcVal) ?? unknownLabel;
+        var rawDc = new TextBox { Text = dcVal.ToString(), Width = 110 };
+
         var bright = new TextBox { Text = (p?.Bright ?? 50).ToString(), Width = 110 };
-        var hdr = new CheckBox { Content = "HDR", IsChecked = p?.Hdr ?? false };
         var power = new ComboBox { MinWidth = 220 };
         foreach (var pl in FcPowerPlans) power.Items.Add(pl.Name);
         var curPower = FcPowerName(p?.Power ?? FcPowerPlans[0].Guid);
@@ -524,7 +532,17 @@ public sealed partial class ProfilesPage : Page
         foreach (var m in new[] { "static", "off", "synapse", "ambient" }) lysMode.Items.Add(m);
         var pm = p?.LysMode ?? "synapse";
         lysMode.SelectedItem = new[] { "static", "off", "synapse", "ambient" }.Contains(pm) ? pm : "synapse";
+
+        // Chroma swatch next to #hex
         var lysColor = new TextBox { Text = p?.LysColor ?? "", PlaceholderText = "#RRGGBB", Width = 130 };
+        var swatch = new Microsoft.UI.Xaml.Shapes.Rectangle { Width = 26, Height = 26, RadiusX = 5, RadiusY = 5 };
+        void PaintSwatch()
+        {
+            try { swatch.Fill = (Microsoft.UI.Xaml.Media.Brush)new Optimizer.WinUI.Converters.StringToSolidColorBrushConverter().Convert(lysColor.Text, typeof(Microsoft.UI.Xaml.Media.Brush), null!, ""); }
+            catch { }
+        }
+        lysColor.TextChanged += (_, _) => PaintSwatch(); PaintSwatch();
+
         var optimizer = new ComboBox { MinWidth = 240 };
         optimizer.Items.Add(FcNoPreset);
         var presets = App.GetService<IProfileService>().BuiltInPresets;
@@ -535,38 +553,71 @@ public sealed partial class ProfilesPage : Page
         var uiIcon = new TextBox { Text = p?.UiIcon ?? "", Width = 90 };
         var uiDesc = new TextBox { Text = p?.UiDesc ?? "", MinWidth = 220 };
 
+        // Two-layer HDR
+        var hdr = new CheckBox { Content = "HDR til", IsChecked = p?.Hdr ?? false };
+        var hdrType = new ComboBox { MinWidth = 240 };
+        foreach (var hm in HdrModeCatalog.All) hdrType.Items.Add($"{hm.Group} · {hm.Label}");
+        var recipe = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Res("MutedBrush") };
+        var hdrBanner = new TextBlock { Text = "I HDR låser PG27UCDM sin OSD — type/lysstyrke sættes på skærmen.", FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Res("MutedBrush") };
+        void SyncHdr()
+        {
+            bool on = hdr.IsChecked == true;
+            mode.IsEnabled = !on; bright.IsEnabled = !on;
+            hdrType.Visibility = recipe.Visibility = hdrBanner.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+            var idx = hdrType.SelectedIndex;
+            recipe.Text = idx >= 0 && idx < HdrModeCatalog.All.Count ? HdrModeCatalog.Recipe(HdrModeCatalog.All[idx].Key) : "";
+        }
+        hdr.Checked += (_, _) => SyncHdr(); hdr.Unchecked += (_, _) => SyncHdr();
+        hdrType.SelectionChanged += (_, _) => SyncHdr();
+        if (!string.IsNullOrEmpty(p?.HdrType))
+        { var i = 0; foreach (var hm in HdrModeCatalog.All) { if (hm.Key == p!.HdrType) { hdrType.SelectedIndex = i; break; } i++; } }
+
         var form = new StackPanel { Spacing = 8, MinWidth = 340 };
         void AddField(string label, FrameworkElement ctl)
         {
             form.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = Res("MutedBrush"), Margin = new Thickness(0, 4, 0, 0) });
             form.Children.Add(ctl);
         }
-        AddField("GameVisual DC (0-255)", dc);
-        AddField("Brightness (0-100)", bright);
+        AddField("Skærm-mode (GameVisual)", mode);
+        AddField("Lysstyrke (0-100)", bright);
         form.Children.Add(hdr);
+        form.Children.Add(hdrType); form.Children.Add(recipe); form.Children.Add(hdrBanner);
         AddField("Power plan", power);
         AddField("Audio device (lyd)", lyd);
         AddField("Lighting mode", lysMode);
-        AddField("Lighting color (static)", lysColor);
+        var colorRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        colorRow.Children.Add(lysColor); colorRow.Children.Add(swatch);
+        AddField("Lighting color (static)", colorRow);
         AddField("Optimizer preset-link (auto-applied on switch)", optimizer);
         AddField("Icon", uiIcon);
         AddField("Description", uiDesc);
-        return (form, new FcFormControls(dc, bright, hdr, power, lyd, lysMode, lysColor, optimizer, uiIcon, uiDesc));
+        var advPanel = new StackPanel { Spacing = 6 };
+        advPanel.Children.Add(new TextBlock { Text = "GameVisual DC (rå 0-255)", FontSize = 12, Foreground = Res("MutedBrush") });
+        advPanel.Children.Add(rawDc);
+        form.Children.Add(new Expander { Header = "Avanceret (rå værdier)", IsExpanded = unknownLabel != null, Content = advPanel });
+        SyncHdr();
+        return (form, new FcFormControls(mode, rawDc, bright, hdr, hdrType, power, lyd, lysMode, lysColor, swatch, optimizer, uiIcon, uiDesc));
     }
 
     // Validates the form + returns the lag-2 edit-patch JSON, or null after showing an error.
     private async Task<string?> FcPatchFromForm(FcFormControls c, string fallbackPowerGuid)
     {
-        if (!int.TryParse(c.Dc.Text.Trim(), out var dcv) || dcv < 0 || dcv > 255)
+        int dcv;
+        var named = c.Mode.SelectedItem as string;
+        var namedDc = named is null ? null : GameVisualMode.DcForName(named);
+        if (namedDc is int nd) dcv = nd;
+        else if (!int.TryParse(c.RawDc.Text.Trim(), out dcv) || dcv < 0 || dcv > 255)
         { await ShowErrorDialogAsync("Profile", "GameVisual DC must be an integer 0-255."); return null; }
         if (!int.TryParse(c.Bright.Text.Trim(), out var brv) || brv < 0 || brv > 100)
         { await ShowErrorDialogAsync("Profile", "Brightness must be an integer 0-100."); return null; }
         var powerGuid = FcPowerPlans.FirstOrDefault(x => x.Name == (string)c.Power.SelectedItem).Guid ?? fallbackPowerGuid;
         var optSel = (string)c.Optimizer.SelectedItem;
         var optVal = optSel == FcNoPreset ? "" : optSel;
+        var hdrKey = c.Hdr.IsChecked == true && c.HdrType.SelectedIndex >= 0 && c.HdrType.SelectedIndex < HdrModeCatalog.All.Count
+            ? HdrModeCatalog.All[c.HdrType.SelectedIndex].Key : "";
         return FancontrolCommandService.BuildProfilePatch(dcv, brv, c.Hdr.IsChecked == true, powerGuid,
             c.Lyd.Text.Trim(), (string)c.LysMode.SelectedItem, c.LysColor.Text.Trim(), optVal,
-            c.UiIcon.Text.Trim(), c.UiDesc.Text.Trim());
+            c.UiIcon.Text.Trim(), c.UiDesc.Text.Trim(), hdrKey);
     }
 
     private async Task FcEditProfile(FancontrolProfile p)
