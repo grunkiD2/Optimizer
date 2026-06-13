@@ -14,6 +14,10 @@ public class UndoService : IUndoService
     private readonly List<UndoEntry> _entries = new();
     private readonly object _gate = new();
 
+    // The apply-scope's group id (a profile id), stamped onto every entry captured while a
+    // BeginGroup scope is open. Guarded by _gate. See BeginGroup.
+    private string? _currentGroupId;
+
     public int Count
     {
         get { lock (_gate) { return _entries.Count; } }
@@ -49,7 +53,7 @@ public class UndoService : IUndoService
             entry.PreviousValue = SerializeValue(existing, kind);
         }
 
-        lock (_gate) { _entries.Add(entry); }
+        lock (_gate) { entry.GroupId = _currentGroupId; _entries.Add(entry); }
     }
 
     private static string SerializeValue(object raw, RegistryValueKind kind) => kind switch
@@ -68,9 +72,23 @@ public class UndoService : IUndoService
                 Kind = UndoActionKind.ActivePowerScheme,
                 Description = description,
                 OptimizationId = optimizationId,
+                GroupId = _currentGroupId,
                 PreviousPowerSchemeGuid = previousGuid
             });
         }
+    }
+
+    public IDisposable BeginGroup(string groupId)
+    {
+        string? previous;
+        lock (_gate) { previous = _currentGroupId; _currentGroupId = groupId; }
+        return new GroupScope(this, previous);
+    }
+
+    // Restores the prior group id on dispose so BeginGroup nests safely.
+    private sealed class GroupScope(UndoService owner, string? previous) : IDisposable
+    {
+        public void Dispose() { lock (owner._gate) { owner._currentGroupId = previous; } }
     }
 
     public async Task<int> UndoAllAsync()

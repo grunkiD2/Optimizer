@@ -220,6 +220,12 @@ public class WindowsOptimizerService : IWindowsOptimizerService
             profile.LastAppliedAt = DateTime.UtcNow;
             _appliedProfiles[profileId] = profile;
 
+            // Open an undo group for the whole apply: every capture below — the profile's own
+            // registry settings AND each bundled optimization handler's captures — is stamped with
+            // this profile id, so RevertProfileAsync reverts exactly this profile's changes and
+            // never another profile's captures for a shared optimization (divergence-7 fix).
+            using var applyGroup = _undoService.BeginGroup(profileId);
+
             // Apply any explicit registry settings declared on the profile. Tag the captures with
             // the profile id so RevertProfileAsync can target exactly this profile's changes.
             foreach (var setting in profile.RegistrySettings)
@@ -290,16 +296,18 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         {
             _appliedProfiles.TryRemove(profileId, out _);
 
-            // Audit/divergence-7: revert ONLY this profile's captured changes, not the entire
-            // undo stack (the old UndoAllAsync tore down every other profile + standalone
-            // optimization too). Entries carry the profile id (direct registry settings) or one
-            // of the profile's bundled optimization ids.
+            // Divergence-7 fix: revert ONLY this profile's captured changes. New captures carry a
+            // real GroupId == profileId (set via UndoService.BeginGroup during the apply), so two
+            // profiles bundling the same optimization no longer revert each other's captures. The
+            // legacy OptimizationId-scope is kept ONLY for pre-GroupId entries (GroupId == null)
+            // loaded from an older undo.json, so in-flight reversibility survives the upgrade.
             var profile = BuiltInPresetsProvider.GetPresets().FirstOrDefault(p => p.Id == profileId);
             var scopeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { profileId };
             if (profile != null) foreach (var o in profile.Optimizations) scopeIds.Add(o);
 
             var mine = _undoService.Entries
-                .Where(e => e.OptimizationId != null && scopeIds.Contains(e.OptimizationId))
+                .Where(e => string.Equals(e.GroupId, profileId, StringComparison.OrdinalIgnoreCase)
+                         || (e.GroupId == null && e.OptimizationId != null && scopeIds.Contains(e.OptimizationId)))
                 .Reverse()   // newest first
                 .ToList();
 

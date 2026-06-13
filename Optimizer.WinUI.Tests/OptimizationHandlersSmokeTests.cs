@@ -123,6 +123,8 @@ public class OptimizationHandlersSmokeTests
             _entries.Add(new UndoEntry { Kind = UndoActionKind.RegistryValue, RegistryRoot = root, SubKey = subKey, ValueName = valueName, Description = description, OptimizationId = optimizationId });
         }
         public void CapturePowerScheme(string previousGuid, string description, string? optimizationId = null) { }
+        public IDisposable BeginGroup(string groupId) => new NoopScope();
+        private sealed class NoopScope : IDisposable { public void Dispose() { } }
         public Task<int> UndoAllAsync() => Task.FromResult(0);
         public Task<bool> UndoAsync(UndoEntry entry) => Task.FromResult(true);
         public void Load() { }

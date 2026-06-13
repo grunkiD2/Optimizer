@@ -15,6 +15,13 @@ public class UndoEntry
     /// undo instead of the fragile Description.Contains(id) that never matched). Null for
     /// pre-audit entries loaded from an older undo.json.</summary>
     public string? OptimizationId { get; set; }
+
+    /// <summary>The id of the apply-operation that produced this entry — set to the PROFILE id for
+    /// captures made during a profile apply (via <see cref="IUndoService.BeginGroup"/>), so
+    /// RevertProfileAsync reverts exactly that profile's changes and never another profile's
+    /// captures for a shared optimization. Null for standalone applies and pre-GroupId entries.</summary>
+    public string? GroupId { get; set; }
+
     public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;
 
     // Registry-value undo
@@ -39,6 +46,11 @@ public interface IUndoService
 
     /// <summary>Records the currently-active power scheme so it can be restored later.</summary>
     void CapturePowerScheme(string previousGuid, string description, string? optimizationId = null);
+
+    /// <summary>Opens an apply-scope: every entry captured until the returned token is disposed is
+    /// stamped with <paramref name="groupId"/> (so RevertProfileAsync can revert a whole profile as
+    /// one unit). Re-entrant — the previous group is restored on dispose.</summary>
+    IDisposable BeginGroup(string groupId);
 
     /// <summary>Reverts every captured change, most recent first. Returns the number restored.</summary>
     Task<int> UndoAllAsync();
