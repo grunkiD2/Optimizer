@@ -84,14 +84,25 @@ public partial class ProfilesViewModel : ObservableObject
     // ── Presets ────────────────────────────────────────────────────────────
 
     [RelayCommand]
-    public async Task ApplyPresetAsync(SettingsProfile preset)
+    public Task ApplyPresetAsync(SettingsProfile preset)
+        => ApplyPresetCoreAsync(preset, includeDestructive: false);
+
+    /// <summary>
+    /// Apply a preset INCLUDING its destructive optimizations. Call only after the user has
+    /// confirmed in an interactive dialog — the view owns that dialog so the VM stays UI-type-free
+    /// (Safe-Tune gate, audit 4b).
+    /// </summary>
+    public Task ApplyPresetIncludingDestructiveAsync(SettingsProfile preset)
+        => ApplyPresetCoreAsync(preset, includeDestructive: true);
+
+    private async Task ApplyPresetCoreAsync(SettingsProfile preset, bool includeDestructive)
     {
         if (preset is null) return;
         IsBusy = true;
         SetStatus($"Applying preset \"{preset.Name}\"…");
         try
         {
-            var result = await _profileService.ApplyPresetDetailedAsync(preset.Id);
+            var result = await _profileService.ApplyPresetDetailedAsync(preset.Id, includeDestructive);
             await RecordApplicationAsync(preset.Id);
             // Audit C6: honest aggregate instead of an unconditional "applied successfully".
             SetStatus($"Preset \"{preset.Name}\": {result.Summary}");

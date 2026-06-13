@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services;
 using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
@@ -33,12 +34,45 @@ public sealed partial class ProfilesPage : Page
 
     private async void PresetApply_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.Tag is string presetId)
+        if (sender is not Button btn || btn.Tag is not string presetId) return;
+        var preset = ViewModel.Presets.FirstOrDefault(p => p.Id == presetId);
+        if (preset is null) return;
+
+        // Safe-Tune gate (audit 4b): if this preset bundles any DESTRUCTIVE optimization, the shared
+        // apply path skips it unless we explicitly opt in. Confirm here (the view owns the dialog;
+        // the VM stays UI-type-free) and let the user apply everything, apply the rest, or cancel.
+        var optimizer = App.GetService<IWindowsOptimizerService>();
+        var destructive = preset.Optimizations
+            .Select(id => optimizer.GetOptimizationInfo(id))
+            .Where(info => info is { IsDestructive: true })
+            .ToList();
+
+        if (destructive.Count == 0)
         {
-            var preset = ViewModel.Presets.FirstOrDefault(p => p.Id == presetId);
-            if (preset is not null)
-                await ViewModel.ApplyPresetCommand.ExecuteAsync(preset);
+            await ViewModel.ApplyPresetCommand.ExecuteAsync(preset);
+            return;
         }
+
+        var list = string.Join("\n", destructive.Select(d => $"• {d!.Title}"));
+        var dialog = new ContentDialog
+        {
+            Title = "This preset makes a destructive change",
+            Content = $"\"{preset.Name}\" also runs:\n\n{list}\n\n" +
+                      "That removes ALL of those items at once (reversible via Undo). Apply everything, " +
+                      "or apply the rest and skip the destructive part?",
+            PrimaryButtonText = "Apply everything",
+            SecondaryButtonText = "Apply without these",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Secondary,
+            XamlRoot = XamlRoot
+        };
+
+        var choice = await dialog.ShowAsync();
+        if (choice == ContentDialogResult.Primary)
+            await ViewModel.ApplyPresetIncludingDestructiveAsync(preset);
+        else if (choice == ContentDialogResult.Secondary)
+            await ViewModel.ApplyPresetCommand.ExecuteAsync(preset);
+        // Close / Cancel → do nothing
     }
 
     // ── Snapshots ──────────────────────────────────────────────────────────
