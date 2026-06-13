@@ -384,4 +384,42 @@ public class FancontrolCommandServiceTests
     [Fact]
     public void TokenMatches_rejects_empty_configured_token()
         => Assert.False(ApiHostService.TokenMatches("Bearer ", ""));
+
+    // ── Profil 2.0 Task 4: hdrType round-trip ────────────────────────────────
+
+    [Fact]
+    public void BuildProfilePatch_includes_hdrType_when_set()
+    {
+        var json = FancontrolCommandService.BuildProfilePatch(7, 80, true, "381b4222-0000-0000-0000-000000000000",
+            "", "synapse", null, "", "", "", hdrType: "console");
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var display = doc.RootElement.GetProperty("display");
+        Assert.Equal("console", display.GetProperty("hdrType").GetString());
+    }
+
+    [Fact]
+    public void BuildProfilePatch_omits_hdrType_when_blank()
+    {
+        var json = FancontrolCommandService.BuildProfilePatch(7, 80, false, "381b4222-0000-0000-0000-000000000000",
+            "", "synapse", null, "", "", "", hdrType: "");
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        Assert.False(doc.RootElement.GetProperty("display").TryGetProperty("hdrType", out _));
+    }
+
+    [Fact]
+    public void GetProfiles_parses_hdrType_from_display()
+    {
+        var root = Directory.CreateTempSubdirectory("fcroot").FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "profiles"));
+            File.WriteAllText(Path.Combine(root, "profiles", "profiles.json"),
+                """{"profiles":{"D2":{"display":{"dc":150,"bright":50,"hdr":true,"hdrType":"console"}}}}""");
+            var svc = new FancontrolCommandService(Path.Combine(root, "state"), (a, c) => Task.FromResult(new CtlResult(true, "ok")));
+            var d2 = svc.GetProfiles().Single(p => p.Name == "D2");
+            Assert.Equal(150, d2.Dc);
+            Assert.Equal("console", d2.HdrType);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
 }

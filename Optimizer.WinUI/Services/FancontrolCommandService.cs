@@ -18,7 +18,8 @@ public record FancontrolProfile(
     string LysMode, string? LysColor,
     string Optimizer,
     string UiIcon, string UiDesc,
-    bool GamingClass);
+    bool GamingClass,
+    string HdrType = ""); // OSD-only HDR mode key (e.g. "console", "gaming"); "" = OSD decides
 
 /// <summary>
 /// A program→profile mapping plus what the Fancontrol brain has LEARNED about it (read-only, from
@@ -144,7 +145,8 @@ public class FancontrolCommandService : IFancontrolCommandService
                     GetStr(lys, "mode"), lysColor,
                     GetStr(p, "optimizer"),
                     GetStr(ui, "icon"), GetStr(ui, "desc"),
-                    p.TryGetProperty("gamingClass", out var g) && g.ValueKind == JsonValueKind.True));
+                    p.TryGetProperty("gamingClass", out var g) && g.ValueKind == JsonValueKind.True,
+                    GetStr(display, "hdrType")));
             }
             return list;
         }
@@ -197,15 +199,19 @@ public class FancontrolCommandService : IFancontrolCommandService
     /// — it is lag-1 (system-owned, read-only).
     /// </summary>
     public static string BuildProfilePatch(int dc, int bright, bool hdr, string power, string lyd,
-        string lysMode, string? lysColor, string optimizer, string uiIcon, string uiDesc)
+        string lysMode, string? lysColor, string optimizer, string uiIcon, string uiDesc,
+        string hdrType = "")
     {
         var lys = new Dictionary<string, object> { ["mode"] = lysMode ?? "synapse" };
         if (!string.IsNullOrWhiteSpace(lysColor) &&
             System.Text.RegularExpressions.Regex.IsMatch(lysColor, "^#[0-9A-Fa-f]{6}$"))
             lys["color"] = lysColor;
+        var display = new Dictionary<string, object> { ["dc"] = dc, ["bright"] = bright, ["hdr"] = hdr };
+        if (!string.IsNullOrWhiteSpace(hdrType))
+            display["hdrType"] = hdrType;
         var patch = new Dictionary<string, object>
         {
-            ["display"] = new Dictionary<string, object> { ["dc"] = dc, ["bright"] = bright, ["hdr"] = hdr },
+            ["display"] = display,
             ["power"] = power ?? "",
             ["lyd"] = lyd ?? "",
             ["lys"] = lys,
