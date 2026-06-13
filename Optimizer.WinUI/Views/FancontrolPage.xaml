@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Optimizer.WinUI.Views.FancontrolPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:hud="using:Optimizer.WinUI.Controls.Hud"
+    Background="Transparent">
+
+    <hud:HudBackdrop>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,16,24,24">
+            <StackPanel Spacing="20" MaxWidth="1100" HorizontalAlignment="Left">
+
+                <hud:HudPageHeader Icon="&#xE9CA;" Title="Fancontrol"
+                    Description="Federation hub for the live machine-control system. Status and history are read-only; commands go through the engine's own ctl.ps1 contract."/>
+
+                <InfoBar x:Name="AlarmBar" IsOpen="False" IsClosable="False" Severity="Error"
+                         Title="Fancontrol alarm">
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                        <Button x:Name="AckButton" Content="Acknowledge alerts" Click="AckButton_Click"/>
+                        <Button x:Name="RestartBrainButton" Content="Restart FanBrain" Click="RestartBrainButton_Click"/>
+                    </StackPanel>
+                </InfoBar>
+
+                <!-- Vitals row -->
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <hud:StatTile x:Name="CoolantTile" Grid.Column="0" Label="COOLANT" Unit="°C" Value="--"/>
+                    <hud:StatTile x:Name="PumpTile"    Grid.Column="1" Label="PUMP" Unit="RPM" Value="--"/>
+                    <hud:StatTile x:Name="CpuTile"     Grid.Column="2" Label="CPU PACKAGE" Unit="W" Value="--"/>
+                    <hud:StatTile x:Name="GpuTile"     Grid.Column="3" Label="GPU PACKAGE" Unit="W" Value="--"/>
+                </Grid>
+
+                <hud:HudCard Header="STATUS — BRAIN · PROFILE · SENTINEL">
+                    <StackPanel x:Name="StatusList" Spacing="10"/>
+                </hud:HudCard>
+
+                <hud:HudCard Header="HISTORY">
+                    <StackPanel Spacing="12">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox x:Name="RangeBox" SelectionChanged="RangeBox_SelectionChanged" SelectedIndex="1" MinWidth="120">
+                                <ComboBoxItem Content="1 hour"/>
+                                <ComboBoxItem Content="6 hours"/>
+                                <ComboBoxItem Content="24 hours"/>
+                            </ComboBox>
+                            <TextBlock x:Name="HistoryInfo" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel x:Name="ChartsHost" Spacing="14"/>
+                    </StackPanel>
+                </hud:HudCard>
+
+                <hud:HudCard Header="LIVE LOG — events.jsonl">
+                    <StackPanel x:Name="LogList" Spacing="4"/>
+                </hud:HudCard>
+
+            </StackPanel>
+        </ScrollViewer>
+    </hud:HudBackdrop>
+</Page>

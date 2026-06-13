@@ -164,6 +164,9 @@ public partial class App : Application
                 // ntfy channel (engine\notify.ps1); informational stays in the UI.
                 services.AddSingleton<IUrgentAlertEgress>(sp =>
                     new UrgentAlertEgress(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
+                // Etape 1: read-only viewer over the engine's events.jsonl audit stream.
+                services.AddSingleton<IFancontrolEventsService>(sp =>
+                    new FancontrolEventsService(sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 // Telemetry ingestion (read-only): brain 5 s ticks → SQLite for trends/history.
                 services.AddSingleton<FancontrolTelemetryService>(sp =>
                     new FancontrolTelemetryService(sp.GetRequiredService<DatabaseService>(),

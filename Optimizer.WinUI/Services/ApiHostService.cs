@@ -228,6 +228,43 @@ public class ApiHostService : IApiHostService
         .WithTags("Fancontrol")
         .WithOpenApi();
 
+        // ── Etape 1: live-log + alarm-respons (restart-kommandoerne verificerer frisk state) ──
+        app.MapGet("/api/fancontrol/events", (int? count) =>
+        {
+            var ev = _appServices.GetService<IFancontrolEventsService>();
+            if (ev == null || !ev.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            var events = ev.ReadTail(Math.Clamp(count ?? 100, 1, 500));
+            return Results.Ok(new { schemaVersion = 1, count = events.Count, events });
+        })
+        .WithName("FancontrolEvents")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
+        app.MapPost("/api/fancontrol/restart-brain", async (CancellationToken ct) =>
+        {
+            var fc = _appServices.GetService<IFancontrolCommandService>();
+            if (fc == null || !fc.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            var r = await fc.RestartBrainAsync(ct);
+            return Results.Ok(new { success = r.Success, output = r.Output });
+        })
+        .WithName("FancontrolRestartBrain")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
+        app.MapPost("/api/fancontrol/restart-fgwatch", async (CancellationToken ct) =>
+        {
+            var fc = _appServices.GetService<IFancontrolCommandService>();
+            if (fc == null || !fc.IsConfigured)
+                return Results.NotFound(new { error = "Fancontrol federation not configured" });
+            var r = await fc.RestartFgwatchAsync(ct);
+            return Results.Ok(new { success = r.Success, output = r.Output });
+        })
+        .WithName("FancontrolRestartFgwatch")
+        .WithTags("Fancontrol")
+        .WithOpenApi();
+
         app.MapGet("/api/profiles", () =>
         {
             var optimizer = _appServices.GetService<IWindowsOptimizerService>();

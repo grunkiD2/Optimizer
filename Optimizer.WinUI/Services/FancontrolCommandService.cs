@@ -19,6 +19,12 @@ public interface IFancontrolCommandService
     Task<CtlResult> SetNightAsync(string mode, CancellationToken ct = default);
 
     Task<CtlResult> AckAlertsAsync(string? note, CancellationToken ct = default);
+
+    /// <summary>Etape 1 alarm response: controlled FanBrain restart with fresh-state verification.</summary>
+    Task<CtlResult> RestartBrainAsync(CancellationToken ct = default);
+
+    /// <summary>Cooperative fgwatch restart (stop-flag → Ready → start), verified by fresh state.</summary>
+    Task<CtlResult> RestartFgwatchAsync(CancellationToken ct = default);
 }
 
 /// <summary>
@@ -106,6 +112,15 @@ public class FancontrolCommandService : IFancontrolCommandService
         return clean.Length > 0 ? RunCtlAsync(["ack-alerts", clean], ct) : RunCtlAsync(["ack-alerts"], ct);
     }
 
+    // The restart commands verify fresh daemon state before answering — restart-fgwatch's worst
+    // case is ~71 s (45 s cooperative stop + 6 s grace + 20 s fresh-state wait), restart-brain's
+    // ~35 s. The default 45 s ctl timeout would kill them mid-verification.
+    public Task<CtlResult> RestartBrainAsync(CancellationToken ct = default)
+        => RunCtlAsync(["restart-brain"], ct, TimeSpan.FromSeconds(90));
+
+    public Task<CtlResult> RestartFgwatchAsync(CancellationToken ct = default)
+        => RunCtlAsync(["restart-fgwatch"], ct, TimeSpan.FromSeconds(120));
+
     /// <summary>
     /// R1 result contract (2026-06-13): ctl.ps1's LAST stdout line is always compact JSON
     /// {ok,cmd,msg} and the exit code is real (0 ok / 1 fail). Parsed fail-closed: a missing or
@@ -146,10 +161,11 @@ public class FancontrolCommandService : IFancontrolCommandService
         }
     }
 
-    private async Task<CtlResult> RunCtlAsync(IReadOnlyList<string> commandAndArg, CancellationToken ct)
+    private async Task<CtlResult> RunCtlAsync(IReadOnlyList<string> commandAndArg, CancellationToken ct, TimeSpan? timeout = null)
     {
         if (!IsConfigured) return new CtlResult(false, "Fancontrol federation not configured (AppSettings.FancontrolStateDir).");
         if (_runnerOverride != null) return await _runnerOverride(commandAndArg, ct);
+        var effectiveTimeout = timeout ?? CtlTimeout;
 
         // Windows PowerShell 5.1 — the engine targets it explicitly. ArgumentList quotes each
         // token (multi-token -Args died silently in param binding when unquoted — known trap).
@@ -178,7 +194,7 @@ public class FancontrolCommandService : IFancontrolCommandService
             using var proc = Process.Start(psi);
             if (proc == null) return new CtlResult(false, "Could not start powershell.exe.");
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(CtlTimeout);
+            cts.CancelAfter(effectiveTimeout);
             var stdout = proc.StandardOutput.ReadToEndAsync(cts.Token);
             var stderr = proc.StandardError.ReadToEndAsync(cts.Token);
             try
@@ -188,7 +204,7 @@ public class FancontrolCommandService : IFancontrolCommandService
             catch (OperationCanceledException)
             {
                 try { proc.Kill(entireProcessTree: true); } catch { }
-                EngineLog.Write($"[Fancontrol] ctl {commandAndArg[0]} timed out after {CtlTimeout.TotalSeconds:F0} s");
+                EngineLog.Write($"[Fancontrol] ctl {commandAndArg[0]} timed out after {effectiveTimeout.TotalSeconds:F0} s");
                 return new CtlResult(false, $"ctl.ps1 {commandAndArg[0]} timed out.");
             }
             var result = ParseCtlResult(await stdout, await stderr, proc.ExitCode);

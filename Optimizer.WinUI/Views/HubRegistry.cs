@@ -32,6 +32,7 @@ public static class HubRegistry
     {
         new("Sensors & Inventory", typeof(HardwarePage)),
         new("Power Insights", typeof(PowerInsightsPage)),
+        new("Fancontrol", typeof(FancontrolPage)),   // Etape 1: federation hub (status/grafer/log/alarm)
         new("Event Log", typeof(EventLogsPage)),
     });
 
@@ -102,6 +103,7 @@ public static class HubRouting
             // Monitor
             ["Hardware"]        = Mk(HubRegistry.Monitor, "Sensors & Inventory"),
             ["PowerInsights"]   = Mk(HubRegistry.Monitor, "Power Insights"),
+            ["Fancontrol"]      = Mk(HubRegistry.Monitor, "Fancontrol"),
             ["EventLogs"]       = Mk(HubRegistry.Monitor, "Event Log"),
 
             // Optimize
