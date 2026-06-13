@@ -24,6 +24,23 @@ Disk-space treemap (WinDirStat-style) · composite 0-100 health breakdown per ca
 - Persist process priorities across boots + integrated "Game Mode" combo — Lasso (ProBalance/Gaming Mode) and fgwatch own those domains here.
 - Stale claims corrected: live speedtest EXISTS (`NetworkSpeedTestService`), ClaudeClient double-bill was FIXED (`26f865d`).
 
+## Performance — cross-layer profile (2026-06-13, read-only, Impact × Effort)
+Live measurements: data.json 205 KB/fetch, optimizer.db ~5 MB, history.json 423 KB, a daily app.log hit the 10 MB cap.
+
+**Phase 1 (high value, low effort):**
+- **Cap `ConsoleViewModel.Lines`** — unbounded ObservableCollection grows for the whole session (verbose console on by default); trim oldest to ~1–2k. *High.* (`ViewModels/ConsoleViewModel.cs:19,31`)
+- Cache `TotalPhysicalMemory` once + hold a persistent `PerformanceCounter` instead of per-tick WMI query + counter create/dispose. (`Services/SystemMonitorService.cs:333,349`)
+- SQLite `journal_mode=WAL` + `busy_timeout` — kills reader/writer contention (currently default DELETE mode, no WAL files; 5 s/30 s writers vs UI/API reads). (`Services/Data/DatabaseService.cs:16`)
+- 2–5 s TTL cache on `DetectContextAsync` — `Process.GetProcesses()` runs 5–10× per assistant turn. (`Services/ContextAuthorityService.cs:47`)
+
+**Phase 2 (high value, medium effort):**
+- Read-through cache (sub-second TTL) on `GetSnapshot()`, or point consumers at `SystemDataBus.LatestSensors` — the 205 KB data.json is fetched + regex-parsed **2–4× per cycle** (SystemDataBus, GpuControlService, /api/sensors, PowerAttribution, SmartInsights). (`Services/ExternalLhmSensorService.cs:45`)
+- Async sensor path (`GetSnapshotAsync`) + `Interlocked` reentrancy guard — stop sync-over-async thread pinning + 2 s-timer pile-up. (`Services/SystemDataBus.cs:112`)
+- Activate window first, then async DB-init + `*.Load()` — 423 KB history.json + 5 MB DB init block first paint. (`App.xaml.cs:377`)
+- Coalesce assistant stream deltas — per-token O(n²) string concat + UI dispatch per token. (`ViewModels/AssistantViewModel.cs:104`)
+
+**Phase 3 (polish):** prepared-statement reuse in batch inserts (17k recompiles on backlog) · `rec-preferences.json`(121 KB)→SQLite · retention-column indexes (PowerDriftEvents/AnomalyAlerts/ScheduleExecutions/ProfileApplications) · HealthRing single-blur · page `NavigationCacheMode` · sparkline buffer reuse · tail (not full-read) events.jsonl · `HistoryService`→SQLite · `ParseNumber` → `[GeneratedRegex]` · DEBUG Kestrel auto-start deferral.
+
 ## In flight / parked-but-designed
 
 - ~~**Per-Process Power Intelligence (PPI)**~~ — ✅ CORE SHIPPED 2026-06-12 (estimated-attribution model; see the status header in [`docs/POWER-INSIGHTS.md`](POWER-INSIGHTS.md)). Remaining: Monitor-hub UI page, ContextualPromptBuilder drainer block, Recommendations-row surfacing, long-run verification (#4/#6/#7), and the Fancontrol-brain consumer (`/api/power/processes` is the contract — brain-side consumption is a reviewed Fancontrol change).
