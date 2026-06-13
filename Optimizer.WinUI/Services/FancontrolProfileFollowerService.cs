@@ -68,7 +68,7 @@ public class FancontrolProfileFollowerService : IHostedService, IDisposable
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _timer?.Dispose();
+    public void Dispose() { _timer?.Dispose(); GC.SuppressFinalize(this); }
 
     private async Task TickSafeAsync()
     {
