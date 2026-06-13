@@ -14,6 +14,15 @@ public abstract partial class CategoryViewModelBase : ObservableObject, ICategor
 
     [ObservableProperty] private int activeCount;
     [ObservableProperty] private int totalCount;
+    /// <summary>Last action result, surfaced as an InfoBar on the category pages (audit Batch 2 —
+    /// apply/undo no longer fail silently). Empty hides the bar.</summary>
+    [ObservableProperty] private string statusMessage = "";
+    [ObservableProperty] private bool statusIsError;
+
+    /// <summary>True when there is a status message to show (drives the InfoBar's IsOpen).</summary>
+    public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
+
+    partial void OnStatusMessageChanged(string value) => OnPropertyChanged(nameof(HasStatus));
 
     public ObservableCollection<OptimizationCardModel> Optimizations { get; } = [];
 
@@ -59,30 +68,61 @@ public abstract partial class CategoryViewModelBase : ObservableObject, ICategor
 
     public async Task ToggleOptimizationAsync(string id, bool enable)
     {
+        var info = Optimizer.GetOptimizationInfo(id);
+        var title = info?.Title ?? id;
+
         if (enable)
         {
             var result = await Optimizer.ApplyOptimizationAsync(id);
-            var info = Optimizer.GetOptimizationInfo(id);
-            if (result.Success && info != null)
-                History.RecordApplied(id, info.Title, CategoryName, info.Reversible);
+            if (result.Success)
+            {
+                if (info != null) History.RecordApplied(id, info.Title, CategoryName, info.Reversible);
+                SetStatus(string.IsNullOrWhiteSpace(result.Message) ? $"Applied: {title}" : result.Message, false);
+            }
+            else
+            {
+                // Audit Batch 2: apply failures (typically missing elevation) used to flip the
+                // card back silently. Surface the reason.
+                var reason = result.Errors?.Count > 0 ? string.Join("; ", result.Errors)
+                    : (string.IsNullOrWhiteSpace(result.Message) ? "Apply failed." : result.Message);
+                SetStatus($"{title}: {reason}", true);
+            }
         }
         else
         {
-            // Undo via IUndoService — find the most recent entry matching this optimization
-            var entry = UndoSvc.Entries
-                .FirstOrDefault(e =>
-                    e.Description.Contains(id, StringComparison.OrdinalIgnoreCase));
+            // Audit C5: revert EVERY entry produced by this optimization (an optimization can
+            // write several registry values), newest first. Exact id-match, with a
+            // Description.Contains fallback only for pre-audit undo.json entries (null id).
+            var entries = UndoSvc.Entries
+                .Where(e => string.Equals(e.OptimizationId, id, StringComparison.OrdinalIgnoreCase)
+                         || (e.OptimizationId == null && e.Description.Contains(id, StringComparison.OrdinalIgnoreCase)))
+                .Reverse()
+                .ToList();
 
-            if (entry != null)
+            if (entries.Count == 0)
             {
-                await UndoSvc.UndoAsync(entry);
-                var info = Optimizer.GetOptimizationInfo(id);
-                if (info != null)
-                    History.RecordUndone(id, info.Title, CategoryName);
+                SetStatus($"Nothing to undo for {title} (no captured snapshot).", true);
+            }
+            else
+            {
+                var reverted = 0;
+                foreach (var entry in entries)
+                    if (await UndoSvc.UndoAsync(entry)) reverted++;
+
+                if (reverted > 0 && info != null) History.RecordUndone(id, info.Title, CategoryName);
+                SetStatus(reverted == entries.Count
+                    ? $"Reverted: {title}"
+                    : $"{title}: reverted {reverted} of {entries.Count} change(s) — see log.", reverted != entries.Count);
             }
         }
 
         Load();
+    }
+
+    protected void SetStatus(string message, bool isError)
+    {
+        StatusMessage = message;
+        StatusIsError = isError;
     }
 
     [RelayCommand]

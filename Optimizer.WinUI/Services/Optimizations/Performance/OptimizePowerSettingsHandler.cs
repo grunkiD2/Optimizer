@@ -32,7 +32,7 @@ public sealed class OptimizePowerSettingsHandler : OptimizationHandlerBase
         {
             var current = GetActivePowerSchemeGuid();
             if (!string.IsNullOrEmpty(current))
-                undoService.CapturePowerScheme(current, "Restore previous power scheme");
+                undoService.CapturePowerScheme(current, "Restore previous power scheme", Id);
 
             UndoService.RunPowerCfg($"/setactive {HighPerformanceSchemeGuid}");
             result.Message = "Switched to the High Performance power scheme.";

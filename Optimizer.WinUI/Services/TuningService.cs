@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
+using Optimizer.WinUI.Helpers;
 using Optimizer.WinUI.Models;
 
 namespace Optimizer.WinUI.Services;
@@ -7,6 +10,11 @@ public class TuningService : ITuningService
 {
     private readonly IWmiQueryService _wmi;
     private static readonly TimeSpan TuningTtl = TimeSpan.FromMinutes(1);
+
+    // Audit C7: the user's ACTUAL CPU tuning, captured before the first Optimizer write so
+    // Revert restores what was really there (these powercfg values live in Process Lasso's
+    // active scheme) instead of a hardcoded "Stock" guess. Persisted across restarts.
+    private static readonly string BaselinePath = AppPaths.GetDataFile("cpu-tuning-baseline.json");
 
     public TuningService(IWmiQueryService wmi)
     {
@@ -42,6 +50,10 @@ public class TuningService : ITuningService
 
     public async Task<bool> ApplyCpuTuningAsync(CpuTuning tuning)
     {
+        // Audit C7: capture the real pre-tuning state ONCE (first apply only — later applies
+        // must not overwrite the true baseline with an already-tuned state) so Revert is honest.
+        await CaptureBaselineIfNeededAsync();
+
         // Clamp values to safe ranges
         tuning.MinProcessorState = Math.Clamp(tuning.MinProcessorState, 0, 100);
         tuning.MaxProcessorState = Math.Clamp(tuning.MaxProcessorState, 20, 100);
@@ -224,8 +236,45 @@ public class TuningService : ITuningService
 
     public async Task<bool> RevertToDefaultsAsync()
     {
-        EngineLog.Write("Tuning: reverting to Stock defaults");
+        // Audit C7: restore the captured pre-tuning baseline if we have one; only fall back to
+        // the hardcoded Stock preset when no capture exists (e.g. revert before any apply).
+        var baseline = LoadBaseline();
+        if (baseline != null)
+        {
+            EngineLog.Write("Tuning: reverting to captured pre-tuning baseline");
+            var ok = await ApplyCpuTuningAsync(baseline);
+            if (ok) { try { File.Delete(BaselinePath); } catch { } }   // consumed — next session re-captures
+            return ok;
+        }
+
+        EngineLog.Write("Tuning: no captured baseline — reverting to Stock defaults");
         return await ApplyPresetAsync(GetPresets().First(p => p.Id == "stock"));
+    }
+
+    private async Task CaptureBaselineIfNeededAsync()
+    {
+        if (File.Exists(BaselinePath)) return;
+        try
+        {
+            var current = await GetCurrentCpuTuningAsync();
+            Directory.CreateDirectory(Path.GetDirectoryName(BaselinePath)!);
+            await File.WriteAllTextAsync(BaselinePath,
+                JsonSerializer.Serialize(current, new JsonSerializerOptions { WriteIndented = true }));
+            EngineLog.Write($"Tuning: captured baseline min={current.MinProcessorState}% max={current.MaxProcessorState}% " +
+                            $"boostMode={current.BoostMode} boostPolicy={current.BoostPolicy}%");
+        }
+        catch (Exception ex) { EngineLog.Write($"Tuning: baseline capture failed — {ex.Message}"); }
+    }
+
+    private static CpuTuning? LoadBaseline()
+    {
+        try
+        {
+            return File.Exists(BaselinePath)
+                ? JsonSerializer.Deserialize<CpuTuning>(File.ReadAllText(BaselinePath))
+                : null;
+        }
+        catch { return null; }
     }
 
     // ── GPU vendor tool detection ─────────────────────────────────────────────

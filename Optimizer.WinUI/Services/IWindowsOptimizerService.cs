@@ -8,6 +8,14 @@ public interface IWindowsOptimizerService
     IReadOnlyList<SettingsProfile> GetBuiltInPresets();
 
     Task<bool> ApplyProfileAsync(string profileId);
+
+    /// <summary>
+    /// Audit C6: applies a profile and reports the per-optimization outcome instead of a flat
+    /// bool that was true even when every bundled optimization failed. UI surfaces should call
+    /// this and show "X of Y applied".
+    /// </summary>
+    Task<ProfileApplyResult> ApplyProfileDetailedAsync(string profileId);
+
     Task<bool> RevertProfileAsync(string profileId);
 
     SystemResource GetCurrentResourceUsage();
@@ -44,4 +52,29 @@ public class OptimizationResult
     public string Message { get; set; } = string.Empty;
     public List<string> Warnings { get; set; } = new();
     public List<string> Errors { get; set; } = new();
+}
+
+/// <summary>Aggregated outcome of applying a profile's bundled optimizations (audit C6).</summary>
+public class ProfileApplyResult
+{
+    public bool ProfileFound { get; set; } = true;
+    public int Applied { get; set; }
+    public int Failed { get; set; }
+    public List<string> Errors { get; set; } = new();
+
+    /// <summary>True only when the profile was found and nothing failed.</summary>
+    public bool Success => ProfileFound && Failed == 0;
+
+    /// <summary>One-line summary for the UI, e.g. "3 of 5 applied — 2 need administrator".</summary>
+    public string Summary
+    {
+        get
+        {
+            if (!ProfileFound) return "Profile not found.";
+            var total = Applied + Failed;
+            if (total == 0) return "Nothing to apply.";
+            if (Failed == 0) return $"Applied all {Applied} optimization(s).";
+            return $"{Applied} of {total} applied — {Failed} failed (often: needs administrator).";
+        }
+    }
 }

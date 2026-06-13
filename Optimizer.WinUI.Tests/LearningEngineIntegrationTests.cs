@@ -189,7 +189,8 @@ public class RuleSuggestionServiceIntegrationTests : DbTestBase
             var local = DateTime.Now.Date.AddDays(-day).AddHours(22).AddMinutes(15);
             await InsertApplicationAsync("gaming", "Gaming", local.ToUniversalTime());
         }
-        var svc = new RuleSuggestionService(Db);
+        var automation = new FakeAutomation();
+        var svc = new RuleSuggestionService(Db, automation);
 
         await svc.GenerateSuggestionsAsync();
 
@@ -199,6 +200,23 @@ public class RuleSuggestionServiceIntegrationTests : DbTestBase
 
         await svc.AcceptSuggestionAsync(s.Id);
         Assert.Empty(await svc.GetPendingSuggestionsAsync());
+
+        // Audit C13: accepting must MATERIALISE a real automation rule, not just flip a status.
+        var rule = Assert.Single(automation.Added);
+        Assert.Equal("gaming", rule.ProfileId);
+        Assert.Equal(Optimizer.WinUI.Models.RuleTrigger.TimeRange, rule.Trigger);
+        Assert.Equal(TimeSpan.FromHours(22), rule.StartTime);
+    }
+
+    private sealed class FakeAutomation : Optimizer.WinUI.Services.IProfileAutomationService
+    {
+        public List<Optimizer.WinUI.Models.ProfileRule> Added { get; } = new();
+        public IReadOnlyList<Optimizer.WinUI.Models.ProfileRule> Rules => Added;
+        public Task AddRuleAsync(Optimizer.WinUI.Models.ProfileRule rule) { Added.Add(rule); return Task.CompletedTask; }
+        public Task UpdateRuleAsync(Optimizer.WinUI.Models.ProfileRule rule) => Task.CompletedTask;
+        public Task DeleteRuleAsync(string ruleId) => Task.CompletedTask;
+        public void Start() { }
+        public void Stop() { }
     }
 
     [Fact]
@@ -209,7 +227,7 @@ public class RuleSuggestionServiceIntegrationTests : DbTestBase
             var local = DateTime.Now.Date.AddDays(-day).AddHours(22);
             await InsertApplicationAsync("gaming", "Gaming", local.ToUniversalTime());
         }
-        var svc = new RuleSuggestionService(Db);
+        var svc = new RuleSuggestionService(Db, new FakeAutomation());
 
         await svc.GenerateSuggestionsAsync();
 

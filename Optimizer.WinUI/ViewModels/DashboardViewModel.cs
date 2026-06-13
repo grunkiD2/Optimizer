@@ -348,10 +348,8 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         StatusMessage = "Applying Clean & Light preset…";
         try
         {
-            var result = await _optimizer.ApplyProfileAsync("preset-clean");
-            StatusMessage = result
-                ? "Clean & Light preset applied successfully."
-                : "Failed to apply preset.";
+            var result = await _optimizer.ApplyProfileDetailedAsync("preset-clean");
+            StatusMessage = $"Clean & Light: {result.Summary}";   // audit C6: honest aggregate
             UndoableChanges = _undoService.Count;
         }
         catch (Exception ex)

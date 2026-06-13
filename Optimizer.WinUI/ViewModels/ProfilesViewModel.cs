@@ -91,11 +91,10 @@ public partial class ProfilesViewModel : ObservableObject
         SetStatus($"Applying preset \"{preset.Name}\"…");
         try
         {
-            var ok = await _profileService.ApplyPresetAsync(preset.Id);
+            var result = await _profileService.ApplyPresetDetailedAsync(preset.Id);
             await RecordApplicationAsync(preset.Id);
-            SetStatus(ok
-                ? $"Preset \"{preset.Name}\" applied successfully."
-                : $"Preset \"{preset.Name}\" completed with errors — check the history log.");
+            // Audit C6: honest aggregate instead of an unconditional "applied successfully".
+            SetStatus($"Preset \"{preset.Name}\": {result.Summary}");
         }
         catch (Exception ex)
         {

@@ -42,6 +42,13 @@ public class ProfileService : IProfileService
         return _optimizer.ApplyProfileAsync(profileId);
     }
 
+    /// <summary>Apply a preset and report the per-optimization outcome (audit C6).</summary>
+    public Task<ProfileApplyResult> ApplyPresetDetailedAsync(string profileId)
+    {
+        EngineLog.Write($"[ProfileService] Applying preset '{profileId}' (detailed)");
+        return _optimizer.ApplyProfileDetailedAsync(profileId);
+    }
+
     /// <summary>Capture the currently-applied optimizations as a named snapshot.</summary>
     public async Task SaveSnapshotAsync(string name)
     {

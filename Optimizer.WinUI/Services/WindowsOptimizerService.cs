@@ -181,7 +181,11 @@ public class WindowsOptimizerService : IWindowsOptimizerService
     // ---------------------------------------------------------------- Profiles
 
     public async Task<bool> ApplyProfileAsync(string profileId)
+        => (await ApplyProfileDetailedAsync(profileId)).Success;
+
+    public async Task<ProfileApplyResult> ApplyProfileDetailedAsync(string profileId)
     {
+        var agg = new ProfileApplyResult();
         try
         {
             if (string.IsNullOrWhiteSpace(profileId))
@@ -189,30 +193,44 @@ public class WindowsOptimizerService : IWindowsOptimizerService
 
             // Check built-in presets first, then fall back to the full presets list.
             var presets = BuiltInPresetsProvider.GetPresets();
-            var profile = presets.FirstOrDefault(p => p.Id == profileId)
-                ?? throw new KeyNotFoundException($"Profile {profileId} not found");
+            var profile = presets.FirstOrDefault(p => p.Id == profileId);
+            if (profile == null)
+            {
+                agg.ProfileFound = false;
+                agg.Errors.Add($"Profile {profileId} not found");
+                return agg;
+            }
 
             profile.LastAppliedAt = DateTime.UtcNow;
             _appliedProfiles[profileId] = profile;
 
-            // Apply any explicit registry settings declared on the profile.
+            // Apply any explicit registry settings declared on the profile. Tag the captures with
+            // the profile id so RevertProfileAsync can target exactly this profile's changes.
             foreach (var setting in profile.RegistrySettings)
             {
-                var root = setting.HkeyBase.Contains("LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase) || setting.HkeyBase == "HKLM" ? "HKLM" : "HKCU";
-                var kind = setting.ValueKind == "REG_DWORD" ? Microsoft.Win32.RegistryValueKind.DWord : Microsoft.Win32.RegistryValueKind.String;
-                object value = kind == Microsoft.Win32.RegistryValueKind.DWord ? Convert.ToInt32(setting.ValueData) : setting.ValueData;
+                try
+                {
+                    var root = setting.HkeyBase.Contains("LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase) || setting.HkeyBase == "HKLM" ? "HKLM" : "HKCU";
+                    var kind = setting.ValueKind == "REG_DWORD" ? Microsoft.Win32.RegistryValueKind.DWord : Microsoft.Win32.RegistryValueKind.String;
+                    object value = kind == Microsoft.Win32.RegistryValueKind.DWord ? Convert.ToInt32(setting.ValueData) : setting.ValueData;
 
-                // Use the handler base helpers via the static registry path.
-                var hive = root == "HKLM" ? Microsoft.Win32.Registry.LocalMachine : Microsoft.Win32.Registry.CurrentUser;
-                _undoService.CaptureRegistry(root, setting.SubKey, setting.ValueName, setting.Description);
-                using var key = hive.CreateSubKey(setting.SubKey);
-                key.SetValue(setting.ValueName, value, kind);
-                EngineLog.Write($"Set {root}\\{setting.SubKey}\\{setting.ValueName} = {value}");
+                    var hive = root == "HKLM" ? Microsoft.Win32.Registry.LocalMachine : Microsoft.Win32.Registry.CurrentUser;
+                    _undoService.CaptureRegistry(root, setting.SubKey, setting.ValueName, setting.Description, profileId);
+                    using var key = hive.CreateSubKey(setting.SubKey);
+                    key.SetValue(setting.ValueName, value, kind);
+                    EngineLog.Write($"Set {root}\\{setting.SubKey}\\{setting.ValueName} = {value}");
+                    agg.Applied++;
+                }
+                catch (Exception ex) { agg.Failed++; agg.Errors.Add($"{setting.ValueName}: {ex.Message}"); }
             }
 
-            // Run the optimization IDs bundled into this profile.
+            // Run the optimization IDs bundled into this profile — aggregate each result (C6).
             foreach (var optId in profile.Optimizations)
-                await ApplyOptimizationAsync(optId);
+            {
+                var r = await ApplyOptimizationAsync(optId);
+                if (r.Success) agg.Applied++;
+                else { agg.Failed++; agg.Errors.Add(r.Errors?.Count > 0 ? string.Join("; ", r.Errors) : (r.Message ?? optId)); }
+            }
 
             // Restore any captured startup on/off states.
             if (profile.StartupStates.Count > 0)
@@ -234,12 +252,14 @@ public class WindowsOptimizerService : IWindowsOptimizerService
                 profile.Name,
                 new Dictionary<string, string> { ["profileId"] = profileId }));
 
-            return true;
+            return agg;
         }
         catch (Exception ex)
         {
             EngineLog.Write($"Error applying profile: {ex.Message}");
-            return false;
+            agg.Failed++;
+            agg.Errors.Add(ex.Message);
+            return agg;
         }
     }
 
@@ -248,7 +268,26 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         try
         {
             _appliedProfiles.TryRemove(profileId, out _);
-            await _undoService.UndoAllAsync();
+
+            // Audit/divergence-7: revert ONLY this profile's captured changes, not the entire
+            // undo stack (the old UndoAllAsync tore down every other profile + standalone
+            // optimization too). Entries carry the profile id (direct registry settings) or one
+            // of the profile's bundled optimization ids.
+            var profile = BuiltInPresetsProvider.GetPresets().FirstOrDefault(p => p.Id == profileId);
+            var scopeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { profileId };
+            if (profile != null) foreach (var o in profile.Optimizations) scopeIds.Add(o);
+
+            var mine = _undoService.Entries
+                .Where(e => e.OptimizationId != null && scopeIds.Contains(e.OptimizationId))
+                .Reverse()   // newest first
+                .ToList();
+
+            if (mine.Count == 0)
+            {
+                EngineLog.Write($"RevertProfile {profileId}: no scoped undo entries found");
+                return false;
+            }
+            foreach (var e in mine) await _undoService.UndoAsync(e);
             return true;
         }
         catch (Exception ex)

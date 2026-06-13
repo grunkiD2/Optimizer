@@ -36,10 +36,10 @@ public class DeclarativeChangeExecutorTests : IDisposable
     {
         _undoMock = new Mock<IUndoService>();
 
-        // Intercept CaptureRegistry calls
+        // Intercept CaptureRegistry calls (5th arg = optimizationId, audit C5)
         _undoMock
-            .Setup(u => u.CaptureRegistry(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Callback<string, string, string, string>((root, subKey, valueName, description) =>
+            .Setup(u => u.CaptureRegistry(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            .Callback<string, string, string, string, string?>((root, subKey, valueName, description, _) =>
                 _capturedRegistryCalls.Add((root, subKey, valueName, description)));
 
         // SaveAsync is a no-op in tests
@@ -253,7 +253,7 @@ public class DeclarativeChangeExecutorTests : IDisposable
 
         // CaptureRegistry must have been called once
         _undoMock.Verify(
-            u => u.CaptureRegistry("HKCU", TestSubKey, TestValueName, It.IsAny<string>()),
+            u => u.CaptureRegistry("HKCU", TestSubKey, TestValueName, It.IsAny<string>(), It.IsAny<string?>()),
             Times.Once);
     }
 
@@ -324,7 +324,7 @@ public class DeclarativeChangeExecutorTests : IDisposable
 
         // CaptureRegistry must NOT have been called
         _undoMock.Verify(
-            u => u.CaptureRegistry(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            u => u.CaptureRegistry(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()),
             Times.Never);
     }
 }

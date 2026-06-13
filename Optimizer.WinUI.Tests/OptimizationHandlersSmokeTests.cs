@@ -117,12 +117,12 @@ public class OptimizationHandlersSmokeTests
         private readonly List<UndoEntry> _entries = new();
         public int Count => _entries.Count;
         public IReadOnlyList<UndoEntry> Entries => _entries;
-        public void CaptureRegistry(string root, string subKey, string valueName, string description)
+        public void CaptureRegistry(string root, string subKey, string valueName, string description, string? optimizationId = null)
         {
             Captures.Add((root, subKey, valueName));
-            _entries.Add(new UndoEntry { Kind = UndoActionKind.RegistryValue, RegistryRoot = root, SubKey = subKey, ValueName = valueName, Description = description });
+            _entries.Add(new UndoEntry { Kind = UndoActionKind.RegistryValue, RegistryRoot = root, SubKey = subKey, ValueName = valueName, Description = description, OptimizationId = optimizationId });
         }
-        public void CapturePowerScheme(string previousGuid, string description) { }
+        public void CapturePowerScheme(string previousGuid, string description, string? optimizationId = null) { }
         public Task<int> UndoAllAsync() => Task.FromResult(0);
         public Task<bool> UndoAsync(UndoEntry entry) => Task.FromResult(true);
         public void Load() { }

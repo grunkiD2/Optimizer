@@ -220,27 +220,42 @@ public partial class HistoryViewModel : ObservableObject
         StatusMessage = $"Undoing \"{entry.Title}\"…";
         try
         {
-            // Try to find the matching low-level UndoEntry by description or id.
-            var undoEntry = _optimizer.GetUndoEntries()
-                .FirstOrDefault(u =>
-                    u.Description.Contains(entry.OptimizationId, StringComparison.OrdinalIgnoreCase)
-                    || u.Description.Contains(entry.Title, StringComparison.OrdinalIgnoreCase));
+            // Audit C5/C12: match every low-level UndoEntry produced by this optimization —
+            // exact id first (the new OptimizationId field), Description.Contains only as a
+            // fallback for pre-audit entries (null id). Revert newest-first.
+            var undoEntries = _optimizer.GetUndoEntries()
+                .Where(u => string.Equals(u.OptimizationId, entry.OptimizationId, StringComparison.OrdinalIgnoreCase)
+                         || (u.OptimizationId == null &&
+                             (u.Description.Contains(entry.OptimizationId, StringComparison.OrdinalIgnoreCase)
+                              || u.Description.Contains(entry.Title, StringComparison.OrdinalIgnoreCase))))
+                .Reverse()
+                .ToList();
 
-            if (undoEntry != null)
+            if (undoEntries.Count == 0)
             {
-                var ok = await _optimizer.UndoEntryAsync(undoEntry);
-                StatusMessage = ok
-                    ? $"Undone: {entry.Title}"
-                    : $"Could not undo \"{entry.Title}\".";
+                // Audit C12: do NOT mark it "Undone" — nothing was rolled back.
+                StatusMessage = $"No undo snapshot found for \"{entry.Title}\" — left unchanged.";
             }
             else
             {
-                // No low-level undo snapshot found; just record it as undone in history.
-                StatusMessage = $"No undo snapshot found for \"{entry.Title}\"; recorded as undone.";
+                var reverted = 0;
+                foreach (var u in undoEntries)
+                    if (await _optimizer.UndoEntryAsync(u)) reverted++;
+
+                if (reverted > 0)
+                {
+                    // Only record the undo event when something was actually reverted.
+                    _historyService.RecordUndone(entry.OptimizationId, entry.Title, entry.Category);
+                    StatusMessage = reverted == undoEntries.Count
+                        ? $"Undone: {entry.Title}"
+                        : $"Partially undone: {entry.Title} ({reverted} of {undoEntries.Count}).";
+                }
+                else
+                {
+                    StatusMessage = $"Could not undo \"{entry.Title}\".";
+                }
             }
 
-            // Always record the undo event in history so the UI stays consistent.
-            _historyService.RecordUndone(entry.OptimizationId, entry.Title, entry.Category);
             await LoadAsync();
         }
         catch (Exception ex)

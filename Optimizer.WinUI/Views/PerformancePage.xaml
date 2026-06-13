@@ -17,6 +17,7 @@
         <converters:BoolToInstalledBrushConverter    x:Key="BoolToInstalledBrush"/>
         <converters:BoolToInstalledTextConverter     x:Key="BoolToInstalledText"/>
         <converters:BoolToActionTextConverter        x:Key="BoolToActionText"/>
+        <converters:BoolToInfoBarSeverityConverter   x:Key="BoolToInfoBarSeverity"/>
     </Page.Resources>
 
     <hud:HudBackdrop>
@@ -38,6 +39,12 @@
                         <Button Content="Undo Category" Command="{x:Bind ViewModel.UndoCategoryCommand}"/>
                     </StackPanel>
                 </hud:HudPageHeader>
+
+                <!-- Audit Batch 2: apply/undo results are no longer silent. -->
+                <InfoBar IsOpen="{x:Bind ViewModel.HasStatus, Mode=OneWay}"
+                         Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                         Severity="{x:Bind ViewModel.StatusIsError, Mode=OneWay, Converter={StaticResource BoolToInfoBarSeverity}}"
+                         IsClosable="True"/>
 
                 <!-- ── Shared vitals (live sparklines) ──────────────────────── -->
                 <Grid ColumnSpacing="16">

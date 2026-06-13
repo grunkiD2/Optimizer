@@ -29,13 +29,15 @@ public abstract class OptimizationHandlerBase : IOptimizationHandler
     }
 
     // ── Registry writes (capture → mutate) ───────────────────────────────────
+    // Instance (not static) so the capture carries this handler's Id — audit C5: undo now
+    // matches on the optimization id instead of the prose Description that never contained it.
 
-    protected static void SetRegistryValue(
+    protected void SetRegistryValue(
         IUndoService undoService,
         string root, string subKey, string valueName,
         object value, RegistryValueKind kind, string description)
     {
-        undoService.CaptureRegistry(root, subKey, valueName, description);
+        undoService.CaptureRegistry(root, subKey, valueName, description, Id);
 
         var hive = root == "HKLM" ? Registry.LocalMachine : Registry.CurrentUser;
         using var key = hive.CreateSubKey(subKey);
@@ -43,11 +45,11 @@ public abstract class OptimizationHandlerBase : IOptimizationHandler
         EngineLog.Write($"Set {root}\\{subKey}\\{valueName} = {value}");
     }
 
-    protected static void DeleteRegistryValue(
+    protected void DeleteRegistryValue(
         IUndoService undoService,
         string root, string subKey, string valueName, string description)
     {
-        undoService.CaptureRegistry(root, subKey, valueName, description);
+        undoService.CaptureRegistry(root, subKey, valueName, description, Id);
 
         var hive = root == "HKLM" ? Registry.LocalMachine : Registry.CurrentUser;
         using var key = hive.OpenSubKey(subKey, writable: true);

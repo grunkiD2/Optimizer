@@ -4,6 +4,8 @@ using CommunityToolkit.Mvvm.Input;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Analytics;
+using Optimizer.WinUI.Services.Commands;
+using Optimizer.WinUI.Views;
 
 namespace Optimizer.WinUI.ViewModels;
 
@@ -14,6 +16,11 @@ public partial class RecommendationsViewModel : ObservableObject
     private readonly IIntelligenceService _intelligence;
     private readonly IRecommendationRanker _ranker;
     private readonly IContextDetectionService _contextDetection;
+    private readonly IPageNavigator _pageNav;
+
+    // Audit master-list (divergence): filtering must always start from the unfiltered set,
+    // else All→Performance→All permanently loses the non-Performance recommendations.
+    private readonly List<Recommendation> _allRecommendations = [];
 
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private string statusMessage = "";
@@ -39,13 +46,15 @@ public partial class RecommendationsViewModel : ObservableObject
         ISmartInsightsService insights,
         IIntelligenceService intelligence,
         IRecommendationRanker ranker,
-        IContextDetectionService contextDetection)
+        IContextDetectionService contextDetection,
+        IPageNavigator pageNav)
     {
         _recommendations = recommendations;
         _insights = insights;
         _intelligence = intelligence;
         _ranker = ranker;
         _contextDetection = contextDetection;
+        _pageNav = pageNav;
         Recommendations.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
     }
 
@@ -127,13 +136,23 @@ public partial class RecommendationsViewModel : ObservableObject
     {
         await _recommendations.DismissAsync(rec.Id);
         Recommendations.Remove(rec);
+        _allRecommendations.Remove(rec);
         StatusMessage = $"{Recommendations.Count} recommendation(s) remaining.";
     }
 
     [RelayCommand]
     public async Task ApplyActionAsync(Recommendation rec)
     {
-        if (rec.QuickAction == null) return;
+        // Audit C10: the inline button is no longer a dead no-op for the ~all recommendations
+        // that have no QuickAction. With an action → run it; without → take the user to the
+        // category's page (same hub-aware routing the Command Center already uses).
+        if (rec.QuickAction == null)
+        {
+            _pageNav.NavigateTo(CommandCenterPage.CategoryTag(rec.Category));
+            StatusMessage = $"Opened the {rec.Category} section for: {rec.Title}";
+            return;
+        }
+
         IsLoading = true;
         try
         {
@@ -143,6 +162,7 @@ public partial class RecommendationsViewModel : ObservableObject
                 await _recommendations.RecordAcceptedAsync(rec.Id);
                 await _recommendations.DismissAsync(rec.Id);
                 Recommendations.Remove(rec);
+                _allRecommendations.Remove(rec);
                 StatusMessage = $"Applied: {rec.Title}";
             }
             else
@@ -168,6 +188,7 @@ public partial class RecommendationsViewModel : ObservableObject
         if (toRemove != null)
         {
             Recommendations.Remove(toRemove);
+            _allRecommendations.Remove(toRemove);
             StatusMessage = $"Snoozed for 7 days. {Recommendations.Count} remaining.";
         }
     }
@@ -210,8 +231,15 @@ public partial class RecommendationsViewModel : ObservableObject
 
     private void ApplyFilter(IReadOnlyList<Recommendation>? source)
     {
-        IEnumerable<Recommendation> items = source ?? Recommendations.ToList();
+        // When a fresh source arrives (LoadAsync) it becomes the new master set. Filtering
+        // always starts from the master, never from the already-filtered visible list.
+        if (source != null)
+        {
+            _allRecommendations.Clear();
+            _allRecommendations.AddRange(source);
+        }
 
+        IEnumerable<Recommendation> items = _allRecommendations;
         if (FilterCategory != "All" && Enum.TryParse<FindingCategory>(FilterCategory, out var cat))
             items = items.Where(r => r.Category == cat);
 

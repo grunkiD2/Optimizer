@@ -1,3 +1,4 @@
+using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services.Data;
 
 namespace Optimizer.WinUI.Services.Analytics;
@@ -7,7 +8,7 @@ namespace Optimizer.WinUI.Services.Analytics;
 /// TimeRange automation rules. A suggestion is raised when the same profile is applied
 /// within a similar 2-hour window on at least <see cref="MinOccurrences"/> distinct days.
 /// </summary>
-public class RuleSuggestionService(DatabaseService db) : IRuleSuggestionService
+public class RuleSuggestionService(DatabaseService db, IProfileAutomationService automation) : IRuleSuggestionService
 {
     private const int MinOccurrences = 4;
 
@@ -97,7 +98,57 @@ public class RuleSuggestionService(DatabaseService db) : IRuleSuggestionService
         }).ToList();
     }
 
-    public Task AcceptSuggestionAsync(string suggestionId) => SetStatusAsync(suggestionId, "Accepted");
+    public async Task AcceptSuggestionAsync(string suggestionId)
+    {
+        // Audit C13: accepting a suggestion used to ONLY flip a DB status that nothing read —
+        // no automation rule was ever created, so "Accepted" was a lie. Now we materialise a
+        // real ProfileRule via the automation service, then mark it accepted.
+        var rows = await db.ExecuteQueryAsync(
+            "SELECT ProfileId, ProfileName, TriggerType, TriggerValue FROM SuggestedRules WHERE Id = @id",
+            new Dictionary<string, object> { ["id"] = suggestionId });
+        var row = rows.FirstOrDefault();
+        if (row != null)
+        {
+            var profileId = row.GetString("ProfileId");
+            var profileName = row.GetString("ProfileName");
+            var triggerType = row.GetString("TriggerType");
+            var triggerValue = row.GetString("TriggerValue");
+
+            var rule = new ProfileRule
+            {
+                Name = $"{profileName} ({triggerValue})",
+                ProfileId = profileId,
+                ProfileName = profileName,
+                IsEnabled = true,
+            };
+            if (string.Equals(triggerType, "TimeRange", StringComparison.OrdinalIgnoreCase)
+                && TryParseTimeRange(triggerValue, out var start, out var end))
+            {
+                rule.Trigger = RuleTrigger.TimeRange;
+                rule.StartTime = start;
+                rule.EndTime = end;
+            }
+            else
+            {
+                rule.Trigger = RuleTrigger.ProcessRunning;
+                rule.ProcessName = triggerValue;
+            }
+            await automation.AddRuleAsync(rule);
+            EngineLog.Write($"Rule suggestion accepted → created rule '{rule.Name}'");
+        }
+
+        await SetStatusAsync(suggestionId, "Accepted");
+    }
+
+    /// <summary>Parses the "HH:00-HH:00" trigger value the generator emits.</summary>
+    private static bool TryParseTimeRange(string value, out TimeSpan start, out TimeSpan end)
+    {
+        start = end = default;
+        var parts = (value ?? "").Split('-', 2);
+        return parts.Length == 2
+            && TimeSpan.TryParse(parts[0].Trim(), out start)
+            && TimeSpan.TryParse(parts[1].Trim(), out end);
+    }
 
     public Task RejectSuggestionAsync(string suggestionId) => SetStatusAsync(suggestionId, "Rejected");
 

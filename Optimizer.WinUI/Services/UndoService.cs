@@ -24,7 +24,7 @@ public class UndoService : IUndoService
         get { lock (_gate) { return _entries.ToArray(); } }
     }
 
-    public void CaptureRegistry(string root, string subKey, string valueName, string description)
+    public void CaptureRegistry(string root, string subKey, string valueName, string description, string? optimizationId = null)
     {
         using var key = OpenRoot(root, writable: false)?.OpenSubKey(subKey);
 
@@ -32,6 +32,7 @@ public class UndoService : IUndoService
         {
             Kind = UndoActionKind.RegistryValue,
             Description = description,
+            OptimizationId = optimizationId,
             RegistryRoot = root,
             SubKey = subKey,
             ValueName = valueName,
@@ -58,7 +59,7 @@ public class UndoService : IUndoService
         _ => raw.ToString() ?? string.Empty
     };
 
-    public void CapturePowerScheme(string previousGuid, string description)
+    public void CapturePowerScheme(string previousGuid, string description, string? optimizationId = null)
     {
         lock (_gate)
         {
@@ -66,6 +67,7 @@ public class UndoService : IUndoService
             {
                 Kind = UndoActionKind.ActivePowerScheme,
                 Description = description,
+                OptimizationId = optimizationId,
                 PreviousPowerSchemeGuid = previousGuid
             });
         }
