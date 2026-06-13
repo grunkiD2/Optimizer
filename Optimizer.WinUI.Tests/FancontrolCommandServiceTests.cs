@@ -223,6 +223,37 @@ public class FancontrolCommandServiceTests
     }
 
     [Fact]
+    public void GetMappedPrograms_parses_learned_stats()
+    {
+        var root = Directory.CreateTempSubdirectory("fcroot").FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "profiles"));
+            File.WriteAllText(Path.Combine(root, "profiles", "programs.json"),
+                """
+                [
+                  {"exe":"destiny2","name":"Destiny 2","profile":"AAA-SDR","caseFloor":47,"radFloor":44,"learned":{"samples":749,"gpuP95":59.3,"gpuWavg":211}},
+                  {"exe":"HD-Player","name":"BlueStacks","profile":"BlueStacks","caseFloor":44,"radFloor":40,"learned":null}
+                ]
+                """);
+            var svc = new FancontrolCommandService(Path.Combine(root, "state"),
+                (args, ct) => Task.FromResult(new CtlResult(true, "ok")));
+            var progs = svc.GetMappedPrograms();
+            Assert.Equal(2, progs.Count);
+            var d2 = progs.Single(p => p.Exe == "destiny2");
+            Assert.Equal("AAA-SDR", d2.Profile);
+            Assert.Equal(47, d2.CaseFloor);
+            Assert.Equal(59.3, d2.LearnedGpuP95);
+            Assert.Equal(211, d2.LearnedGpuWatts);
+            Assert.Equal(749, d2.LearnedSamples);
+            var bs = progs.Single(p => p.Exe == "HD-Player");
+            Assert.Null(bs.LearnedGpuP95);   // learned:null → no stats
+            Assert.Equal(44, bs.CaseFloor);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public void BuildProfilePatch_emits_lag2_only_and_omits_color_when_blank()
     {
         var withColor = FancontrolCommandService.BuildProfilePatch(5, 70, true,

@@ -65,7 +65,8 @@
                                        Text="Display / power / lighting / audio profiles owned by the Fancontrol engine. Edits go through ctl.ps1 — never written directly. Link a profile to an Optimizer preset to auto-apply it on switch."/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Button Content="New Profile" Style="{StaticResource AccentButtonStyle}" Click="FcNewProfile_Click"/>
+                            <Button Content="New from Situation" Style="{StaticResource AccentButtonStyle}" Click="FcNewFromSituation_Click"/>
+                            <Button Content="New Profile" Click="FcNewProfile_Click"/>
                             <Button Content="Refresh" Click="FcRefresh_Click"/>
                         </StackPanel>
                     </Grid>

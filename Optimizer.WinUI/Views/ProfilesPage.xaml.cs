@@ -18,6 +18,7 @@ public sealed partial class ProfilesPage : Page
 {
     public ProfilesViewModel ViewModel { get; }
     private readonly IFancontrolCommandService _fc = App.GetService<IFancontrolCommandService>();
+    private readonly IFancontrolStatusService _fcStatus = App.GetService<IFancontrolStatusService>();
 
     public ProfilesPage()
     {
@@ -503,37 +504,38 @@ public sealed partial class ProfilesPage : Page
             await FcRun(_fc.DeleteProfileAsync(name));
     }
 
-    private async Task FcEditProfile(FancontrolProfile p)
+    private const string FcNoPreset = "(no preset)";
+    private sealed record FcFormControls(TextBox Dc, TextBox Bright, CheckBox Hdr, ComboBox Power,
+        TextBox Lyd, ComboBox LysMode, TextBox LysColor, ComboBox Optimizer, TextBox UiIcon, TextBox UiDesc);
+
+    // Shared lag-2 form for the Edit and the "new from situation" dialogs — pre-filled from p (or defaults when null).
+    private (StackPanel Panel, FcFormControls C) BuildFcForm(FancontrolProfile? p)
     {
-        var dc = new TextBox { Text = p.Dc.ToString(), Width = 110 };
-        var bright = new TextBox { Text = p.Bright.ToString(), Width = 110 };
-        var hdr = new CheckBox { Content = "HDR", IsChecked = p.Hdr };
+        var dc = new TextBox { Text = (p?.Dc ?? 10).ToString(), Width = 110 };
+        var bright = new TextBox { Text = (p?.Bright ?? 50).ToString(), Width = 110 };
+        var hdr = new CheckBox { Content = "HDR", IsChecked = p?.Hdr ?? false };
         var power = new ComboBox { MinWidth = 220 };
         foreach (var pl in FcPowerPlans) power.Items.Add(pl.Name);
-        var curPower = FcPowerName(p.Power);
+        var curPower = FcPowerName(p?.Power ?? FcPowerPlans[0].Guid);
         if (FcPowerPlans.All(x => x.Name != curPower)) power.Items.Add(curPower);
         power.SelectedItem = curPower;
-        var lyd = new TextBox { Text = p.Lyd, PlaceholderText = "audio device substring (optional)", MinWidth = 220 };
+        var lyd = new TextBox { Text = p?.Lyd ?? "", PlaceholderText = "audio device substring (optional)", MinWidth = 220 };
         var lysMode = new ComboBox { MinWidth = 160 };
         foreach (var m in new[] { "static", "off", "synapse", "ambient" }) lysMode.Items.Add(m);
-        lysMode.SelectedItem = new[] { "static", "off", "synapse", "ambient" }.Contains(p.LysMode) ? p.LysMode : "synapse";
-        var lysColor = new TextBox { Text = p.LysColor ?? "", PlaceholderText = "#RRGGBB", Width = 130 };
+        var pm = p?.LysMode ?? "synapse";
+        lysMode.SelectedItem = new[] { "static", "off", "synapse", "ambient" }.Contains(pm) ? pm : "synapse";
+        var lysColor = new TextBox { Text = p?.LysColor ?? "", PlaceholderText = "#RRGGBB", Width = 130 };
         var optimizer = new ComboBox { MinWidth = 240 };
-        const string noPreset = "(no preset)";
-        optimizer.Items.Add(noPreset);
+        optimizer.Items.Add(FcNoPreset);
         var presets = App.GetService<IProfileService>().BuiltInPresets;
         foreach (var pr in presets) optimizer.Items.Add(pr.Id);
-        if (!string.IsNullOrEmpty(p.Optimizer) && presets.All(pr => pr.Id != p.Optimizer)) optimizer.Items.Add(p.Optimizer);
-        optimizer.SelectedItem = string.IsNullOrEmpty(p.Optimizer) ? noPreset : p.Optimizer;
-        var uiIcon = new TextBox { Text = p.UiIcon, Width = 90 };
-        var uiDesc = new TextBox { Text = p.UiDesc, MinWidth = 220 };
+        var optLink = p?.Optimizer ?? "";
+        if (!string.IsNullOrEmpty(optLink) && presets.All(pr => pr.Id != optLink)) optimizer.Items.Add(optLink);
+        optimizer.SelectedItem = string.IsNullOrEmpty(optLink) ? FcNoPreset : optLink;
+        var uiIcon = new TextBox { Text = p?.UiIcon ?? "", Width = 90 };
+        var uiDesc = new TextBox { Text = p?.UiDesc ?? "", MinWidth = 220 };
 
         var form = new StackPanel { Spacing = 8, MinWidth = 340 };
-        form.Children.Add(new TextBlock
-        {
-            Text = $"Lag-2 fields of '{p.Name}'. gamingClass (lag-1, system-owned) is read-only here: {(p.GamingClass ? "GAMING" : "not gaming")}.",
-            FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Res("MutedBrush")
-        });
         void AddField(string label, FrameworkElement ctl)
         {
             form.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = Res("MutedBrush"), Margin = new Thickness(0, 4, 0, 0) });
@@ -549,7 +551,32 @@ public sealed partial class ProfilesPage : Page
         AddField("Optimizer preset-link (auto-applied on switch)", optimizer);
         AddField("Icon", uiIcon);
         AddField("Description", uiDesc);
+        return (form, new FcFormControls(dc, bright, hdr, power, lyd, lysMode, lysColor, optimizer, uiIcon, uiDesc));
+    }
 
+    // Validates the form + returns the lag-2 edit-patch JSON, or null after showing an error.
+    private async Task<string?> FcPatchFromForm(FcFormControls c, string fallbackPowerGuid)
+    {
+        if (!int.TryParse(c.Dc.Text.Trim(), out var dcv) || dcv < 0 || dcv > 255)
+        { await ShowErrorDialogAsync("Profile", "GameVisual DC must be an integer 0-255."); return null; }
+        if (!int.TryParse(c.Bright.Text.Trim(), out var brv) || brv < 0 || brv > 100)
+        { await ShowErrorDialogAsync("Profile", "Brightness must be an integer 0-100."); return null; }
+        var powerGuid = FcPowerPlans.FirstOrDefault(x => x.Name == (string)c.Power.SelectedItem).Guid ?? fallbackPowerGuid;
+        var optSel = (string)c.Optimizer.SelectedItem;
+        var optVal = optSel == FcNoPreset ? "" : optSel;
+        return FancontrolCommandService.BuildProfilePatch(dcv, brv, c.Hdr.IsChecked == true, powerGuid,
+            c.Lyd.Text.Trim(), (string)c.LysMode.SelectedItem, c.LysColor.Text.Trim(), optVal,
+            c.UiIcon.Text.Trim(), c.UiDesc.Text.Trim());
+    }
+
+    private async Task FcEditProfile(FancontrolProfile p)
+    {
+        var (form, c) = BuildFcForm(p);
+        form.Children.Insert(0, new TextBlock
+        {
+            Text = $"Lag-2 fields of '{p.Name}'. gamingClass (lag-1, system-owned) is read-only here: {(p.GamingClass ? "GAMING" : "not gaming")}.",
+            FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Res("MutedBrush")
+        });
         var dlg = new ContentDialog
         {
             Title = $"Edit — {p.Name}",
@@ -558,19 +585,61 @@ public sealed partial class ProfilesPage : Page
             DefaultButton = ContentDialogButton.Primary, XamlRoot = XamlRoot
         };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-
-        if (!int.TryParse(dc.Text.Trim(), out var dcv) || dcv < 0 || dcv > 255)
-        { await ShowErrorDialogAsync("Edit", "GameVisual DC must be an integer 0-255."); return; }
-        if (!int.TryParse(bright.Text.Trim(), out var brv) || brv < 0 || brv > 100)
-        { await ShowErrorDialogAsync("Edit", "Brightness must be an integer 0-100."); return; }
-
-        var powerGuid = FcPowerPlans.FirstOrDefault(x => x.Name == (string)power.SelectedItem).Guid ?? p.Power;
-        var optSel = (string)optimizer.SelectedItem;
-        var optVal = optSel == noPreset ? "" : optSel;
-        var patch = FancontrolCommandService.BuildProfilePatch(
-            dcv, brv, hdr.IsChecked == true, powerGuid, lyd.Text.Trim(),
-            (string)lysMode.SelectedItem, lysColor.Text.Trim(), optVal, uiIcon.Text.Trim(), uiDesc.Text.Trim());
+        var patch = await FcPatchFromForm(c, p.Power);
+        if (patch is null) return;
         await FcRun(_fc.EditProfileAsync(p.Name, patch));
+    }
+
+    // P2.0-e wizard: snapshot the current situation (active profile + foreground app + the brain's
+    // LEARNED stats for that app) and pre-fill a new profile from it.
+    private async void FcNewFromSituation_Click(object sender, RoutedEventArgs e)
+    {
+        var status = _fcStatus.GetStatus();
+        var active = status?.Profiles?.LastAppliedProfile?.Trim() ?? "";
+        var fgApp = status?.Brain?.ActiveApp?.Trim() ?? "";
+        var basis = _fc.GetProfiles().FirstOrDefault(p => string.Equals(p.Name, active, StringComparison.OrdinalIgnoreCase));
+        var learned = string.IsNullOrEmpty(fgApp) ? null
+            : _fc.GetMappedPrograms().FirstOrDefault(p => string.Equals(p.Exe, fgApp, StringComparison.OrdinalIgnoreCase));
+
+        var (form, c) = BuildFcForm(basis);
+        var nameBox = new TextBox { PlaceholderText = "New profile name", MinWidth = 300 };
+
+        var lines = new List<string>
+        {
+            string.IsNullOrEmpty(active) ? "No active profile — defaults used." : $"Pre-filled from the active profile '{active}'."
+        };
+        if (!string.IsNullOrEmpty(fgApp)) lines.Add($"Foreground app: {fgApp}");
+        if (learned is not null)
+        {
+            var s = $"Learned for {fgApp}: floors case {learned.CaseFloor}/rad {learned.RadFloor}";
+            if (learned.LearnedGpuP95 is { } p95) s += $", GPU {p95:F0}°C-p95";
+            if (learned.LearnedGpuWatts is { } w) s += $", {w:F0} W avg";
+            lines.Add(s);
+            if (learned.LearnedGpuWatts is { } gw && gw > 150) lines.Add("→ high GPU draw suggests a gaming situation.");
+        }
+        else if (!string.IsNullOrEmpty(fgApp))
+            lines.Add($"No learned stats for {fgApp} yet (map it in Mission Control to start learning).");
+
+        form.Children.Insert(0, nameBox);
+        form.Children.Insert(0, new TextBlock { Text = "Name", FontSize = 12, Foreground = Res("MutedBrush") });
+        form.Children.Insert(0, new TextBlock { Text = string.Join("\n", lines), FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Res("MutedBrush"), Margin = new Thickness(0, 0, 0, 4) });
+
+        var dlg = new ContentDialog
+        {
+            Title = "New profile from current situation",
+            Content = new ScrollViewer { Content = form, MaxHeight = 540 },
+            PrimaryButtonText = "Create", CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary, XamlRoot = XamlRoot
+        };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        var name = nameBox.Text.Trim();
+        if (string.IsNullOrEmpty(name)) { await ShowErrorDialogAsync("New profile", "Enter a name."); return; }
+        var patch = await FcPatchFromForm(c, basis?.Power ?? FcPowerPlans[0].Guid);
+        if (patch is null) return;
+
+        var created = await _fc.CreateProfileAsync(name);
+        if (!created.Success) { LoadFancontrolProfiles(); await ShowErrorDialogAsync("New profile", created.Output); return; }
+        await FcRun(_fc.EditProfileAsync(name, patch));   // apply the situation-derived lag-2 fields
     }
 
     private async Task<string?> FcPromptName(string title, string placeholder, string initial = "")

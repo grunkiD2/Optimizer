@@ -20,6 +20,15 @@ public record FancontrolProfile(
     string UiIcon, string UiDesc,
     bool GamingClass);
 
+/// <summary>
+/// A program→profile mapping plus what the Fancontrol brain has LEARNED about it (read-only, from
+/// profiles\programs.json). Feeds the P2.0-e "new profile from situation" wizard's suggestions.
+/// </summary>
+public record FancontrolProgramInfo(
+    string Exe, string Name, string Profile,
+    int? CaseFloor, int? RadFloor,
+    double? LearnedGpuP95, double? LearnedGpuWatts, int? LearnedSamples);
+
 public interface IFancontrolCommandService
 {
     /// <summary>True when the federation is configured AND engine\ctl.ps1 exists.</summary>
@@ -30,6 +39,9 @@ public interface IFancontrolCommandService
 
     /// <summary>Full lag-2 + lag-1 profile data from profiles.json (empty when unreadable).</summary>
     IReadOnlyList<FancontrolProfile> GetProfiles();
+
+    /// <summary>Mapped programs + their learned stats from programs.json (empty when unreadable).</summary>
+    IReadOnlyList<FancontrolProgramInfo> GetMappedPrograms();
 
     Task<CtlResult> ApplyProfileAsync(string profileName, CancellationToken ct = default);
 
@@ -138,6 +150,32 @@ public class FancontrolCommandService : IFancontrolCommandService
         }
         catch { return []; }
     }
+
+    public IReadOnlyList<FancontrolProgramInfo> GetMappedPrograms()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(_root, "profiles", "programs.json")));
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
+            var list = new List<FancontrolProgramInfo>();
+            foreach (var e in doc.RootElement.EnumerateArray())
+            {
+                if (e.ValueKind != JsonValueKind.Object) continue;
+                var learned = ObjOrDefault(e, "learned");
+                list.Add(new FancontrolProgramInfo(
+                    GetStr(e, "exe"), GetStr(e, "name"), GetStr(e, "profile"),
+                    GetIntN(e, "caseFloor"), GetIntN(e, "radFloor"),
+                    GetDoubleN(learned, "gpuP95"), GetDoubleN(learned, "gpuWavg"), GetIntN(learned, "samples")));
+            }
+            return list;
+        }
+        catch { return []; }
+    }
+
+    private static int? GetIntN(JsonElement parent, string name)
+        => parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : null;
+    private static double? GetDoubleN(JsonElement parent, string name)
+        => parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
 
     private static JsonElement ObjOrDefault(JsonElement parent, string name)
         => parent.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Object ? v : default;
