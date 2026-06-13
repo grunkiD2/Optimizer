@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading.Tasks;
 using Optimizer.WinUI.Services;
 using Xunit;
@@ -11,10 +12,13 @@ namespace Optimizer.WinUI.Tests;
 /// </summary>
 public class UndoServiceTests
 {
+    // Isolate every test on its own temp store so the suite never mutates the user's real undo.json.
+    private static UndoService NewService() => new(Path.GetTempFileName());
+
     [Fact]
     public void Count_StartsAtZero()
     {
-        var service = new UndoService();
+        var service = NewService();
         // A freshly constructed service has no entries (Load has not been called)
         Assert.Equal(0, service.Count);
     }
@@ -22,7 +26,7 @@ public class UndoServiceTests
     [Fact]
     public void CaptureRegistry_IncrementsCount()
     {
-        var service = new UndoService();
+        var service = NewService();
 
         // CaptureRegistry reads HKCU — safe to call even without elevation
         service.CaptureRegistry(
@@ -37,7 +41,7 @@ public class UndoServiceTests
     [Fact]
     public void Entries_ReflectsCapturedItems()
     {
-        var service = new UndoService();
+        var service = NewService();
 
         service.CaptureRegistry(
             root: "HKCU",
@@ -59,7 +63,7 @@ public class UndoServiceTests
     [Fact]
     public void CapturePowerScheme_IncrementsCount()
     {
-        var service = new UndoService();
+        var service = NewService();
 
         service.CapturePowerScheme(
             previousGuid: "381b4222-f694-41f0-9685-ff5bb260df2e",
@@ -72,7 +76,7 @@ public class UndoServiceTests
     [Fact]
     public async Task SaveAsync_DoesNotThrow()
     {
-        var service = new UndoService();
+        var service = NewService();
         service.CaptureRegistry("HKCU", @"Software\Optimizer\TestKey", "Tmp", "save test");
 
         // Should not throw even if the directory exists or doesn't exist
@@ -82,7 +86,7 @@ public class UndoServiceTests
     [Fact]
     public async Task UndoAllAsync_ClearsEntries()
     {
-        var service = new UndoService();
+        var service = NewService();
         service.CaptureRegistry("HKCU", @"Software\Optimizer\TestKey", "Nonexistent", "undo-all test");
         Assert.Equal(1, service.Count);
 

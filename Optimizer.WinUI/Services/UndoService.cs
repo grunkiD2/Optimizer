@@ -9,7 +9,13 @@ namespace Optimizer.WinUI.Services;
 
 public class UndoService : IUndoService
 {
-    private static readonly string StorePath = AppPaths.GetDataFile("undo.json");
+    private readonly string _storePath;
+
+    public UndoService() : this(AppPaths.GetDataFile("undo.json")) { }
+
+    /// <summary>Path-injectable ctor so tests point at a temp file instead of mutating the real
+    /// undo.json (mirrors SettingsService — a test must never touch the live undo log).</summary>
+    public UndoService(string storePath) => _storePath = storePath;
 
     private readonly List<UndoEntry> _entries = new();
     private readonly object _gate = new();
@@ -224,12 +230,12 @@ public class UndoService : IUndoService
     {
         try
         {
-            if (!File.Exists(StorePath))
+            if (!File.Exists(_storePath))
             {
                 return;
             }
 
-            var json = File.ReadAllText(StorePath);
+            var json = File.ReadAllText(_storePath);
             var loaded = JsonSerializer.Deserialize<List<UndoEntry>>(json);
             if (loaded != null)
             {
@@ -250,11 +256,11 @@ public class UndoService : IUndoService
     {
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(StorePath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(_storePath)!);
             UndoEntry[] snapshot;
             lock (_gate) { snapshot = _entries.ToArray(); }
             var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(StorePath, json);
+            await File.WriteAllTextAsync(_storePath, json);
         }
         catch (Exception ex)
         {
