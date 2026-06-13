@@ -26,6 +26,7 @@ public class WindowsOptimizerService : IWindowsOptimizerService
     private readonly ISystemMonitorService _monitorService;
     private readonly IStartupService _startupService;
     private readonly IEventBus _eventBus;
+    private readonly ISettingsService? _settings;
 
     private readonly ConcurrentDictionary<string, SettingsProfile> _appliedProfiles = new();
     private bool _restorePointCreated;
@@ -37,7 +38,8 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         IElevationService elevationService,
         ISystemMonitorService monitorService,
         IStartupService startupService,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        ISettingsService? settings = null)
     {
         _builtInHandlers = handlers.ToDictionary(h => h.Id, StringComparer.OrdinalIgnoreCase);
         _pluginLoader = pluginLoader;
@@ -46,10 +48,21 @@ public class WindowsOptimizerService : IWindowsOptimizerService
         _monitorService = monitorService;
         _startupService = startupService;
         _eventBus = eventBus;
+        _settings = settings;
 
         // Build initial merged dictionary
         _handlers = BuildMergedHandlers();
     }
+
+    /// <summary>
+    /// Audit C4 — machine-ownership gate (docs/MACHINE-OWNERSHIP.md): on a federated machine
+    /// (FancontrolStateDir configured) Process Lasso owns power-plan switching, and
+    /// OptimizePowerSettings (powercfg /setactive) re-creates the documented last-write-wins
+    /// incident. Until now only the AUTO path was gated; the manual card, 6 of 10 presets,
+    /// the Command Center quick action, the REST API and the scheduler all reached the handler.
+    /// </summary>
+    private bool FederationOwnsPowerPlans
+        => !string.IsNullOrWhiteSpace(_settings?.Settings.FancontrolStateDir);
 
     /// <summary>
     /// Rebuilds the handler dictionary from built-ins and the current plugin set.
@@ -109,6 +122,20 @@ public class WindowsOptimizerService : IWindowsOptimizerService
     {
         try
         {
+            // Ownership gate at the single choke point — covers cards, presets, quick actions,
+            // REST and the scheduler in one place.
+            if (string.Equals(optimizationId, OptimizationIds.OptimizePowerSettings, StringComparison.OrdinalIgnoreCase)
+                && FederationOwnsPowerPlans)
+            {
+                EngineLog.Write("OptimizePowerSettings refused: power plans are owned by Process Lasso on this machine (MACHINE-OWNERSHIP.md)");
+                return new OptimizationResult
+                {
+                    Success = false,
+                    Message = "Skipped: power plans are owned by Process Lasso on this machine.",
+                    Errors = new List<string> { "Power-plan switching is federated (MACHINE-OWNERSHIP.md) — change plans in Process Lasso instead." },
+                };
+            }
+
             return await Task.Run(async () =>
             {
                 if (!_handlers.TryGetValue(optimizationId, out var handler))

@@ -108,6 +108,16 @@ public sealed partial class MainWindow : Window
     {
         // Tray "Exit" sets IsExiting and runs its own teardown — let that close proceed.
         if (IsExiting || _shuttingDown) return;
+
+        // Audit C8: the MinimizeToTray setting existed but nothing read it — the toggle was a
+        // decoy and X always exited. With it on, X hides to tray (tray icon restores/exits).
+        if (_settingsService.Settings.MinimizeToTray)
+        {
+            args.Cancel = true;
+            sender.Hide();
+            return;
+        }
+
         _shuttingDown = true;
 
         // Graceful shutdown with timeout to prevent zombie processes.

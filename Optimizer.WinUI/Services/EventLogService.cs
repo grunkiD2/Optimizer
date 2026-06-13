@@ -24,8 +24,10 @@ public class EventLogService : IEventLogService
                     _             => "*"
                 };
 
+                // NEWEST first — the reader's default direction is oldest-first, which made the
+                // page show months-old entries as if they were current activity (audit C2).
                 using var reader = new EventLogReader(
-                    new EventLogQuery(logName, PathType.LogName, query));
+                    new EventLogQuery(logName, PathType.LogName, query) { ReverseDirection = true });
 
                 EventRecord? record;
                 while ((record = reader.ReadEvent()) != null && list.Count < maxCount)

@@ -9,8 +9,29 @@ public sealed class GpuControlService : IGpuControlService
     private readonly IGpuControlBackend _activeBackend;
 
     public GpuVendor PrimaryVendor => _activeBackend.Vendor;
-    public bool OcWriteAvailable => _activeBackend.IsAvailable;
-    public string? OcUnavailableReason => _activeBackend.UnavailableReason;
+
+    /// <summary>
+    /// True only when the backend can actually WRITE something (audit C3): IsAvailable merely
+    /// means the vendor DLL loaded, but both real backends' TryApply are deliberate stubs with
+    /// every capability false — gating on IsAvailable showed a fully-rigged OC panel whose
+    /// Apply always failed, while the honest vendor-tool fallback card stayed hidden.
+    /// </summary>
+    public bool OcWriteAvailable
+    {
+        get
+        {
+            if (!_activeBackend.IsAvailable) return false;
+            var caps = _activeBackend.GetCapabilities();
+            return caps.CanSetCoreOffset || caps.CanSetMemoryOffset || caps.CanSetPowerLimit
+                || caps.CanSetTempLimit || caps.CanSetFan;
+        }
+    }
+
+    public string? OcUnavailableReason => _activeBackend.UnavailableReason
+        ?? (_activeBackend.IsAvailable && !OcWriteAvailable
+            ? "OC write is not implemented in this build — use the GPU vendor tool."
+            : null);
+
     public GpuControlCapabilities Capabilities => _activeBackend.GetCapabilities();
 
     // ── Constructor: pick the first available real backend, or fall back to Null ─

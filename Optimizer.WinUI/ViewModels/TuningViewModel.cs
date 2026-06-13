@@ -443,7 +443,11 @@ public partial class TuningViewModel : ObservableObject
         GpuPowerLimitPct  = 100;
         GpuTempLimitC     = 83;
         GpuFanManual      = false;
-        GpuOcStatus       = "GPU settings reset to defaults.";
+        // Audit C3: the backends' ResetToDefault is a documented no-op when OC write is
+        // unavailable — reporting "reset to defaults" then was a false success message.
+        GpuOcStatus = _gpuControl.OcWriteAvailable
+            ? "GPU settings reset to defaults."
+            : "Sliders reset. Nothing was written — OC write is not available in this build.";
     }
 
     [RelayCommand]

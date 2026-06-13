@@ -81,8 +81,10 @@ public static class BuiltInPresetsProvider
         new()
         {
             Id = "preset-quiet", Name = "Quiet PC", ProfileType = ProfileType.BatterySaver,
-            Description = "Lower power for reduced fan noise and thermals",
-            Optimizations = { Ids.OptimizePowerSettings, Ids.DisableBackgroundApps }
+            Description = "Fewer background workloads for reduced fan noise",
+            // Audit C1: OptimizePowerSettings activates the HIGH PERFORMANCE plan — the opposite
+            // of this preset's promise (more watts, heat and fan noise). Removed.
+            Optimizations = { Ids.DisableBackgroundApps }
         }
     };
 }
