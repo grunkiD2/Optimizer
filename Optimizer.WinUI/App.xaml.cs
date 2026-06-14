@@ -200,6 +200,7 @@ public partial class App : Application
                 services.AddSingleton(sp =>
                     new ProfileTransitionWatcher(
                         sp.GetRequiredService<IFancontrolStatusService>(),
+                        sp.GetRequiredService<IProfileOutcomesService>(),
                         () => sp.GetRequiredService<DatabaseService>().CreateConnection()));
                 // Profil 2.0 P2.0-d: automatic preset FOLLOWER — applies the active profile's "optimizer"
                 // preset-link on profile change (opt-in via FancontrolFollowerEnabled, undo + EngineLog only).

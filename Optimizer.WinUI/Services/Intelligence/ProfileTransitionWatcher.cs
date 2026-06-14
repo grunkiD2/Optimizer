@@ -20,16 +20,23 @@ namespace Optimizer.WinUI.Services.Intelligence;
 /// </summary>
 public sealed class ProfileTransitionWatcher
 {
+    // ≈1 min at 5 s telemetry: don't persist an outcome for a trivial sub-minute interval (the coolant
+    // hasn't settled and a p95 over <12 samples is noise). Genuine transitions below this still close the
+    // timeline interval normally — only the best-effort ProfileOutcomes rollup is skipped.
+    private const int MinOutcomeSamples = 12;
+
     private readonly IFancontrolStatusService _status;
+    private readonly IProfileOutcomesService _outcomes;
     private readonly Func<SqliteConnection> _connFactory;
     private readonly Func<string> _nowUtcIso;   // injectable clock (DateTimeOffset.UtcNow.ToString("o") in prod)
     private string? _lastSeen;
     private bool _rehydrated;
     private int _ticking;   // 0/1 re-entrancy guard: TickAsync is fire-and-forget off a 5 s UI timer.
 
-    public ProfileTransitionWatcher(IFancontrolStatusService status, Func<SqliteConnection> connectionFactory, Func<string>? nowUtcIso = null)
+    public ProfileTransitionWatcher(IFancontrolStatusService status, IProfileOutcomesService outcomes, Func<SqliteConnection> connectionFactory, Func<string>? nowUtcIso = null)
     {
         _status = status;
+        _outcomes = outcomes;
         _connFactory = connectionFactory;
         _nowUtcIso = nowUtcIso ?? (() => DateTimeOffset.UtcNow.ToString("o"));
     }
@@ -69,6 +76,17 @@ public sealed class ProfileTransitionWatcher
             {
                 await using var conn = _connFactory();
                 await conn.OpenAsync();
+
+                // Capture the interval we're ABOUT to close so we can roll it up after the commit.
+                // (closedProfile null = no prior open interval, e.g. first-ever transition → nothing to roll up.)
+                string? closedProfile = null, closedStart = null;
+                await using (var pick = conn.CreateCommand())
+                {
+                    pick.CommandText = "SELECT ProfileName, StartTs FROM ProfileTimeline WHERE EndTs IS NULL ORDER BY StartTs DESC LIMIT 1";
+                    await using var pr = await pick.ExecuteReaderAsync();
+                    if (await pr.ReadAsync()) { closedProfile = pr.GetString(0); closedStart = pr.GetString(1); }
+                }
+
                 // Close-then-open must be atomic: a crash between them would leave a gap in the timeline.
                 await using var tx = (SqliteTransaction)await conn.BeginTransactionAsync();
                 await using (var close = conn.CreateCommand())
@@ -91,6 +109,22 @@ public sealed class ProfileTransitionWatcher
                 }
                 await tx.CommitAsync();
                 _lastSeen = current;
+
+                // Close the verification loop: roll up + SAVE the just-closed interval so the editor's
+                // "Verificerer…" band can show a coolant-p95 outcome. Best-effort by construction — runs
+                // AFTER the commit (rollup reads committed telemetry) and in its OWN try/catch, so a rollup
+                // failure NEVER breaks the transition (the timeline write already succeeded) or throws into
+                // the UI loop. Only on a GENUINE close of a real prior interval — never the rehydrate path.
+                if (closedProfile is not null && closedStart is not null)
+                {
+                    try
+                    {
+                        var rec = await _outcomes.RollupIntervalAsync(closedProfile, closedStart, now);
+                        if (rec is not null && rec.SampleCount >= MinOutcomeSamples)
+                            await _outcomes.SaveAsync(rec);
+                    }
+                    catch { /* outcome rollup is best-effort: never break the transition */ }
+                }
             }
             catch { /* transient DB lock → retry next tick; _lastSeen unchanged so we re-attempt */ }
         }

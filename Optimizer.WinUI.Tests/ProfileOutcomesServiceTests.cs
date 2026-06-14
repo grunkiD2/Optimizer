@@ -129,7 +129,8 @@ public class ProfileOutcomesServiceTests : IAsyncLifetime
         var clock = 0;
         Func<string> nowIso = () => $"2026-06-12T13:{clock++:00}:00Z";
         var status = StatusReturning("AAA-HDR", "destiny2.exe");
-        var watcher = new ProfileTransitionWatcher(status.Object, Factory(), nowIso);
+        // Real (un-mocked) outcomes service over the SAME test DB so the close→rollup→save path runs.
+        var watcher = new ProfileTransitionWatcher(status.Object, new ProfileOutcomesService(Factory()), Factory(), nowIso);
 
         // Act: first tick after "restart".
         await watcher.TickAsync();
@@ -149,5 +150,71 @@ public class ProfileOutcomesServiceTests : IAsyncLifetime
         Assert.Equal(1, await CountIntervalsAsync("AAA-HDR"));         // unchanged count
         Assert.Equal(0, await CountOpenIntervalsAsync("AAA-HDR"));     // closed
         Assert.Equal(1, await CountOpenIntervalsAsync("Desktop"));     // single new transition
+    }
+
+    // --- ProfileTransitionWatcher: closes the verification loop (rolls up + SAVES the outcome) ---
+
+    private async Task<int> CountOutcomesAsync(string profile)
+        => Convert.ToInt32(await _db.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM ProfileOutcomes WHERE ProfileName = @p",
+            new Dictionary<string, object> { ["p"] = profile }));
+
+    [Fact]
+    public async Task Watcher_rolls_up_and_saves_outcome_when_it_closes_an_interval()
+    {
+        // Arrange: an OPEN "AAA-HDR" interval + >=12 telemetry rows inside [StartTs, now) with varying coolant.
+        await InsertTimelineAsync("AAA-HDR", "2026-06-12T12:00:00Z", null, "destiny2.exe");
+        for (int i = 0; i < 15; i++)
+            await InsertTelemetryAsync(ts: $"2026-06-12T12:{i:00}:00Z", coolant: 30 + i); // 30..44
+        Assert.Equal(0, await CountOutcomesAsync("AAA-HDR"));
+
+        // Deterministic clock: the transition `now` lands AFTER the telemetry window so all 15 rows fall inside.
+        Func<string> nowIso = () => "2026-06-12T13:00:00Z";
+        var status = StatusReturning("AAA-HDR", "destiny2.exe");
+        var outcomes = new ProfileOutcomesService(Factory());
+        var watcher = new ProfileTransitionWatcher(status.Object, outcomes, Factory(), nowIso);
+
+        // First tick: rehydrate adopts AAA-HDR (no transition, no rollup).
+        await watcher.TickAsync();
+        Assert.Equal(0, await CountOutcomesAsync("AAA-HDR")); // rehydrate must NOT roll up
+
+        // Genuine transition: flip to Desktop → closes AAA-HDR [12:00, 13:00) and rolls it up.
+        status.Setup(s => s.GetStatus()).Returns(() => new FancontrolStatus
+        {
+            Profiles = new FancontrolProfileStatus { LastAppliedProfile = "Desktop", ForegroundExe = "explorer.exe" },
+        });
+        await watcher.TickAsync();
+
+        // Assert: a ProfileOutcomes row now exists for AAA-HDR with a non-null CoolantP95 and SampleCount>=12.
+        Assert.Equal(1, await CountOutcomesAsync("AAA-HDR"));
+        var (latest, _) = await outcomes.LastVsPreviousAsync("AAA-HDR");
+        Assert.NotNull(latest);
+        Assert.True(latest!.SampleCount >= 12, $"expected >=12 samples, got {latest.SampleCount}");
+        Assert.NotNull(latest.CoolantP95);
+    }
+
+    [Fact]
+    public async Task Watcher_does_not_save_outcome_for_a_short_sub_minute_interval()
+    {
+        // Arrange: an OPEN "Night" interval but only a handful of telemetry rows (< MinOutcomeSamples=12).
+        await InsertTimelineAsync("Night", "2026-06-12T02:00:00Z", null, null);
+        for (int i = 0; i < 4; i++)
+            await InsertTelemetryAsync(ts: $"2026-06-12T02:0{i}:00Z", coolant: 28 + i);
+
+        Func<string> nowIso = () => "2026-06-12T02:10:00Z";
+        var status = StatusReturning("Night");
+        var outcomes = new ProfileOutcomesService(Factory());
+        var watcher = new ProfileTransitionWatcher(status.Object, outcomes, Factory(), nowIso);
+
+        await watcher.TickAsync(); // rehydrate adopts Night
+
+        // Transition away → closes the short Night interval; too few samples to persist an outcome.
+        status.Setup(s => s.GetStatus()).Returns(() => new FancontrolStatus
+        {
+            Profiles = new FancontrolProfileStatus { LastAppliedProfile = "Desktop", ForegroundExe = "explorer.exe" },
+        });
+        await watcher.TickAsync();
+
+        Assert.Equal(0, await CountOutcomesAsync("Night")); // gated by MinOutcomeSamples — no row
     }
 }
