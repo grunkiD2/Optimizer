@@ -9,6 +9,7 @@ using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Optimizer.WinUI.Views;
@@ -756,6 +757,13 @@ public sealed partial class ProfilesPage : Page
             if (!string.IsNullOrEmpty(mp.Exe)) mappedExes.Add(mp.Exe);
         var chip = ProfileContextChip.Derive(status, mappedExes);
         var intel = App.GetService<IProfileIntelligenceService>().Build(p.Name, status?.Profiles?.ForegroundExe);
+
+        // Task 8: warm the external "~ ekstern" web tier for the resolved app exe. Fire-and-forget —
+        // FetchAsync never throws and no-ops without an Anthropic key, so this can't break the editor.
+        // The first open is measured-only; the "Kendt info (ekstern)" group appears on a subsequent open
+        // once the per-app cache is warm.
+        if (App.GetService<IAppWebLookup>() is AppWebLookupService webLookup)
+            _ = webLookup.FetchAsync(intel.AppName, CancellationToken.None);
 
         // 2-column layout: ~280px intelligence pane on the left, the existing (untouched) form on the right.
         var grid = new Grid { ColumnSpacing = 16 };

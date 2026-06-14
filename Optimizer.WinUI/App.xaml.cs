@@ -167,6 +167,11 @@ public partial class App : Application
                 // resolved with GetService (optional) so the app works without it.
                 services.AddSingleton(sp => new PresentMonSummaryReader(
                     sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
+                // Task 8: external "~ ekstern" web tier — one structured Claude web_search call per app,
+                // cached + fail-safe. Reuses the existing Anthropic key (IApiKeyStore); empty/no-op without
+                // a key, so registering it unconditionally is safe. Opt-in DI turns the external tier ON.
+                services.AddSingleton<IAppWebLookup>(sp => new AppWebLookupService(
+                    sp.GetRequiredService<IApiKeyStore>()));
                 services.AddSingleton<IProfileIntelligenceService>(sp => new ProfileIntelligenceService(
                     sp.GetRequiredService<IFancontrolCommandService>(),
                     sp.GetRequiredService<PresentMonSummaryReader>(),
