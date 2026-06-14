@@ -762,7 +762,12 @@ public sealed partial class ProfilesPage : Page
         // FetchAsync never throws and no-ops without an Anthropic key, so this can't break the editor.
         // The first open is measured-only; the "Kendt info (ekstern)" group appears on a subsequent open
         // once the per-app cache is warm.
-        if (App.GetService<IAppWebLookup>() is AppWebLookupService webLookup)
+        // Cost gate: only warm for a REAL mapped game/app exe. intel.AppName falls back to the foreground
+        // exe (explorer.exe / the Optimizer itself) or the literal "(ingen app i fokus)" placeholder when no
+        // mapped game is in front — firing a billed web_search for those is waste. mappedExes.Contains is
+        // true exactly when the app context came from a mapped program.
+        if (mappedExes.Contains(intel.AppName)
+            && App.GetService<IAppWebLookup>() is AppWebLookupService webLookup)
             _ = webLookup.FetchAsync(intel.AppName, CancellationToken.None);
 
         // 2-column layout: ~280px intelligence pane on the left, the existing (untouched) form on the right.
