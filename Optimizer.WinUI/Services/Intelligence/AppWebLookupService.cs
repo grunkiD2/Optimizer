@@ -55,6 +55,9 @@ public sealed class AppWebLookupService : IAppWebLookup
     /// or already cached. Call this opportunistically (e.g. when the editor opens) — never block UI.</summary>
     public async Task FetchAsync(string exe, CancellationToken ct)
     {
+        // Check-then-act on ContainsKey is a tolerated rare double-fetch window: the UI fires this once per
+        // dialog-open (the second open is cache-warm). _cache is a ConcurrentDictionary, so the worst case is
+        // one redundant call — never corruption.
         if (string.IsNullOrWhiteSpace(exe) || !_isConfigured() || _cache.ContainsKey(exe)) return;
         try
         {
@@ -70,6 +73,8 @@ public sealed class AppWebLookupService : IAppWebLookup
     {
         var key = keyStore.GetKey();
         if (string.IsNullOrWhiteSpace(key)) return Array.Empty<EvidenceLine>();
+        // Per-call client (and its HttpClient) is acceptable here: the result is cached per exe, so this
+        // path runs at most once per distinct app per process lifetime — not a hot/socket-churning loop.
         var client = new AnthropicClient { ApiKey = key };
 
         var prompt =
@@ -113,7 +118,9 @@ public sealed class AppWebLookupService : IAppWebLookup
     internal static IReadOnlyList<EvidenceLine> ParseFacts(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return Array.Empty<EvidenceLine>();
-        int s = text.IndexOf('{'), e = text.LastIndexOf('}');
+        // IndexOf(char, StringComparison) exists; LastIndexOf has no char+StringComparison overload, so use
+        // the string overload (same index for a single char) — both satisfy CA1307 (ordinal, culture-agnostic).
+        int s = text.IndexOf('{', StringComparison.Ordinal), e = text.LastIndexOf("}", StringComparison.Ordinal);
         if (s < 0 || e <= s) return Array.Empty<EvidenceLine>();
         try
         {
