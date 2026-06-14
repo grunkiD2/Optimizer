@@ -184,6 +184,18 @@ public partial class App : Application
                         sp.GetRequiredService<ISettingsService>().Settings.FancontrolStateDir));
                 services.AddSingleton<IFancontrolTelemetryService>(sp => sp.GetRequiredService<FancontrolTelemetryService>());
                 services.AddHostedService(sp => sp.GetRequiredService<FancontrolTelemetryService>());
+                // Profil 2.0 Fase 2 — verification-loop backbone. Both share the SAME DB file as the
+                // rest of the Optimizer via DatabaseService.CreateConnection() (a closed connection the
+                // services open themselves), so ProfileTimeline/ProfileOutcomes/FancontrolTelemetry are
+                // queryable in one DB. ProfileTransitionWatcher.TickAsync() is driven by FancontrolPage's
+                // existing 5 s status pulse (fire-and-forget).
+                services.AddSingleton<IProfileOutcomesService>(sp =>
+                    new ProfileOutcomesService(
+                        () => sp.GetRequiredService<DatabaseService>().CreateConnection()));
+                services.AddSingleton(sp =>
+                    new ProfileTransitionWatcher(
+                        sp.GetRequiredService<IFancontrolStatusService>(),
+                        () => sp.GetRequiredService<DatabaseService>().CreateConnection()));
                 // Profil 2.0 P2.0-d: automatic preset FOLLOWER — applies the active profile's "optimizer"
                 // preset-link on profile change (opt-in via FancontrolFollowerEnabled, undo + EngineLog only).
                 services.AddSingleton<FancontrolProfileFollowerService>(sp =>

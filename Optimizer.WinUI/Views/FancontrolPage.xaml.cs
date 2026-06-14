@@ -31,6 +31,7 @@ public sealed partial class FancontrolPage : Page
     private readonly IFancontrolTelemetryService _telemetry;
     private readonly IFancontrolEventsService _events;
     private readonly IFancontrolCommandService _commands;
+    private readonly Optimizer.WinUI.Services.Intelligence.ProfileTransitionWatcher _transitionWatcher;
 
     private DispatcherTimer? _timer;
     private int _ticks;
@@ -45,6 +46,7 @@ public sealed partial class FancontrolPage : Page
         _telemetry = App.GetService<IFancontrolTelemetryService>();
         _events = App.GetService<IFancontrolEventsService>();
         _commands = App.GetService<IFancontrolCommandService>();
+        _transitionWatcher = App.GetService<Optimizer.WinUI.Services.Intelligence.ProfileTransitionWatcher>();
         InitializeComponent();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -66,6 +68,9 @@ public sealed partial class FancontrolPage : Page
         {
             RefreshStatus();
             RefreshLog();
+            // Profil 2.0 Fase 2: record fgwatch profile transitions into ProfileTimeline on the
+            // same 5 s pulse. Fire-and-forget; TickAsync is fail-safe and a no-op when unchanged.
+            _ = _transitionWatcher.TickAsync();
             if (++_ticks % 12 == 0) _ = RefreshHistoryAsync();   // charts every 60 s
         };
         _timer.Start();

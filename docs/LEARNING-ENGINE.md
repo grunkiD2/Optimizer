@@ -45,6 +45,8 @@ A single SQLite database at `%LocalAppData%\Optimizer\optimizer.db`, created/own
 | `OptimizationOutcomes` | `AutoApplyPolicy` | per-context apply outcomes (auto-apply gate) |
 | `ContextSnapshots` | `ContextStateManager` | per-context registry baseline |
 | `ScheduledTasks`, `ScheduleExecutions` | `ScheduledOptimizationService` | unattended runs |
+| `ProfileTimeline` | `ProfileTransitionWatcher` | fgwatch profile-active intervals (one row per profile switch; `EndTs` NULL = still active) |
+| `ProfileOutcomes` | `ProfileOutcomesService` | per-interval rollups (coolant-p95 from `FancontrolTelemetry` + fps-1%-low from PresentMon) for "sidst vs forrige" |
 | `TrendHistory`, `RecommendationPreferences` | (legacy, mirrored) | |
 
 ---

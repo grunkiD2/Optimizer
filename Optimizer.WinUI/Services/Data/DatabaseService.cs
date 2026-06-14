@@ -110,6 +110,15 @@ public class DatabaseService : IAsyncDisposable
         return conn;
     }
 
+    /// <summary>
+    /// Create a <em>closed</em> connection over the same DB file/connection string. The caller opens it
+    /// (e.g. <c>await conn.OpenAsync()</c>). This is the connection factory for services that manage their
+    /// own open/close lifecycle — notably <c>ProfileTransitionWatcher</c> / <c>ProfileOutcomesService</c>
+    /// (Profil 2.0 — Fase 2), wired in DI as <c>() =&gt; db.CreateConnection()</c> so timeline/outcomes land
+    /// in the SAME database as the rest of the Optimizer.
+    /// </summary>
+    public SqliteConnection CreateConnection() => new(_connectionString);
+
     /// <summary>Execute a query returning a single scalar value.</summary>
     public async Task<T?> ExecuteScalarAsync<T>(string sql, Dictionary<string, object>? parameters = null)
     {
