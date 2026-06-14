@@ -1,12 +1,15 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using Optimizer.WinUI.Models;
 using Optimizer.WinUI.Services;
+using Optimizer.WinUI.Services.Intelligence;
 using Optimizer.WinUI.ViewModels;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Optimizer.WinUI.Views;
 
@@ -578,17 +581,19 @@ public sealed partial class ProfilesPage : Page
             form.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = Res("MutedBrush"), Margin = new Thickness(0, 4, 0, 0) });
             form.Children.Add(ctl);
         }
-        AddField("Skærm-mode (GameVisual)", mode);
-        AddField("Lysstyrke (0-100)", bright);
-        form.Children.Add(hdr);
+        AddFieldWithGuidance(form, "Skærm-mode (GameVisual)", mode, "mode");
+        AddFieldWithGuidance(form, "Lysstyrke (0-100)", bright, "bright");
+        // HDR is a checkbox added inline (it owns the dependent hdrType/recipe/banner controls + SyncHdr
+        // wiring) — give it the same ⓘ guidance affordance without an extra header label.
+        form.Children.Add(BuildHdrRowWithGuidance(form, hdr, "hdr"));
         form.Children.Add(hdrType); form.Children.Add(recipe); form.Children.Add(hdrBanner);
-        AddField("Power plan", power);
-        AddField("Audio device (lyd)", lyd);
-        AddField("Lighting mode", lysMode);
+        AddFieldWithGuidance(form, "Power plan", power, "power");
+        AddFieldWithGuidance(form, "Audio device (lyd)", lyd, "lyd");
+        AddFieldWithGuidance(form, "Lighting mode", lysMode, "lys");
         var colorRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         colorRow.Children.Add(lysColor); colorRow.Children.Add(swatch);
         AddField("Lighting color (static)", colorRow);
-        AddField("Optimizer preset-link (auto-applied on switch)", optimizer);
+        AddFieldWithGuidance(form, "Optimizer preset-link (auto-applied on switch)", optimizer, "optimizer");
         AddField("Icon", uiIcon);
         AddField("Description", uiDesc);
         var advPanel = new StackPanel { Spacing = 6 };
@@ -597,6 +602,121 @@ public sealed partial class ProfilesPage : Page
         form.Children.Add(new Expander { Header = "Avanceret (rå værdier)", IsExpanded = unknownLabel != null, Content = advPanel });
         SyncHdr();
         return (form, new FcFormControls(mode, rawDc, bright, hdr, hdrType, power, lyd, lysMode, lysColor, swatch, optimizer, uiIcon, uiDesc));
+    }
+
+    // ── Per-field ⓘ guidance (Profil 2.0 Fase 2) ───────────────────────────
+    // Adds the field label + (when FieldGuidance.For(fieldKey) exists) a small ⓘ button that opens a
+    // TeachingTip with the plain-language hint + the opposing trade-off, then the control itself.
+    // Fields without a guidance entry fall back to a plain label (same layout as the old AddField).
+    private void AddFieldWithGuidance(StackPanel form, string label, FrameworkElement control, string fieldKey)
+    {
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
+        header.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = Res("MutedBrush"), VerticalAlignment = VerticalAlignment.Center });
+        var g = FieldGuidance.For(fieldKey);
+        if (g is not null)
+        {
+            var info = new Button { Content = "ⓘ", FontSize = 11, Padding = new Thickness(4, 0, 4, 0), Background = Res("HudSurfaceBrush") };
+            var tip = new TeachingTip { Title = label, Subtitle = $"{g.Hint}\n\nAfvejning: {g.Tradeoff}", IsLightDismissEnabled = true, Target = info };
+            info.Click += (_, _) => tip.IsOpen = true;
+            header.Children.Add(info);
+            form.Children.Add(header);
+            form.Children.Add(tip);
+        }
+        else
+        {
+            form.Children.Add(header);
+        }
+        form.Children.Add(control);
+    }
+
+    // HDR is a CheckBox whose content is its own label, so it gets an inline ⓘ next to the checkbox
+    // (no extra header label). Returns the row; the dependent hdrType/recipe/banner are added by the caller.
+    private FrameworkElement BuildHdrRowWithGuidance(StackPanel form, CheckBox hdr, string fieldKey)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        row.Children.Add(hdr);
+        var g = FieldGuidance.For(fieldKey);
+        if (g is not null)
+        {
+            var info = new Button { Content = "ⓘ", FontSize = 11, Padding = new Thickness(4, 0, 4, 0), Background = Res("HudSurfaceBrush"), VerticalAlignment = VerticalAlignment.Center };
+            var tip = new TeachingTip { Title = "HDR til", Subtitle = $"{g.Hint}\n\nAfvejning: {g.Tradeoff}", IsLightDismissEnabled = true, Target = info };
+            info.Click += (_, _) => tip.IsOpen = true;
+            row.Children.Add(info);
+            form.Children.Add(tip);
+        }
+        return row;
+    }
+
+    // ── Intelligence pane (Profil 2.0 Fase 2): state-chip + "Hvad ved vi om <app>" + Verificerer-band ──
+    private FrameworkElement BuildIntelligencePane(ContextChip chip, IntelligencePicture intel)
+    {
+        var panel = new StackPanel { Spacing = 10 };
+
+        // ── State-chip (app-bound vs mood) ──
+        string chipText = chip.Kind switch
+        {
+            ChipKind.AppBound => $"App-bundet: {chip.AppExe} · måler",
+            ChipKind.Mood => $"Manuel stemning: {chip.ProfileName ?? "—"}",
+            _ => "Tilstand ukendt",
+        };
+        var chipBorder = new Border
+        {
+            Background = Res(chip.Kind == ChipKind.AppBound ? "AccentCyanBrush" : "HudSurfaceBrush"),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(10, 6, 10, 6),
+            Child = new TextBlock { Text = chipText + (chip.Stale ? "  (forsinket)" : ""), TextWrapping = TextWrapping.Wrap, FontSize = 12 },
+        };
+        panel.Children.Add(chipBorder);
+
+        // ── "Hvad ved vi om <app>" + maturity ──
+        panel.Children.Add(new TextBlock { Text = $"Hvad ved vi om {intel.AppName}", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 14 });
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"Modenhed: {intel.MaturityHave}/{intel.MaturityTarget} datakilder",
+            FontSize = 11,
+            Foreground = Res("MutedBrush"),
+        });
+
+        foreach (var group in intel.Groups)
+        {
+            panel.Children.Add(new TextBlock { Text = group.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 12, Margin = new Thickness(0, 6, 0, 0) });
+            foreach (var line in group.Lines)
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+                row.Children.Add(new TextBlock { Text = line.Tier.Badge(), FontSize = 11, Foreground = Res("MutedBrush"), Width = 62 });
+                var body = new StackPanel();
+                body.Children.Add(new TextBlock { Text = $"{line.Label}: {line.Value}", FontSize = 12, TextWrapping = TextWrapping.Wrap });
+                body.Children.Add(new TextBlock { Text = line.Source, FontSize = 10, Foreground = Res("MutedBrush"), TextWrapping = TextWrapping.Wrap });
+                row.Children.Add(body);
+                panel.Children.Add(row);
+            }
+        }
+
+        // ── "Verificerer…" band — coolant-p95 latest vs previous (filled off the UI thread) ──
+        var verifyBlock = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Res("MutedBrush"), Margin = new Thickness(0, 6, 0, 0) };
+        panel.Children.Add(verifyBlock);
+        _ = Task.Run(async () =>
+        {
+            string text;
+            try
+            {
+                var (latest, prev) = await App.GetService<IProfileOutcomesService>().LastVsPreviousAsync(intel.ProfileName);
+                text = latest?.CoolantP95 is double c
+                    ? prev?.CoolantP95 is double p
+                        ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "Verificeret: coolant-p95 {0:0.0}° (forrige {1:0.0}°, {2:+0.0;-0.0}°)", c, p, c - p)
+                        : string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "Verificeret: coolant-p95 {0:0.0}° (første måling)", c)
+                    : "Verificerer… (afventer en aktiv-session-måling)";
+            }
+            catch
+            {
+                text = "Verificerer… (afventer en aktiv-session-måling)";
+            }
+            DispatcherQueue.TryEnqueue(() => verifyBlock.Text = text);
+        });
+
+        return panel;
     }
 
     // Validates the form + returns the lag-2 edit-patch JSON, or null after showing an error.
@@ -628,10 +748,31 @@ public sealed partial class ProfilesPage : Page
             Text = $"Lag-2 fields of '{p.Name}'. gamingClass (lag-1, system-owned) is read-only here: {(p.GamingClass ? "GAMING" : "not gaming")}.",
             FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Res("MutedBrush")
         });
+
+        // ── Profil 2.0 Fase 2: gather context for the left intelligence pane ──
+        var status = _fcStatus.GetStatus();
+        var mappedExes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var mp in _fc.GetMappedPrograms())
+            if (!string.IsNullOrEmpty(mp.Exe)) mappedExes.Add(mp.Exe);
+        var chip = ProfileContextChip.Derive(status, mappedExes);
+        var intel = App.GetService<IProfileIntelligenceService>().Build(p.Name, status?.Profiles?.ForegroundExe);
+
+        // 2-column layout: ~280px intelligence pane on the left, the existing (untouched) form on the right.
+        var grid = new Grid { ColumnSpacing = 16 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(280) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var leftPane = BuildIntelligencePane(chip, intel);
+        Grid.SetColumn(leftPane, 0);
+        var formScroller = new ScrollViewer { Content = form, VerticalScrollMode = ScrollMode.Auto };
+        Grid.SetColumn(formScroller, 1);
+        grid.Children.Add(leftPane);
+        grid.Children.Add(formScroller);
+
         var dlg = new ContentDialog
         {
             Title = $"Edit — {p.Name}",
-            Content = new ScrollViewer { Content = form, MaxHeight = 520 },
+            Content = new ScrollViewer { Content = grid, MaxHeight = 560 },
             PrimaryButtonText = "Save", CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Primary, XamlRoot = XamlRoot
         };
