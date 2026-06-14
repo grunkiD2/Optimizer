@@ -116,6 +116,10 @@ public class DatabaseService : IAsyncDisposable
     /// own open/close lifecycle — notably <c>ProfileTransitionWatcher</c> / <c>ProfileOutcomesService</c>
     /// (Profil 2.0 — Fase 2), wired in DI as <c>() =&gt; db.CreateConnection()</c> so timeline/outcomes land
     /// in the SAME database as the rest of the Optimizer.
+    /// <para>Unlike <see cref="GetConnection"/>, this deliberately does NOT apply the per-connection pragmas
+    /// (<c>PRAGMA foreign_keys = ON</c> etc.) — it just hands back a closed connection. A caller that needs FK
+    /// enforcement must set the pragma itself after opening. The ProfileTimeline / ProfileOutcomes tables
+    /// declare no foreign keys, so for the current callers this is moot.</para>
     /// </summary>
     public SqliteConnection CreateConnection() => new(_connectionString);
 

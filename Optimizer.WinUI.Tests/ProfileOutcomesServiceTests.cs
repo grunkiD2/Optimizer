@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
+using Moq;
+using Optimizer.WinUI.Models;
+using Optimizer.WinUI.Services;
 using Optimizer.WinUI.Services.Data;
 using Optimizer.WinUI.Services.Intelligence;
 using Xunit;
@@ -90,5 +93,61 @@ public class ProfileOutcomesServiceTests : IAsyncLifetime
         Assert.NotNull(rec);
         Assert.Equal(0, rec!.SampleCount);
         Assert.Null(rec.CoolantP95);
+    }
+
+    // --- ProfileTransitionWatcher: restart-rehydrate (no interval split) ---
+
+    private static Mock<IFancontrolStatusService> StatusReturning(string? lastProfile, string? fgExe = null)
+    {
+        var mock = new Mock<IFancontrolStatusService>();
+        mock.Setup(s => s.GetStatus()).Returns(() => new FancontrolStatus
+        {
+            Profiles = new FancontrolProfileStatus { LastAppliedProfile = lastProfile, ForegroundExe = fgExe },
+        });
+        return mock;
+    }
+
+    private async Task<int> CountIntervalsAsync(string profile)
+        => Convert.ToInt32(await _db.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM ProfileTimeline WHERE ProfileName = @p",
+            new Dictionary<string, object> { ["p"] = profile }));
+
+    private async Task<int> CountOpenIntervalsAsync(string profile)
+        => Convert.ToInt32(await _db.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM ProfileTimeline WHERE ProfileName = @p AND EndTs IS NULL",
+            new Dictionary<string, object> { ["p"] = profile }));
+
+    [Fact]
+    public async Task Watcher_rehydrates_lastSeen_on_first_tick_and_does_not_split_a_still_active_interval()
+    {
+        // Arrange: a profile genuinely still active across an app restart → one OPEN interval in the DB.
+        await InsertTimelineAsync("AAA-HDR", "2026-06-12T12:00:00Z", null, "destiny2.exe");
+        Assert.Equal(1, await CountIntervalsAsync("AAA-HDR"));
+        Assert.Equal(1, await CountOpenIntervalsAsync("AAA-HDR"));
+
+        // A fresh singleton (in-memory _lastSeen = null) whose status reports the SAME profile.
+        var clock = 0;
+        Func<string> nowIso = () => $"2026-06-12T13:{clock++:00}:00Z";
+        var status = StatusReturning("AAA-HDR", "destiny2.exe");
+        var watcher = new ProfileTransitionWatcher(status.Object, Factory(), nowIso);
+
+        // Act: first tick after "restart".
+        await watcher.TickAsync();
+
+        // Assert: rehydrate ADOPTED the open interval — no close, no new row, still exactly one open AAA-HDR.
+        Assert.Equal(1, await CountIntervalsAsync("AAA-HDR"));
+        Assert.Equal(1, await CountOpenIntervalsAsync("AAA-HDR"));
+
+        // Now a GENUINE transition: status flips to a different profile.
+        status.Setup(s => s.GetStatus()).Returns(() => new FancontrolStatus
+        {
+            Profiles = new FancontrolProfileStatus { LastAppliedProfile = "Desktop", ForegroundExe = "explorer.exe" },
+        });
+        await watcher.TickAsync();
+
+        // Assert: AAA-HDR is now CLOSED (no open row), and a NEW open Desktop interval exists.
+        Assert.Equal(1, await CountIntervalsAsync("AAA-HDR"));         // unchanged count
+        Assert.Equal(0, await CountOpenIntervalsAsync("AAA-HDR"));     // closed
+        Assert.Equal(1, await CountOpenIntervalsAsync("Desktop"));     // single new transition
     }
 }

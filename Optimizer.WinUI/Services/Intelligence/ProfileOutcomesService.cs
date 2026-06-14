@@ -35,8 +35,10 @@ public sealed class ProfileOutcomesService : IProfileOutcomesService
         if (n >= 5)
         {
             // SQLite has no PERCENTILE_CONT: pick the p95 row by ORDER BY ASC + OFFSET.
+            // Nearest-rank p95 ((int)(n*0.95)) — biased toward the high end for small n; a deliberate
+            // choice for a coolant ceiling (we'd rather over- than under-state the worst case).
             int offset = (int)(n * 0.95);
-            if (offset >= n) offset = n - 1;
+            if (offset >= n) offset = n - 1; // defensive clamp; unreachable for n>=5 since (int)(n*0.95) < n.
             await using var q = conn.CreateCommand();
             q.CommandText = "SELECT Coolant FROM FancontrolTelemetry WHERE Ts >= $a AND Ts < $b AND Coolant IS NOT NULL ORDER BY Coolant ASC LIMIT 1 OFFSET $o";
             q.Parameters.AddWithValue("$a", startTs);

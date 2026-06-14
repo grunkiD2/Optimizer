@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Optimizer.WinUI.Services;
@@ -10,6 +11,12 @@ namespace Optimizer.WinUI.Services.Intelligence;
 /// (or call <see cref="TickAsync"/> from an existing 5 s loop); when LastAppliedProfile changes, close the
 /// open interval (set EndTs = now) and open a new one. Append-only; the engine is never written. Idempotent
 /// on no-change. The clock is injectable for testability.
+///
+/// <para><see cref="_lastSeen"/> is rehydrated from the open ProfileTimeline row on the FIRST tick after
+/// (re)launch — the watcher is a DI singleton, so without this an app restart would see the (genuinely still
+/// active) profile as a change and SPLIT its live interval, fragmenting the outcomes rollup. After rehydrate,
+/// a restart with the same profile active is a no-op; a restart with a different profile is a single genuine
+/// transition.</para>
 /// </summary>
 public sealed class ProfileTransitionWatcher
 {
@@ -17,6 +24,8 @@ public sealed class ProfileTransitionWatcher
     private readonly Func<SqliteConnection> _connFactory;
     private readonly Func<string> _nowUtcIso;   // injectable clock (DateTimeOffset.UtcNow.ToString("o") in prod)
     private string? _lastSeen;
+    private bool _rehydrated;
+    private int _ticking;   // 0/1 re-entrancy guard: TickAsync is fire-and-forget off a 5 s UI timer.
 
     public ProfileTransitionWatcher(IFancontrolStatusService status, Func<SqliteConnection> connectionFactory, Func<string>? nowUtcIso = null)
     {
@@ -28,32 +37,66 @@ public sealed class ProfileTransitionWatcher
     /// <summary>Call on each status refresh (~5 s). Writes a transition only when the profile actually changes.</summary>
     public async Task TickAsync()
     {
-        string? current;
-        try { current = _status.GetStatus()?.Profiles?.LastAppliedProfile; }
-        catch { return; }                       // fail-safe: never let the watcher throw into the UI loop
-        if (string.IsNullOrEmpty(current) || current == _lastSeen) return;
-
-        var now = _nowUtcIso();
+        // Cheap re-entrancy guard: two overlapping ticks must not both run the first-tick/transition path.
+        if (Interlocked.Exchange(ref _ticking, 1) == 1) return;
         try
         {
-            await using var conn = _connFactory();
-            await conn.OpenAsync();
-            await using (var close = conn.CreateCommand())
+            string? current;
+            try { current = _status.GetStatus()?.Profiles?.LastAppliedProfile; }
+            catch { return; }                       // fail-safe: never let the watcher throw into the UI loop
+
+            // First tick after (re)launch: ADOPT the currently-open interval instead of splitting it.
+            // Without this, a restart with the same profile still active would look like a change below.
+            if (!_rehydrated)
             {
-                close.CommandText = "UPDATE ProfileTimeline SET EndTs = $t WHERE EndTs IS NULL";
-                close.Parameters.AddWithValue("$t", now);
-                await close.ExecuteNonQueryAsync();
+                try
+                {
+                    await using var rc = _connFactory();
+                    await rc.OpenAsync();
+                    await using var rcmd = rc.CreateCommand();
+                    rcmd.CommandText = "SELECT ProfileName FROM ProfileTimeline WHERE EndTs IS NULL ORDER BY StartTs DESC LIMIT 1";
+                    var open = await rcmd.ExecuteScalarAsync();
+                    if (open is string s && !string.IsNullOrEmpty(s)) _lastSeen = s;
+                    _rehydrated = true;
+                }
+                catch { /* transient DB issue → leave _rehydrated=false so we retry adopting next tick */ }
             }
-            await using var open = conn.CreateCommand();
-            open.CommandText = "INSERT INTO ProfileTimeline (ProfileName, StartTs, EndTs, Exe) VALUES ($p, $s, NULL, $e)";
-            open.Parameters.AddWithValue("$p", current);
-            open.Parameters.AddWithValue("$s", now);
-            string? fgExe = null;
-            try { fgExe = _status.GetStatus()?.Profiles?.ForegroundExe; } catch { }
-            open.Parameters.AddWithValue("$e", (object?)fgExe ?? DBNull.Value);
-            await open.ExecuteNonQueryAsync();
-            _lastSeen = current;
+
+            if (string.IsNullOrEmpty(current) || current == _lastSeen) return;
+
+            var now = _nowUtcIso();
+            try
+            {
+                await using var conn = _connFactory();
+                await conn.OpenAsync();
+                // Close-then-open must be atomic: a crash between them would leave a gap in the timeline.
+                await using var tx = (SqliteTransaction)await conn.BeginTransactionAsync();
+                await using (var close = conn.CreateCommand())
+                {
+                    close.Transaction = tx;
+                    close.CommandText = "UPDATE ProfileTimeline SET EndTs = $t WHERE EndTs IS NULL";
+                    close.Parameters.AddWithValue("$t", now);
+                    await close.ExecuteNonQueryAsync();
+                }
+                await using (var open = conn.CreateCommand())
+                {
+                    open.Transaction = tx;
+                    open.CommandText = "INSERT INTO ProfileTimeline (ProfileName, StartTs, EndTs, Exe) VALUES ($p, $s, NULL, $e)";
+                    open.Parameters.AddWithValue("$p", current);
+                    open.Parameters.AddWithValue("$s", now);
+                    string? fgExe = null;
+                    try { fgExe = _status.GetStatus()?.Profiles?.ForegroundExe; } catch { }
+                    open.Parameters.AddWithValue("$e", (object?)fgExe ?? DBNull.Value);
+                    await open.ExecuteNonQueryAsync();
+                }
+                await tx.CommitAsync();
+                _lastSeen = current;
+            }
+            catch { /* transient DB lock → retry next tick; _lastSeen unchanged so we re-attempt */ }
         }
-        catch { /* transient DB lock → retry next tick; _lastSeen unchanged so we re-attempt */ }
+        finally
+        {
+            Interlocked.Exchange(ref _ticking, 0);
+        }
     }
 }
